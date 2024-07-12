@@ -9,5 +9,6 @@ pub enum BiError {
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error("{0}")]
+    #[allow(dead_code)]
     StringError(String),
 }

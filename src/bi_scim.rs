@@ -11,6 +11,7 @@ use std::path::Path;
 #[derive(Debug, Deserialize)]
 struct ResourceServer {
     id: String,
+    #[allow(dead_code)]
     display_name: String,
 }
 
