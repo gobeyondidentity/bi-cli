@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::{bi_scim::BiScimConfig, error::BiError, tenant::TenantConfig};
+use crate::error::BiError;
 use rand::Rng;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -15,12 +15,14 @@ pub struct OktaAppResponse {
     pub name: String,
     pub label: String,
     pub status: String,
-    pub lastUpdated: String,
+    #[serde(rename = "lastUpdated")]
+    pub last_updated: String,
     pub created: String,
     pub accessibility: Accessibility,
     pub visibility: Visibility,
     pub features: Vec<String>,
-    pub signOnMode: String,
+    #[serde(rename = "signOnMode")]
+    pub sign_on_mode: String,
     pub credentials: Credentials,
     pub settings: Settings,
     pub _links: Links,
@@ -28,22 +30,29 @@ pub struct OktaAppResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Accessibility {
-    pub selfService: bool,
-    pub errorRedirectUrl: Option<String>,
-    pub loginRedirectUrl: Option<String>,
+    #[serde(rename = "selfService")]
+    pub self_service: bool,
+    #[serde(rename = "autoLaunch")]
+    pub error_redirect_url: Option<String>,
+    #[serde(rename = "loginRedirectUrl")]
+    pub login_redirect_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Visibility {
-    pub autoLaunch: bool,
-    pub autoSubmitToolbar: bool,
+    #[serde(rename = "autoLaunch")]
+    pub auto_launch: bool,
+    #[serde(rename = "autoSubmitToolbar")]
+    pub auto_submit_toolbar: bool,
     pub hide: Hide,
-    pub appLinks: AppLinks,
+    #[serde(rename = "appLinks")]
+    pub app_links: AppLinks,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Hide {
-    pub iOS: bool,
+    #[serde(rename = "iOS")]
+    pub ios: bool,
     pub web: bool,
 }
 
@@ -54,7 +63,8 @@ pub struct AppLinks {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Credentials {
-    pub userNameTemplate: UserNameTemplate,
+    #[serde(rename = "userNameTemplate")]
+    pub user_name_template: UserNameTemplate,
     pub signing: Signing,
 }
 
@@ -74,17 +84,23 @@ pub struct Signing {
 pub struct Settings {
     pub app: AppSettings,
     pub notifications: Notifications,
-    pub manualProvisioning: bool,
-    pub implicitAssignment: bool,
+    #[serde(rename = "manualProvisioning")]
+    pub manual_provisioning: bool,
+    #[serde(rename = "implicitAssignment")]
+    pub implicit_assignment: bool,
     pub notes: Notes,
-    pub signOn: SignOn,
+    #[serde(rename = "signOn")]
+    pub sign_on: SignOn,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppSettings {
-    pub acsUrl: Option<String>,
-    pub audienceUri: Option<String>,
-    pub swaLoginUrl: Option<String>,
+    #[serde(rename = "acsUrl")]
+    pub acs_url: Option<String>,
+    #[serde(rename = "audienceUri")]
+    pub audience_uri: Option<String>,
+    #[serde(rename = "swaLoginUrl")]
+    pub swa_login_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -96,7 +112,8 @@ pub struct Notifications {
 pub struct Vpn {
     pub network: Network,
     pub message: Option<String>,
-    pub helpUrl: Option<String>,
+    #[serde(rename = "helpUrl")]
+    pub help_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -112,26 +129,37 @@ pub struct Notes {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignOn {
-    pub defaultRelayState: Option<String>,
-    pub ssoAcsUrlOverride: Option<String>,
-    pub audienceOverride: Option<String>,
-    pub recipientOverride: Option<String>,
-    pub destinationOverride: Option<String>,
-    pub honorForceAuthn: bool,
-    pub attributeStatements: Vec<String>,
+    #[serde(rename = "defaultRelayState")]
+    pub default_relay_state: Option<String>,
+    #[serde(rename = "ssoAcsUrlOverride")]
+    pub sso_acs_url_override: Option<String>,
+    #[serde(rename = "audienceOverride")]
+    pub audience_override: Option<String>,
+    #[serde(rename = "recipientOverride")]
+    pub recipient_override: Option<String>,
+    #[serde(rename = "destinationOverride")]
+    pub destination_override: Option<String>,
+    #[serde(rename = "honorForceAuthn")]
+    pub honor_force_authn: bool,
+    #[serde(rename = "attributeStatements")]
+    pub attribute_statements: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Links {
     pub help: Link,
     pub metadata: Link,
-    pub uploadLogo: Link,
-    pub appLinks: Vec<AppLink>,
-    pub profileEnrollment: Link,
+    #[serde(rename = "uploadLogo")]
+    pub upload_logo: Link,
+    #[serde(rename = "appLinks")]
+    pub app_links: Vec<AppLink>,
+    #[serde(rename = "profileEnrollment")]
+    pub profile_enrollment: Link,
     pub policies: Link,
     pub groups: Link,
     pub logo: Vec<Logo>,
-    pub accessPolicy: Link,
+    #[serde(rename = "accessPolicy")]
+    pub access_policy: Link,
     pub users: Link,
     pub deactivate: Link,
 }
@@ -165,17 +193,9 @@ pub struct Logo {
     pub logo_type: String,
 }
 
-async fn create_scim_app(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
-    bi_scim_config: &BiScimConfig,
-) -> Result<OktaAppResponse, BiError> {
+async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResponse, BiError> {
     let okta_base_url = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
-    let bi_api_base_url = config.beyond_identity_api_base_url.clone();
-    let tenant_id = tenant_config.tenant_id.clone();
-    let realm_id = tenant_config.realm_id.clone();
 
     let payload = json!({
         "name": "scim2testapp",
@@ -494,18 +514,13 @@ pub async fn assign_all_groups_to_app(
     Ok(())
 }
 
-pub async fn create_scim_app_in_okta(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
-    bi_scim_config: &BiScimConfig,
-) -> OktaAppResponse {
+pub async fn create_scim_app_in_okta(client: &Client, config: &Config) -> OktaAppResponse {
     let config_path = config.file_paths.okta_scim_app_config.clone();
     if Path::new(&config_path).exists() {
         let data = fs::read_to_string(config_path).expect("Unable to read file");
         serde_json::from_str(&data).expect("JSON was not well-formatted")
     } else {
-        let response = create_scim_app(client, config, tenant_config, bi_scim_config)
+        let response = create_scim_app(client, config)
             .await
             .expect("Failed to create okta scim app");
         let serialized = serde_json::to_string_pretty(&response)

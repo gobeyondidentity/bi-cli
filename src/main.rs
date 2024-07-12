@@ -28,6 +28,7 @@ enum Commands {
     CreateTenant,
     CreateScimAppInBeyondIdentity,
     CreateScimAppInOkta,
+    CreateExternalSSOConnectionInBeyondIdentity,
 }
 
 #[tokio::main]
@@ -82,13 +83,21 @@ async fn main() {
             )
             .await
             .expect("Failed to get bi scim config");
-            let okta_app_response =
-                create_scim_app_in_okta(&client, &config, &tenant_config, &bi_scim_config).await;
+            let okta_app_response = create_scim_app_in_okta(&client, &config).await;
             println!(
                 "Okta App: {}",
                 serde_json::to_string_pretty(&okta_app_response).unwrap()
             );
             println!("Use the following values to configure API provisioning in your Okta Scim App:\nSCIM 2.0 Base Url: {:?}\nOAuth Bearer Token: {:?}", format!("{}/v1/tenants/{}/realms/{}/scim/v2", config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id), bi_scim_config.oauth_bearer_token);
+        }
+        Commands::CreateExternalSSOConnectionInBeyondIdentity => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_or_create_tenant(&client, &config).await;
+            println!(
+                "Tenant: {}",
+                serde_json::to_string_pretty(&tenant_config).unwrap()
+            );
         }
     }
 }
