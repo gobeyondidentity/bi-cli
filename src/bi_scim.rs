@@ -160,7 +160,7 @@ async fn delete_okta_registration(
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BeyondIdentityAppResponse {
     id: String,
     realm_id: String,
@@ -292,7 +292,7 @@ pub async fn generate_scim_app_token(
     Ok(token_response.access_token)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BiScimConfig {
     scim_application_config: BeyondIdentityAppResponse,
     oauth_bearer_token: String,
@@ -302,12 +302,18 @@ async fn load_or_create_beyond_identity_scim_with_okta_registration(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-) -> BeyondIdentityAppResponse {
+) -> BiScimConfig {
     let config_path = config.file_paths.bi_scim_app_config.clone();
     if Path::new(&config_path).exists() {
         let data = fs::read_to_string(config_path).expect("Unable to read file");
-        serde_json::from_str(&data).expect("JSON was not well-formatted")
+        let json = serde_json::from_str(&data).expect("JSON was not well-formatted");
+        log::debug!(
+            "Scim config loaded from file: {}",
+            serde_json::to_string_pretty(&json).unwrap()
+        );
+        return json;
     } else {
+        log::debug!("Scim config not found in file. Creating new one.");
         create_okta_registration(client, config, tenant_config)
             .await
             .expect("Failed to create okta registration");
@@ -317,14 +323,15 @@ async fn load_or_create_beyond_identity_scim_with_okta_registration(
         let oauth_bearer_token = generate_scim_app_token(client, config, &response)
             .await
             .expect("Failed to generate a scim app token");
-        let combined_config = BiScimConfig {
+        let bi_scim_config = BiScimConfig {
             scim_application_config: response.clone(),
             oauth_bearer_token: oauth_bearer_token.clone(),
         };
-        let serialized = serde_json::to_string_pretty(&combined_config)
+        let serialized = serde_json::to_string_pretty(&bi_scim_config)
             .expect("Failed to serialize tenant response");
         fs::write(config_path, serialized).expect("Unable to write file");
-        response
+
+        bi_scim_config
     }
 }
 
