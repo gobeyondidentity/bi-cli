@@ -32,7 +32,10 @@ pub async fn create_tenant(
         "classification": "Secure Workforce"
     });
     let response = client
-        .post(format!("{}/v1/tenants", config.beyond_identity_api_base_url))
+        .post(format!(
+            "{}/v1/tenants",
+            config.beyond_identity_api_base_url
+        ))
         .header("Content-Type", "application/json")
         .json(&payload)
         .send()
@@ -41,21 +44,18 @@ pub async fn create_tenant(
     Ok(json_response)
 }
 
-pub async fn load_or_create_tenant(
-    client: &Client,
-    config: &Config,
-) -> TenantConfig {
+pub async fn load_or_create_tenant(client: &Client, config: &Config) -> TenantConfig {
     let config_path = config.file_paths.tenant_config.clone();
     if Path::new(&config_path).exists() {
         let data = fs::read_to_string(config_path).expect("Unable to read file");
         serde_json::from_str(&data).expect("JSON was not well-formatted")
     } else {
-        let tenant_response = create_tenant(client, config)
+        let response = create_tenant(client, config)
             .await
             .expect("Failed to create tenant");
         let serialized =
-            serde_json::to_string_pretty(&tenant_response).expect("Failed to serialize tenant response");
+            serde_json::to_string_pretty(&response).expect("Failed to serialize tenant response");
         fs::write(config_path, serialized).expect("Unable to write file");
-        tenant_response
+        response
     }
 }

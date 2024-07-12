@@ -2,12 +2,14 @@ mod bi_api_token;
 mod bi_scim;
 mod config;
 mod error;
+mod okta_scim;
 mod tenant;
 
 use bi_scim::create_beyond_identity_scim_with_okta_registration;
 use clap::{Parser, Subcommand};
 use config::Config;
 use log::LevelFilter;
+use okta_scim::create_scim_app_in_okta;
 use reqwest::Client;
 use tenant::load_or_create_tenant;
 
@@ -25,6 +27,7 @@ struct Cli {
 enum Commands {
     CreateTenant,
     CreateScimAppInBeyondIdentity,
+    CreateScimAppInOkta,
 }
 
 #[tokio::main]
@@ -67,6 +70,25 @@ async fn main() {
                 &tenant_config,
             )
             .await;
+        }
+        Commands::CreateScimAppInOkta => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let bi_scim_config = create_beyond_identity_scim_with_okta_registration(
+                &client,
+                &config,
+                &tenant_config,
+            )
+            .await
+            .expect("Failed to get bi scim config");
+            let okta_app_response =
+                create_scim_app_in_okta(&client, &config, &tenant_config, &bi_scim_config).await;
+            println!(
+                "Okta App: {}",
+                serde_json::to_string_pretty(&okta_app_response).unwrap()
+            );
+            println!("Use the following values to configure API provisioning in your Okta Scim App:\nSCIM 2.0 Base Url: {:?}\nOAuth Bearer Token: {:?}", format!("{}/v1/tenants/{}/realms/{}/scim/v2", config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id), bi_scim_config.oauth_bearer_token);
         }
     }
 }

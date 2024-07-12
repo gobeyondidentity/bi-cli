@@ -204,18 +204,13 @@ async fn create_beyond_identity_scim_app(
             "resource_server_id": resource_server_id,
             "protocol_config": {
                 "type": "oauth2",
-                "allowed_scopes": [],
+                "allowed_scopes": ["scim:all"],
                 "confidentiality": "confidential",
-                "token_endpoint_auth_method": "client_secret_post",
                 "grant_type": ["client_credentials"],
                 "redirect_uris": [],
                 "token_configuration": {
-                    "subject_field": "id",
-                    "expires_after": 31536000,
-                    "token_signing_algorithm": "RS256",
+                    "expires_after": 60 * 24 * 90,
                 },
-                "pkce": "disabled",
-                "token_format": "self_contained"
             },
             "classification": "scim_with_okta_registration"
         }
@@ -296,7 +291,7 @@ pub async fn generate_scim_app_token(
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BiScimConfig {
     scim_application_config: BeyondIdentityAppResponse,
-    oauth_bearer_token: String,
+    pub oauth_bearer_token: String,
 }
 
 async fn load_or_create_beyond_identity_scim_with_okta_registration(
@@ -340,7 +335,9 @@ pub async fn create_beyond_identity_scim_with_okta_registration(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-) -> Result<(), BiError> {
-    load_or_create_beyond_identity_scim_with_okta_registration(client, config, tenant_config).await;
-    Ok(())
+) -> Result<BiScimConfig, BiError> {
+    let bi_scim_config =
+        load_or_create_beyond_identity_scim_with_okta_registration(client, config, tenant_config)
+            .await;
+    Ok(bi_scim_config)
 }
