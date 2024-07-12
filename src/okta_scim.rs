@@ -272,7 +272,7 @@ async fn create_scim_app(
     // )
     // .await?;
 
-    assign_all_users_to_app(client, config, &app_response.id).await?;
+    assign_all_groups_to_app(client, config, &app_response.id).await?;
 
     Ok(app_response)
 }
@@ -382,30 +382,30 @@ async fn create_scim_app(
 // }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OktaUser {
+pub struct OktaGroup {
     id: String,
-    profile: OktaUserProfile,
+    profile: OktaGroupProfile,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct OktaUserProfile {
-    login: String,
-    email: String,
+struct OktaGroupProfile {
+    name: String,
+    description: Option<String>,
 }
 
-pub async fn list_all_okta_users(
+pub async fn list_all_okta_groups(
     client: &Client,
     config: &Config,
-) -> Result<Vec<OktaUser>, BiError> {
+) -> Result<Vec<OktaGroup>, BiError> {
     let okta_domain = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
-    let mut users: Vec<OktaUser> = Vec::new();
+    let mut groups: Vec<OktaGroup> = Vec::new();
     let mut next_link: Option<String> = None;
 
     loop {
         let url = match next_link {
             Some(ref link) => link.clone(),
-            None => format!("{}/api/v1/users?limit=200", okta_domain),
+            None => format!("{}/api/v1/groups?limit=200", okta_domain),
         };
 
         let response = client
@@ -432,51 +432,37 @@ pub async fn list_all_okta_users(
             return Err(BiError::RequestError(status, response_text));
         }
 
-        let user_list: Vec<OktaUser> = serde_json::from_str(&response_text)?;
-        users.extend(user_list);
+        let mut group_list: Vec<OktaGroup> = serde_json::from_str(&response_text)?;
+
+        // Filter out "Okta Administrators" group
+        group_list.retain(|group| group.profile.name != "Okta Administrators");
+
+        groups.extend(group_list);
 
         if next_link.is_none() {
             break;
         }
     }
 
-    Ok(users)
+    Ok(groups)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct UserAssignmentPayload {
-    id: String,
-    scope: String,
-    credentials: UserCredentials,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct UserCredentials {
-    userName: String,
-}
-
-async fn assign_user_to_app(
+async fn assign_group_to_app(
     client: &Client,
     config: &Config,
     app_id: &str,
-    user: &OktaUser,
+    group: &OktaGroup,
 ) -> Result<(), BiError> {
     let okta_base_url = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
 
-    let payload = UserAssignmentPayload {
-        id: user.id.clone(),
-        scope: "USER".to_string(),
-        credentials: UserCredentials {
-            userName: user.profile.login.clone(),
-        },
-    };
-
     let response = client
-        .post(format!("{}/api/v1/apps/{}/users", okta_base_url, app_id))
+        .put(format!(
+            "{}/api/v1/apps/{}/groups/{}",
+            okta_base_url, app_id, group.id
+        ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
-        .json(&payload)
         .send()
         .await?;
 
@@ -492,15 +478,15 @@ async fn assign_user_to_app(
     Ok(())
 }
 
-async fn assign_all_users_to_app(
+pub async fn assign_all_groups_to_app(
     client: &Client,
     config: &Config,
     app_id: &str,
 ) -> Result<(), BiError> {
-    let users = list_all_okta_users(client, config).await?;
-    for user in users {
-        log::debug!("Assigning user: {:?}", user);
-        assign_user_to_app(client, config, app_id, &user).await?;
+    let groups = list_all_okta_groups(client, config).await?;
+    for group in groups {
+        log::debug!("Assigning group: {:?}", group);
+        assign_group_to_app(client, config, app_id, &group).await?;
         let sleep_duration = rand::thread_rng().gen_range(5..=10);
         println!("Sleeping for {} seconds...", sleep_duration);
         sleep(Duration::from_secs(sleep_duration)).await;
