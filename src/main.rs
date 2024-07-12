@@ -3,6 +3,7 @@ mod bi_external_sso;
 mod bi_scim;
 mod config;
 mod error;
+mod okta_registration_attribute;
 mod okta_scim;
 mod tenant;
 
@@ -11,6 +12,7 @@ use bi_scim::create_beyond_identity_scim_with_okta_registration;
 use clap::{Parser, Subcommand};
 use config::Config;
 use log::LevelFilter;
+use okta_registration_attribute::add_custom_attribute_to_okta_user_type;
 use okta_scim::create_scim_app_in_okta;
 use reqwest::Client;
 use tenant::load_or_create_tenant;
@@ -31,6 +33,7 @@ enum Commands {
     CreateScimAppInBeyondIdentity,
     CreateScimAppInOkta,
     CreateExternalSSOConnectionInBeyondIdentity,
+    AddRegistrationSyncCustomAttributeInOkta,
 }
 
 #[tokio::main]
@@ -101,6 +104,13 @@ async fn main() {
                 "External SSO: {}",
                 serde_json::to_string_pretty(&external_sso).unwrap()
             );
+        }
+        Commands::AddRegistrationSyncCustomAttributeInOkta => {
+            let config = Config::from_env();
+            let client = Client::new();
+            add_custom_attribute_to_okta_user_type(&client, &config)
+                .await
+                .expect("Failed to create custom attribute in Okta");
         }
     }
 }
