@@ -1,10 +1,12 @@
 mod bi_api_token;
+mod bi_external_sso;
 mod bi_scim;
 mod config;
 mod error;
 mod okta_scim;
 mod tenant;
 
+use bi_external_sso::create_external_sso;
 use bi_scim::create_beyond_identity_scim_with_okta_registration;
 use clap::{Parser, Subcommand};
 use config::Config;
@@ -94,9 +96,10 @@ async fn main() {
             let config = Config::from_env();
             let client = Client::new();
             let tenant_config = load_or_create_tenant(&client, &config).await;
+            let external_sso = create_external_sso(&client, &config, &tenant_config).await;
             println!(
-                "Tenant: {}",
-                serde_json::to_string_pretty(&tenant_config).unwrap()
+                "External SSO: {}",
+                serde_json::to_string_pretty(&external_sso).unwrap()
             );
         }
     }
