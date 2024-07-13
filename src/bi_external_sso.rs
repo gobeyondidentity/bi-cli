@@ -78,7 +78,7 @@ struct ApplicationConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ProtocolConfig {
+pub struct ProtocolConfig {
     #[serde(rename = "type")]
     config_type: String,
     allowed_scopes: Vec<String>,
@@ -87,6 +87,8 @@ struct ProtocolConfig {
     pkce: String,
     redirect_uris: Vec<String>,
     token_configuration: TokenConfiguration,
+    pub client_id: String,
+    pub client_secret: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -97,12 +99,12 @@ struct TokenConfiguration {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ApplicationConfigResponse {
-    id: String,
+pub struct ExternalSSO {
+    pub id: String,
     realm_id: String,
     tenant_id: String,
     display_name: String,
-    protocol_config: ProtocolConfig,
+    pub protocol_config: ProtocolConfig,
 }
 
 async fn create_application(
@@ -110,7 +112,7 @@ async fn create_application(
     config: &Config,
     tenant_config: &TenantConfig,
     auth_config_id: &str,
-) -> Result<ApplicationConfigResponse, BiError> {
+) -> Result<ExternalSSO, BiError> {
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/applications",
         config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
@@ -160,7 +162,7 @@ async fn create_application(
         return Err(BiError::RequestError(status, response_text));
     }
 
-    let app_config_response: ApplicationConfigResponse = serde_json::from_str(&response_text)?;
+    let app_config_response: ExternalSSO = serde_json::from_str(&response_text)?;
     Ok(app_config_response)
 }
 
@@ -168,7 +170,7 @@ pub async fn create_external_sso(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-) -> ApplicationConfigResponse {
+) -> ExternalSSO {
     let config_path = config.file_paths.external_sso_config.clone();
     if Path::new(&config_path).exists() {
         let data = fs::read_to_string(config_path).expect("Unable to read file");

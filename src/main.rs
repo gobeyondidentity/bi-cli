@@ -3,6 +3,7 @@ mod bi_external_sso;
 mod bi_scim;
 mod config;
 mod error;
+mod okta_identity_provider;
 mod okta_registration_attribute;
 mod okta_scim;
 mod tenant;
@@ -12,10 +13,11 @@ use bi_scim::create_beyond_identity_scim_with_okta_registration;
 use clap::{Parser, Subcommand};
 use config::Config;
 use log::LevelFilter;
+use okta_identity_provider::create_okta_identity_provider;
 use okta_registration_attribute::add_custom_attribute_to_okta_user_type;
 use okta_scim::create_scim_app_in_okta;
 use reqwest::Client;
-use tenant::load_or_create_tenant;
+use tenant::{load_or_create_tenant, TenantConfig};
 
 #[derive(Parser)]
 #[clap(name = "Provision SSO Tenant")]
@@ -34,6 +36,7 @@ enum Commands {
     CreateScimAppInOkta,
     CreateExternalSSOConnectionInBeyondIdentity,
     AddRegistrationSyncCustomAttributeInOkta,
+    CreateIdentityProviderInOkta,
 }
 
 #[tokio::main]
@@ -111,6 +114,13 @@ async fn main() {
             add_custom_attribute_to_okta_user_type(&client, &config)
                 .await
                 .expect("Failed to create custom attribute in Okta");
+        }
+        Commands::CreateIdentityProviderInOkta => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let external_sso = create_external_sso(&client, &config, &tenant_config).await;
+            create_okta_identity_provider(&client, &config, &tenant_config, &external_sso).await;
         }
     }
 }

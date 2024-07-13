@@ -7,6 +7,7 @@ pub struct FilePaths {
     pub bi_scim_app_config: String,
     pub okta_scim_app_config: String,
     pub external_sso_config: String,
+    pub okta_identity_provider: String,
 }
 
 impl FilePaths {
@@ -16,6 +17,7 @@ impl FilePaths {
             bi_scim_app_config: "configs/bi_scim_application.json".to_string(),
             okta_scim_app_config: "configs/okta_scim_application.json".to_string(),
             external_sso_config: "configs/external_sso.json".to_string(),
+            okta_identity_provider: "configs/okta_identity_provider.json".to_string(),
         }
     }
 }
