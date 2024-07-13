@@ -1,3 +1,4 @@
+use crate::bi_external_sso::update_application_redirect_uri;
 use crate::bi_external_sso::ExternalSSO;
 use crate::config::Config;
 use crate::error::BiError;
@@ -284,6 +285,14 @@ pub async fn create_okta_identity_provider(
 ) -> Result<OktaIdpResponse, BiError> {
     let config_path = config.file_paths.okta_identity_provider.clone();
     let response = create_idp(client, config, tenant_config, external_sso_config).await?;
+    update_application_redirect_uri(
+        client,
+        config,
+        tenant_config,
+        &external_sso_config.id,
+        &response._links.client_redirect_uri.href,
+    )
+    .await?;
     let serialized = serde_json::to_string_pretty(&response)?;
     fs::write(config_path.clone(), serialized)
         .map_err(|_| BiError::UnableToWriteFile(config_path))?;

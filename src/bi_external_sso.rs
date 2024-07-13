@@ -165,6 +165,60 @@ async fn create_application(
     Ok(app_config_response)
 }
 
+pub async fn update_application_redirect_uri(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+    application_id: &str,
+    redirect_uri: &str,
+) -> Result<(), BiError> {
+    let bi_api_token = get_beyond_identity_api_token(client, config, &tenant_config).await?;
+    let tenant_id = tenant_config.tenant_id.clone();
+    let realm_id = tenant_config.realm_id.clone();
+
+    let url = format!(
+        "{}/v1/tenants/{}/realms/{}/applications/{}",
+        config.beyond_identity_api_base_url, tenant_id, realm_id, application_id
+    );
+
+    let payload = json!({
+        "application": {
+            "protocol_config": {
+                "type": "oidc",
+                "allowed_scopes": [],
+                "confidentiality": "confidential",
+                "grant_type": ["authorization_code"],
+                "pkce": "disabled",
+                "redirect_uris": [redirect_uri],
+                "token_configuration": {
+                    "expires_after": 86400,
+                    "token_signing_algorithm": "RS256",
+                    "subject_field": "id"
+                },
+                "token_endpoint_auth_method": "client_secret_basic",
+                "token_format": "self_contained"
+            },
+        }
+    });
+
+    let response = client
+        .patch(&url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", bi_api_token))
+        .json(&payload)
+        .send()
+        .await?;
+
+    let status = response.status();
+    let response_text = response.text().await?;
+
+    if !status.is_success() {
+        return Err(BiError::RequestError(status, response_text));
+    }
+
+    Ok(())
+}
+
 pub async fn load_external_sso(config: &Config) -> Result<ExternalSSO, BiError> {
     let config_path = config.file_paths.external_sso_config.clone();
     let data = fs::read_to_string(&config_path)
