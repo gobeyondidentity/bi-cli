@@ -37,8 +37,13 @@ pub async fn create_tenant(client: &Client, config: &Config) -> Result<TenantCon
         .json(&payload)
         .send()
         .await?;
-    let json_response = response.json::<TenantConfig>().await?;
-    Ok(json_response)
+    let tenant_config = response.json::<TenantConfig>().await?;
+
+    let serialized =
+        serde_json::to_string_pretty(&tenant_config).expect("Failed to serialize tenant response");
+    fs::write(config.file_paths.tenant_config.clone(), serialized).expect("Unable to write file");
+
+    Ok(tenant_config)
 }
 
 pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {

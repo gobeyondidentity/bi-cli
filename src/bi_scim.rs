@@ -177,7 +177,7 @@ pub struct ProtocolConfig {
     token_endpoint_auth_method: String,
 }
 
-async fn create_beyond_identity_scim_app(
+async fn create_scim_app(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
@@ -313,7 +313,7 @@ async fn load_or_create_beyond_identity_scim_with_okta_registration(
         create_okta_registration(client, config, tenant_config)
             .await
             .expect("Failed to create okta registration");
-        let response = create_beyond_identity_scim_app(client, config, tenant_config)
+        let response = create_scim_app(client, config, tenant_config)
             .await
             .expect("Failed to create scim application");
         let oauth_bearer_token = generate_scim_app_token(client, config, &response)
@@ -331,13 +331,37 @@ async fn load_or_create_beyond_identity_scim_with_okta_registration(
     }
 }
 
-pub async fn create_beyond_identity_scim_with_okta_registration(
+pub async fn load_beyond_identity_scim_app(config: &Config) -> Result<BiScimConfig, BiError> {
+    let config_path = config.file_paths.bi_scim_app_config.clone();
+    let data = fs::read_to_string(&config_path)
+        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+    let bi_scim_config: BiScimConfig =
+        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+    Ok(bi_scim_config)
+}
+
+pub async fn create_beyond_identity_scim_app(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<BiScimConfig, BiError> {
-    let bi_scim_config =
-        load_or_create_beyond_identity_scim_with_okta_registration(client, config, tenant_config)
-            .await;
+    create_okta_registration(client, config, tenant_config)
+        .await
+        .expect("Failed to create okta registration");
+    let response = create_scim_app(client, config, tenant_config)
+        .await
+        .expect("Failed to create scim application");
+    let oauth_bearer_token = generate_scim_app_token(client, config, &response)
+        .await
+        .expect("Failed to generate a scim app token");
+    let bi_scim_config = BiScimConfig {
+        scim_application_config: response.clone(),
+        oauth_bearer_token: oauth_bearer_token.clone(),
+    };
+    let serialized =
+        serde_json::to_string_pretty(&bi_scim_config).expect("Failed to serialize tenant response");
+    fs::write(config.file_paths.bi_scim_app_config.clone(), serialized)
+        .expect("Unable to write file");
+
     Ok(bi_scim_config)
 }

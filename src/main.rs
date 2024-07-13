@@ -9,7 +9,7 @@ mod okta_scim;
 mod tenant;
 
 use bi_external_sso::create_external_sso;
-use bi_scim::create_beyond_identity_scim_with_okta_registration;
+use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use clap::{Parser, Subcommand};
 use config::Config;
 use log::LevelFilter;
@@ -80,12 +80,16 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            _ = create_beyond_identity_scim_with_okta_registration(
-                &client,
-                &config,
-                &tenant_config,
-            )
-            .await;
+            let bi_scim_app = match load_beyond_identity_scim_app(&config).await {
+                Ok(bi_scim_app) => bi_scim_app,
+                Err(_) => create_beyond_identity_scim_app(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to create beyond identity scim app"),
+            };
+            println!(
+                "Beyond Identity SCIM App: {}",
+                serde_json::to_string_pretty(&bi_scim_app).unwrap()
+            );
         }
         Commands::CreateScimAppInOkta => {
             let config = Config::from_env();
@@ -93,13 +97,9 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            let bi_scim_config = create_beyond_identity_scim_with_okta_registration(
-                &client,
-                &config,
-                &tenant_config,
-            )
-            .await
-            .expect("Failed to get bi scim config");
+            let bi_scim_config = load_beyond_identity_scim_app(&config)
+                .await
+                .expect("Failed to load Beyond Identity SCIM Application. Make sure you create a BI SCIM Application before running this command.");
             let okta_app_response = create_scim_app_in_okta(&client, &config).await;
             println!(
                 "Okta App: {}",
