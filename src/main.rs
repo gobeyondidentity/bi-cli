@@ -15,7 +15,7 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use log::LevelFilter;
 use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
-use okta_registration_attribute::create_custom_attribute_in_okta_user_type;
+use okta_registration_attribute::{create_custom_attribute, load_custom_attribute};
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
@@ -37,7 +37,7 @@ enum Commands {
     CreateScimAppInBeyondIdentity,
     CreateScimAppInOkta,
     CreateExternalSSOConnectionInBeyondIdentity,
-    AddRegistrationSyncCustomAttributeInOkta,
+    CreateCustomAttributeInOkta,
     CreateIdentityProviderInOkta,
     CreateRoutingRuleInOkta,
 }
@@ -136,12 +136,19 @@ async fn main() {
                 serde_json::to_string_pretty(&external_sso).unwrap()
             );
         }
-        Commands::AddRegistrationSyncCustomAttributeInOkta => {
+        Commands::CreateCustomAttributeInOkta => {
             let config = Config::from_env();
             let client = Client::new();
-            create_custom_attribute_in_okta_user_type(&client, &config)
-                .await
-                .expect("Failed to create custom attribute in Okta");
+            let okta_user_schema = match load_custom_attribute(&config).await {
+                Ok(okta_user_schema) => okta_user_schema,
+                Err(_) => create_custom_attribute(&client, &config)
+                    .await
+                    .expect("Failed to create custom attribute in Okta"),
+            };
+            println!(
+                "Okta User Schema: {}",
+                serde_json::to_string_pretty(&okta_user_schema).unwrap()
+            );
         }
         Commands::CreateIdentityProviderInOkta => {
             let config = Config::from_env();

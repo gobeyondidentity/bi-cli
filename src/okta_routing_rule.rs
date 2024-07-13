@@ -12,8 +12,7 @@ pub struct OktaRoutingRule {
     pub id: String,
     pub name: String,
     pub priority: i32,
-    #[serde(rename = "type")]
-    pub rule_type: String,
+    pub r#type: String,
     pub conditions: OktaRoutingRuleConditions,
     pub actions: OktaRoutingRuleActions,
 }
@@ -28,8 +27,7 @@ pub struct OktaRoutingRuleConditions {
 #[serde(rename_all = "camelCase")]
 pub struct OktaRoutingRuleUserIdentifier {
     pub attribute: String,
-    #[serde(rename = "type")]
-    pub identifier_type: String,
+    pub r#type: String,
     pub patterns: Vec<OktaRoutingRulePattern>,
 }
 
@@ -144,8 +142,7 @@ pub struct OktaPolicyResponse {
     pub created: String,
     pub last_updated: String,
     pub priority: i32,
-    #[serde(rename = "type")]
-    pub policy_type: String,
+    pub r#type: String,
 }
 
 async fn get_first_idp_discovery_policy(
@@ -176,7 +173,7 @@ async fn get_first_idp_discovery_policy(
     let policies: Vec<OktaPolicyResponse> = serde_json::from_str(&response_text)?;
     if let Some(policy) = policies
         .into_iter()
-        .find(|p| p.policy_type == "IDP_DISCOVERY")
+        .find(|p| p.r#type == "IDP_DISCOVERY")
     {
         Ok(policy)
     } else {

@@ -15,8 +15,7 @@ struct AuthenticatorConfig {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthenticatorConfigType {
-    #[serde(rename = "type")]
-    config_type: String,
+    r#type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,8 +77,7 @@ struct ApplicationConfig {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProtocolConfig {
-    #[serde(rename = "type")]
-    config_type: String,
+    r#type: String,
     allowed_scopes: Vec<String>,
     confidentiality: String,
     grant_type: Vec<String>,

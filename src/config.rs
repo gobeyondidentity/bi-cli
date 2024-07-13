@@ -9,6 +9,7 @@ pub struct FilePaths {
     pub external_sso_config: String,
     pub okta_identity_provider: String,
     pub okta_routing_rule: String,
+    pub okta_custom_attribute: String,
 }
 
 impl FilePaths {
@@ -20,6 +21,7 @@ impl FilePaths {
             external_sso_config: "configs/external_sso.json".to_string(),
             okta_identity_provider: "configs/okta_identity_provider.json".to_string(),
             okta_routing_rule: "configs/okta_routing_rule.json".to_string(),
+            okta_custom_attribute: "configs/okta_custom_attribute.json".to_string(),
         }
     }
 }

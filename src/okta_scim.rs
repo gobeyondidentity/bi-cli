@@ -70,8 +70,7 @@ pub struct Credentials {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserNameTemplate {
     pub template: String,
-    #[serde(rename = "type")]
-    pub template_type: String,
+    pub r#type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -166,8 +165,7 @@ pub struct Links {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Link {
     pub href: String,
-    #[serde(rename = "type")]
-    pub link_type: Option<String>,
+    pub r#type: Option<String>,
     pub hints: Option<Hints>,
 }
 
@@ -180,16 +178,14 @@ pub struct Hints {
 pub struct AppLink {
     pub name: String,
     pub href: String,
-    #[serde(rename = "type")]
-    pub app_link_type: String,
+    pub r#type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Logo {
     pub name: String,
     pub href: String,
-    #[serde(rename = "type")]
-    pub logo_type: String,
+    pub r#type: String,
 }
 
 async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResponse, BiError> {

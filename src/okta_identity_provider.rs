@@ -12,8 +12,7 @@ use std::fs;
 #[serde(rename_all = "camelCase")]
 pub struct OktaIdpResponse {
     pub id: String,
-    #[serde(rename = "type")]
-    pub idp_type: String,
+    pub r#type: String,
     pub name: String,
     pub status: String,
     pub created: String,
@@ -27,8 +26,7 @@ pub struct OktaIdpResponse {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IdpProtocol {
-    #[serde(rename = "type")]
-    pub protocol_type: String,
+    pub r#type: String,
     pub endpoints: IdpEndpoints,
     pub scopes: Vec<String>,
     pub issuer: IdpIssuer,
