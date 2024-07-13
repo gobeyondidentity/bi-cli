@@ -5,7 +5,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
-use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -488,8 +487,6 @@ async fn assign_group_to_app(
 
     let status = response.status();
     let response_text = response.text().await?;
-    println!("Response status: {}", status);
-    println!("Response body: {}", response_text);
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
@@ -514,18 +511,22 @@ pub async fn assign_all_groups_to_app(
     Ok(())
 }
 
-pub async fn create_scim_app_in_okta(client: &Client, config: &Config) -> OktaAppResponse {
+pub async fn load_scim_app_in_okta(config: &Config) -> Result<OktaAppResponse, BiError> {
     let config_path = config.file_paths.okta_scim_app_config.clone();
-    if Path::new(&config_path).exists() {
-        let data = fs::read_to_string(config_path).expect("Unable to read file");
-        serde_json::from_str(&data).expect("JSON was not well-formatted")
-    } else {
-        let response = create_scim_app(client, config)
-            .await
-            .expect("Failed to create okta scim app");
-        let serialized = serde_json::to_string_pretty(&response)
-            .expect("Failed to serialize okta scim app response");
-        fs::write(config_path, serialized).expect("Unable to write file");
-        response
-    }
+    let data = fs::read_to_string(&config_path)
+        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+    let okta_app_response: OktaAppResponse =
+        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+    Ok(okta_app_response)
+}
+
+pub async fn create_scim_app_in_okta(
+    client: &Client,
+    config: &Config,
+) -> Result<OktaAppResponse, BiError> {
+    let response = create_scim_app(client, config).await?;
+    let serialized = serde_json::to_string_pretty(&response)?;
+    fs::write(config.file_paths.okta_scim_app_config.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config.file_paths.okta_scim_app_config.clone()))?;
+    Ok(response)
 }

@@ -15,7 +15,7 @@ use config::Config;
 use log::LevelFilter;
 use okta_identity_provider::create_okta_identity_provider;
 use okta_registration_attribute::add_custom_attribute_to_okta_user_type;
-use okta_scim::create_scim_app_in_okta;
+use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
 use tenant::{create_tenant, load_tenant};
 
@@ -100,12 +100,21 @@ async fn main() {
             let bi_scim_config = load_beyond_identity_scim_app(&config)
                 .await
                 .expect("Failed to load Beyond Identity SCIM Application. Make sure you create a BI SCIM Application before running this command.");
-            let okta_app_response = create_scim_app_in_okta(&client, &config).await;
+            let okta_app_response = match load_scim_app_in_okta(&config).await {
+                Ok(okta_app_response) => okta_app_response,
+                Err(_) => create_scim_app_in_okta(&client, &config)
+                    .await
+                    .expect("Failed to create SCIM app in Okta"),
+            };
             println!(
-                "Okta App: {}",
+                "Okta SCIM App: {}",
                 serde_json::to_string_pretty(&okta_app_response).unwrap()
             );
-            println!("Use the following values to configure API provisioning in your Okta Scim App:\nSCIM 2.0 Base Url: {:?}\nOAuth Bearer Token: {:?}", format!("{}/v1/tenants/{}/realms/{}/scim/v2", config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id), bi_scim_config.oauth_bearer_token);
+            println!(
+                "Use the following values to configure API provisioning in your Okta Scim App:\nSCIM 2.0 Base Url: {:?}\nOAuth Bearer Token: {:?}",
+                format!("{}/v1/tenants/{}/realms/{}/scim/v2", config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id),
+                bi_scim_config.oauth_bearer_token
+            );
         }
         Commands::CreateExternalSSOConnectionInBeyondIdentity => {
             let config = Config::from_env();

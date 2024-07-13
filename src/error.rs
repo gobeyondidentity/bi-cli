@@ -13,4 +13,6 @@ pub enum BiError {
     StringError(String),
     #[error("Config file '{0}' does not exist. Please ensure the file is present at the specified path.")]
     ConfigFileNotFound(String),
+    #[error("Unable to write file '{0}'")]
+    UnableToWriteFile(String),
 }
