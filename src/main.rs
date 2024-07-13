@@ -5,6 +5,7 @@ mod config;
 mod error;
 mod okta_identity_provider;
 mod okta_registration_attribute;
+mod okta_routing_rule;
 mod okta_scim;
 mod tenant;
 
@@ -15,6 +16,7 @@ use config::Config;
 use log::LevelFilter;
 use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
 use okta_registration_attribute::create_custom_attribute_in_okta_user_type;
+use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
 use tenant::{create_tenant, load_tenant};
@@ -37,6 +39,7 @@ enum Commands {
     CreateExternalSSOConnectionInBeyondIdentity,
     AddRegistrationSyncCustomAttributeInOkta,
     CreateIdentityProviderInOkta,
+    CreateRoutingRuleInOkta,
 }
 
 #[tokio::main]
@@ -160,6 +163,26 @@ async fn main() {
             println!(
                 "Okta Identity Provider: {}",
                 serde_json::to_string_pretty(&okta_idp).unwrap()
+            );
+        }
+        Commands::CreateRoutingRuleInOkta => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+            let okta_idp_config =  load_okta_identity_provider(&config).await.expect("Failed to load Okta Identity Provider. Make sure you create an Okta Identity Provider before running this command.");
+            let okta_routing_rule = match load_okta_routing_rule(&config).await {
+                Ok(okta_routing_rule) => okta_routing_rule,
+                Err(_) => {
+                    create_okta_routing_rule(&client, &config, &tenant_config, &okta_idp_config)
+                        .await
+                        .expect("Failed to create Okta Routing Rule")
+                }
+            };
+            println!(
+                "Okta Routing Rule: {}",
+                serde_json::to_string_pretty(&okta_routing_rule).unwrap()
             );
         }
     }

@@ -8,6 +8,7 @@ pub struct FilePaths {
     pub okta_scim_app_config: String,
     pub external_sso_config: String,
     pub okta_identity_provider: String,
+    pub okta_routing_rule: String,
 }
 
 impl FilePaths {
@@ -18,6 +19,7 @@ impl FilePaths {
             okta_scim_app_config: "configs/okta_scim_application.json".to_string(),
             external_sso_config: "configs/external_sso.json".to_string(),
             okta_identity_provider: "configs/okta_identity_provider.json".to_string(),
+            okta_routing_rule: "configs/okta_routing_rule.json".to_string(),
         }
     }
 }
