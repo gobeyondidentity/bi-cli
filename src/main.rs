@@ -1,4 +1,5 @@
 mod bi_api_token;
+mod bi_enrollment;
 mod bi_external_sso;
 mod bi_scim;
 mod config;
@@ -9,6 +10,7 @@ mod okta_routing_rule;
 mod okta_scim;
 mod tenant;
 
+use bi_enrollment::{get_all_identities, select_identities, send_enrollment_email};
 use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use clap::{Parser, Subcommand};
@@ -40,6 +42,7 @@ enum Commands {
     CreateCustomAttributeInOkta,
     CreateIdentityProviderInOkta,
     CreateRoutingRuleInOkta,
+    SendEnrollmentEmail,
 }
 
 #[tokio::main]
@@ -191,6 +194,31 @@ async fn main() {
                 "Okta Routing Rule: {}",
                 serde_json::to_string_pretty(&okta_routing_rule).unwrap()
             );
+        }
+        Commands::SendEnrollmentEmail => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+            let identity_response = get_all_identities(&client, &config, &tenant_config)
+                .await
+                .expect("Failed to fetch identities");
+            let selected_identities = select_identities(&identity_response.identities);
+
+            for identity in selected_identities {
+                match send_enrollment_email(&client, &config, &tenant_config, &identity).await {
+                    Ok(job) => println!(
+                        "Enrollment job created for {}: {}",
+                        identity.traits.primary_email_address,
+                        serde_json::to_string_pretty(&job).unwrap()
+                    ),
+                    Err(err) => println!(
+                        "Failed to create enrollment job for {}: {}",
+                        identity.traits.primary_email_address, err
+                    ),
+                }
+            }
         }
     }
 }
