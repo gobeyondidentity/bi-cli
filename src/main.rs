@@ -17,7 +17,7 @@ use okta_identity_provider::create_okta_identity_provider;
 use okta_registration_attribute::add_custom_attribute_to_okta_user_type;
 use okta_scim::create_scim_app_in_okta;
 use reqwest::Client;
-use tenant::{load_or_create_tenant, TenantConfig};
+use tenant::{create_tenant, load_tenant};
 
 #[derive(Parser)]
 #[clap(name = "Provision SSO Tenant")]
@@ -63,7 +63,12 @@ async fn main() {
         Commands::CreateTenant => {
             let config = Config::from_env();
             let client = Client::new();
-            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let tenant_config = match load_tenant(&config).await {
+                Ok(tenant_config) => tenant_config,
+                Err(_) => create_tenant(&client, &config)
+                    .await
+                    .expect("Failed to create tenant"),
+            };
             println!(
                 "Tenant: {}",
                 serde_json::to_string_pretty(&tenant_config).unwrap()
@@ -72,7 +77,9 @@ async fn main() {
         Commands::CreateScimAppInBeyondIdentity => {
             let config = Config::from_env();
             let client = Client::new();
-            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
             _ = create_beyond_identity_scim_with_okta_registration(
                 &client,
                 &config,
@@ -83,7 +90,9 @@ async fn main() {
         Commands::CreateScimAppInOkta => {
             let config = Config::from_env();
             let client = Client::new();
-            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
             let bi_scim_config = create_beyond_identity_scim_with_okta_registration(
                 &client,
                 &config,
@@ -101,7 +110,9 @@ async fn main() {
         Commands::CreateExternalSSOConnectionInBeyondIdentity => {
             let config = Config::from_env();
             let client = Client::new();
-            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
             let external_sso = create_external_sso(&client, &config, &tenant_config).await;
             println!(
                 "External SSO: {}",
@@ -118,7 +129,9 @@ async fn main() {
         Commands::CreateIdentityProviderInOkta => {
             let config = Config::from_env();
             let client = Client::new();
-            let tenant_config = load_or_create_tenant(&client, &config).await;
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
             let external_sso = create_external_sso(&client, &config, &tenant_config).await;
             create_okta_identity_provider(&client, &config, &tenant_config, &external_sso).await;
         }

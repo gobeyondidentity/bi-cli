@@ -11,4 +11,6 @@ pub enum BiError {
     #[error("{0}")]
     #[allow(dead_code)]
     StringError(String),
+    #[error("Config file '{0}' does not exist. Please ensure the file is present at the specified path.")]
+    ConfigFileNotFound(String),
 }

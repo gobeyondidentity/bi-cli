@@ -1,9 +1,9 @@
 use crate::config::Config;
+use crate::error::BiError;
 use chrono::Utc;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TenantConfig {
@@ -20,10 +20,7 @@ pub struct TenantConfig {
     pub tenant_id: String,
 }
 
-pub async fn create_tenant(
-    client: &Client,
-    config: &Config,
-) -> Result<TenantConfig, reqwest::Error> {
+pub async fn create_tenant(client: &Client, config: &Config) -> Result<TenantConfig, BiError> {
     let tenant_display_name = format!("SW Rolling - {}", Utc::now().format("%Y%m%d-%H%M%S"));
     let payload = serde_json::json!({
         "tenant_display_name": tenant_display_name,
@@ -44,18 +41,11 @@ pub async fn create_tenant(
     Ok(json_response)
 }
 
-pub async fn load_or_create_tenant(client: &Client, config: &Config) -> TenantConfig {
+pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
     let config_path = config.file_paths.tenant_config.clone();
-    if Path::new(&config_path).exists() {
-        let data = fs::read_to_string(config_path).expect("Unable to read file");
-        serde_json::from_str(&data).expect("JSON was not well-formatted")
-    } else {
-        let response = create_tenant(client, config)
-            .await
-            .expect("Failed to create tenant");
-        let serialized =
-            serde_json::to_string_pretty(&response).expect("Failed to serialize tenant response");
-        fs::write(config_path, serialized).expect("Unable to write file");
-        response
-    }
+    let data = fs::read_to_string(&config_path)
+        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+    let tenant_config: TenantConfig =
+        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+    Ok(tenant_config)
 }
