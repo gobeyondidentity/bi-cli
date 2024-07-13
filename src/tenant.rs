@@ -41,8 +41,10 @@ pub async fn create_tenant(client: &Client, config: &Config) -> Result<TenantCon
 
     let serialized =
         serde_json::to_string_pretty(&tenant_config).expect("Failed to serialize tenant response");
-    fs::write(config.file_paths.tenant_config.clone(), serialized)
-        .map_err(|_| BiError::UnableToWriteFile(config.file_paths.tenant_config.clone()))?;
+
+    let config_path = config.file_paths.tenant_config.clone();
+    fs::write(config_path.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
 
     Ok(tenant_config)
 }

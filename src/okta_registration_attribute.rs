@@ -3,7 +3,7 @@ use crate::error::BiError;
 use reqwest::Client;
 use serde_json::json;
 
-pub async fn add_custom_attribute_to_okta_user_type(
+pub async fn create_custom_attribute_in_okta_user_type(
     client: &Client,
     config: &Config,
 ) -> Result<(), BiError> {

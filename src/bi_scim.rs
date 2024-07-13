@@ -315,8 +315,10 @@ pub async fn create_beyond_identity_scim_app(
         oauth_bearer_token: oauth_bearer_token.clone(),
     };
     let serialized = serde_json::to_string_pretty(&bi_scim_config)?;
-    fs::write(config.file_paths.bi_scim_app_config.clone(), serialized)
-        .map_err(|_| BiError::UnableToWriteFile(config.file_paths.bi_scim_app_config.clone()))?;
+
+    let config_path = config.file_paths.bi_scim_app_config.clone();
+    fs::write(config_path.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
 
     Ok(bi_scim_config)
 }

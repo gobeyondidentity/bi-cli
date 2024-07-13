@@ -1,12 +1,11 @@
 use crate::bi_external_sso::ExternalSSO;
 use crate::config::Config;
+use crate::error::BiError;
 use crate::tenant::TenantConfig;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::error::Error;
 use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -153,7 +152,7 @@ async fn create_idp(
     config: &Config,
     tenant_config: &TenantConfig,
     external_sso_config: &ExternalSSO,
-) -> Result<OktaIdpResponse, Box<dyn Error>> {
+) -> Result<OktaIdpResponse, BiError> {
     let okta_domain = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
 
@@ -257,14 +256,24 @@ async fn create_idp(
         .send()
         .await?;
 
-    if !response.status().is_success() {
-        let error_text = response.text().await?;
-        return Err(format!("Failed to create IdP: {}", error_text).into());
+    let status = response.status();
+    let response_text = response.text().await?;
+
+    if !status.is_success() {
+        return Err(BiError::RequestError(status, response_text));
     }
 
-    let response_text = response.text().await?;
     let idp_response: OktaIdpResponse = serde_json::from_str(&response_text)?;
     Ok(idp_response)
+}
+
+pub async fn load_okta_identity_provider(config: &Config) -> Result<OktaIdpResponse, BiError> {
+    let config_path = config.file_paths.okta_identity_provider.clone();
+    let data = fs::read_to_string(&config_path)
+        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+    let okta_idp_response: OktaIdpResponse =
+        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+    Ok(okta_idp_response)
 }
 
 pub async fn create_okta_identity_provider(
@@ -272,18 +281,11 @@ pub async fn create_okta_identity_provider(
     config: &Config,
     tenant_config: &TenantConfig,
     external_sso_config: &ExternalSSO,
-) -> OktaIdpResponse {
+) -> Result<OktaIdpResponse, BiError> {
     let config_path = config.file_paths.okta_identity_provider.clone();
-    if Path::new(&config_path).exists() {
-        let data = fs::read_to_string(config_path).expect("Unable to read file");
-        serde_json::from_str(&data).expect("JSON was not well-formatted")
-    } else {
-        let response = create_idp(client, config, tenant_config, external_sso_config)
-            .await
-            .expect("Failed to create tenant");
-        let serialized =
-            serde_json::to_string_pretty(&response).expect("Failed to serialize tenant response");
-        fs::write(config_path, serialized).expect("Unable to write file");
-        response
-    }
+    let response = create_idp(client, config, tenant_config, external_sso_config).await?;
+    let serialized = serde_json::to_string_pretty(&response)?;
+    fs::write(config_path.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
+    Ok(response)
 }

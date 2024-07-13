@@ -6,7 +6,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AuthenticatorConfig {
@@ -166,25 +165,27 @@ async fn create_application(
     Ok(app_config_response)
 }
 
+pub async fn load_external_sso(config: &Config) -> Result<ExternalSSO, BiError> {
+    let config_path = config.file_paths.external_sso_config.clone();
+    let data = fs::read_to_string(&config_path)
+        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+    let external_sso_config: ExternalSSO =
+        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+    Ok(external_sso_config)
+}
+
 pub async fn create_external_sso(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-) -> ExternalSSO {
+) -> Result<ExternalSSO, BiError> {
+    let auth_config = create_authenticator_config(client, config, tenant_config).await?;
+    let app_config = create_application(client, config, tenant_config, &auth_config.id).await?;
+    let serialized = serde_json::to_string_pretty(&app_config)?;
+
     let config_path = config.file_paths.external_sso_config.clone();
-    if Path::new(&config_path).exists() {
-        let data = fs::read_to_string(config_path).expect("Unable to read file");
-        serde_json::from_str(&data).expect("JSON was not well-formatted")
-    } else {
-        let auth_config = create_authenticator_config(client, config, tenant_config)
-            .await
-            .expect("Failed to create authenticator config");
-        let app_config = create_application(client, config, tenant_config, &auth_config.id)
-            .await
-            .expect("Failed to create external sso");
-        let serialized = serde_json::to_string_pretty(&app_config)
-            .expect("Failed to serialize external sso config");
-        fs::write(config_path, serialized).expect("Unable to write file");
-        app_config
-    }
+    fs::write(config_path.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
+
+    Ok(app_config)
 }

@@ -8,13 +8,13 @@ mod okta_registration_attribute;
 mod okta_scim;
 mod tenant;
 
-use bi_external_sso::create_external_sso;
+use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use clap::{Parser, Subcommand};
 use config::Config;
 use log::LevelFilter;
-use okta_identity_provider::create_okta_identity_provider;
-use okta_registration_attribute::add_custom_attribute_to_okta_user_type;
+use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
+use okta_registration_attribute::create_custom_attribute_in_okta_user_type;
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
 use tenant::{create_tenant, load_tenant};
@@ -122,7 +122,12 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            let external_sso = create_external_sso(&client, &config, &tenant_config).await;
+            let external_sso = match load_external_sso(&config).await {
+                Ok(external_sso) => external_sso,
+                Err(_) => create_external_sso(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to create External SSO in Beyond Identity"),
+            };
             println!(
                 "External SSO: {}",
                 serde_json::to_string_pretty(&external_sso).unwrap()
@@ -131,7 +136,7 @@ async fn main() {
         Commands::AddRegistrationSyncCustomAttributeInOkta => {
             let config = Config::from_env();
             let client = Client::new();
-            add_custom_attribute_to_okta_user_type(&client, &config)
+            create_custom_attribute_in_okta_user_type(&client, &config)
                 .await
                 .expect("Failed to create custom attribute in Okta");
         }
@@ -141,8 +146,21 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            let external_sso = create_external_sso(&client, &config, &tenant_config).await;
-            create_okta_identity_provider(&client, &config, &tenant_config, &external_sso).await;
+            let external_sso = load_external_sso(&config).await.expect(
+                "Failed to load external sso. Make sure you create an external sso before running this command.",
+            );
+            let okta_idp = match load_okta_identity_provider(&config).await {
+                Ok(okta_idp) => okta_idp,
+                Err(_) => {
+                    create_okta_identity_provider(&client, &config, &tenant_config, &external_sso)
+                        .await
+                        .expect("Failed to create an Okta Identity Provider")
+                }
+            };
+            println!(
+                "Okta Identity Provider: {}",
+                serde_json::to_string_pretty(&okta_idp).unwrap()
+            );
         }
     }
 }

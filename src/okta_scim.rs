@@ -526,7 +526,10 @@ pub async fn create_scim_app_in_okta(
 ) -> Result<OktaAppResponse, BiError> {
     let response = create_scim_app(client, config).await?;
     let serialized = serde_json::to_string_pretty(&response)?;
-    fs::write(config.file_paths.okta_scim_app_config.clone(), serialized)
-        .map_err(|_| BiError::UnableToWriteFile(config.file_paths.okta_scim_app_config.clone()))?;
+
+    let config_path = config.file_paths.okta_scim_app_config.clone();
+    fs::write(config_path.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
+
     Ok(response)
 }
