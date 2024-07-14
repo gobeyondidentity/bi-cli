@@ -49,6 +49,13 @@ pub async fn get_all_identities(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
     }
@@ -152,6 +159,13 @@ pub async fn send_enrollment_email(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));

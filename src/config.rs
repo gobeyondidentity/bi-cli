@@ -13,6 +13,7 @@ pub struct FilePaths {
     pub okta_routing_rule: String,
     pub okta_custom_attribute: String,
     pub okta_applications: String,
+    pub token_path: String,
 }
 
 impl FilePaths {
@@ -26,6 +27,7 @@ impl FilePaths {
             okta_routing_rule: "configs/okta_routing_rule.json".to_string(),
             okta_custom_attribute: "configs/okta_custom_attribute.json".to_string(),
             okta_applications: "configs/okta_applications.json".to_string(),
+            token_path: "configs/token.json".to_string(),
         }
     }
 }
