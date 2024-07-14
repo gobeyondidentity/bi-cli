@@ -1,4 +1,6 @@
 use dotenv::dotenv;
+use regex::Regex;
+use std::collections::HashMap;
 use std::env;
 
 #[derive(Debug)]
@@ -43,6 +45,7 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Self {
         dotenv().ok();
+        validate_env().expect("Environment validation failed");
 
         Self {
             okta_api_key: env::var("OKTA_API_KEY").expect("OKTA_API_KEY not set"),
@@ -59,4 +62,69 @@ impl Config {
             file_paths: FilePaths::new(),
         }
     }
+}
+
+fn validate_env() -> Result<(), String> {
+    let env_vars: HashMap<String, String> = env::vars().collect();
+    let email_regex = Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap();
+    let valid_api_urls = vec![
+        "https://api-us.beyondidentity.run",
+        "https://api-us.beyondidentity.xyz",
+        "https://api-us.beyondidentity.com",
+    ];
+    let valid_auth_urls = vec![
+        "https://auth-us.beyondidentity.run",
+        "https://auth-us.beyondidentity.xyz",
+        "https://auth-us.beyondidentity.com",
+    ];
+
+    // Validate OKTA_DOMAIN
+    if let Some(okta_domain) = env_vars.get("OKTA_DOMAIN") {
+        if !okta_domain.starts_with("https://") || okta_domain.ends_with('/') {
+            return Err(format!(
+                "Invalid OKTA_DOMAIN: {}. It must begin with 'https://' and not end with a '/'. Example: 'https://beyondidentity.okta.com'",
+                okta_domain
+            ));
+        }
+    } else {
+        return Err("OKTA_DOMAIN is missing. Please set OKTA_DOMAIN in your .env file. Example: 'OKTA_DOMAIN=https://beyondidentity.okta.com'".to_string());
+    }
+
+    // Validate BEYOND_IDENTITY_API_BASE_URL
+    if let Some(api_base_url) = env_vars.get("BEYOND_IDENTITY_API_BASE_URL") {
+        if !valid_api_urls.contains(&api_base_url.as_str()) {
+            return Err(format!(
+                "Invalid BEYOND_IDENTITY_API_BASE_URL: {}. It must be one of the following: 'https://api-us.beyondidentity.run', 'https://api-us.beyondidentity.xyz', 'https://api-us.beyondidentity.com'",
+                api_base_url
+            ));
+        }
+    } else {
+        return Err("BEYOND_IDENTITY_API_BASE_URL is missing. Please set BEYOND_IDENTITY_API_BASE_URL in your .env file. Example: 'BEYOND_IDENTITY_API_BASE_URL=https://api-us.beyondidentity.run'".to_string());
+    }
+
+    // Validate BEYOND_IDENTITY_AUTH_BASE_URL
+    if let Some(auth_base_url) = env_vars.get("BEYOND_IDENTITY_AUTH_BASE_URL") {
+        if !valid_auth_urls.contains(&auth_base_url.as_str()) {
+            return Err(format!(
+                "Invalid BEYOND_IDENTITY_AUTH_BASE_URL: {}. It must be one of the following: 'https://auth-us.beyondidentity.run', 'https://auth-us.beyondidentity.xyz', 'https://auth-us.beyondidentity.com'",
+                auth_base_url
+            ));
+        }
+    } else {
+        return Err("BEYOND_IDENTITY_AUTH_BASE_URL is missing. Please set BEYOND_IDENTITY_AUTH_BASE_URL in your .env file. Example: 'BEYOND_IDENTITY_AUTH_BASE_URL=https://auth-us.beyondidentity.run'".to_string());
+    }
+
+    // Validate ADMIN_PRIMARY_EMAIL_ADDRESS
+    if let Some(admin_email) = env_vars.get("ADMIN_PRIMARY_EMAIL_ADDRESS") {
+        if !email_regex.is_match(admin_email) {
+            return Err(format!(
+                "Invalid ADMIN_PRIMARY_EMAIL_ADDRESS: {}. It must be a valid email address. Example: 'admin@example.com'",
+                admin_email
+            ));
+        }
+    } else {
+        return Err("ADMIN_PRIMARY_EMAIL_ADDRESS is missing. Please set ADMIN_PRIMARY_EMAIL_ADDRESS in your .env file. Example: 'ADMIN_PRIMARY_EMAIL_ADDRESS=admin@example.com'".to_string());
+    }
+
+    Ok(())
 }

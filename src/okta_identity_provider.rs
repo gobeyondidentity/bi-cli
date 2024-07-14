@@ -188,7 +188,7 @@ async fn create_idp(
 
     let payload = json!({
         "type": "OIDC",
-        "name": "Beyond Identity ISMAIL",
+        "name": "Beyond Identity IDP",
         "protocol": {
             "type": "OIDC",
             "scopes": ["email", "openid"],
