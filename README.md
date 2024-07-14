@@ -1,6 +1,6 @@
-# Provision SSO Tenant
+# Secure Access CLI
 
-Provision SSO Tenant is a command-line interface (CLI) tool designed to automate the setup of a Secure Access Tenant with Single Sign-On (SSO) capabilities. This guide will walk you through the installation process, how to configure your environment, and detailed usage instructions for each available command.
+Secure Access CLI is a command-line interface designed to automate the setup of a Secure Access Tenant with Single Sign-On (SSO) capabilities. This guide will walk you through the installation process, how to configure your environment, and detailed usage instructions for each available command.
 
 ## Table of Contents
 
@@ -63,7 +63,7 @@ cargo build --release
 
 ### Environment Variables
 
-Provision SSO Tenant uses environment variables for configuration. Create a `.env` file in the root of the project directory and populate it with the necessary variables. Here is an example of the required variables:
+Secure Access CLI uses environment variables for configuration. Create a `.env` file in the root of the project directory and populate it with the necessary variables. Here is an example of the required variables:
 
 ```sh
 OKTA_API_KEY="<OKTA_API_KEY_READ+WRITE>"
