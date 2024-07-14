@@ -66,12 +66,13 @@ cargo build --release
 Provision SSO Tenant uses environment variables for configuration. Create a `.env` file in the root of the project directory and populate it with the necessary variables. Here is an example of the required variables:
 
 ```sh
-BEYOND_IDENTITY_API_BASE_URL=<your-beyond-identity-api-base-url>
-OKTA_API_BASE_URL=<your-okta-api-base-url>
-OKTA_API_TOKEN=<your-okta-api-token>
-BEYOND_IDENTITY_API_TOKEN=<your-beyond-identity-api-token>
-TENANT_ID=<your-tenant-id>
-REALM_ID=<your-realm-id>
+OKTA_API_KEY="<OKTA_API_KEY_READ+WRITE>"
+OKTA_DOMAIN="<YOUR_OKTA_DOMAIN>"
+OKTA_REGISTRATION_SYNC_ATTRIBUTE="byndidRegistered" # You can update this to be any non-conflicting value if you need to
+BEYOND_IDENTITY_API_BASE_URL="https://api-<eu|us>.beyondidentity.<run|xyz|com>"
+BEYOND_IDENTITY_AUTH_BASE_URL="https://auth-<eu|us>.beyondidentity.<run|xyz|com>"
+ADMIN_DISPLAY_NAME="<YOUR_NAME>"
+ADMIN_PRIMARY_EMAIL_ADDRESS="<YOUR_EMAIL_ADDRESS>"
 ```
 
 Make sure to replace the placeholders with your actual configuration values.

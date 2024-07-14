@@ -3,6 +3,7 @@ use crate::config::Config;
 use crate::error::BiError;
 use crate::tenant::TenantConfig;
 use rand::Rng;
+use regex::Regex;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -313,7 +314,7 @@ async fn create_sso_config(
         config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
-    let display_name = okta_application.label.clone();
+    let display_name = sanitize_label(&okta_application.label);
     let login_link = okta_application
         ._links
         .app_links
@@ -363,6 +364,16 @@ async fn create_sso_config(
 
     let sso_config: SsoConfig = serde_json::from_str(&response_text)?;
     Ok(sso_config)
+}
+
+fn sanitize_label(label: &str) -> String {
+    let re = Regex::new(r#"[{}\[\]<>;:?\\"/|*^%$#=~`!'']"#).unwrap();
+    let sanitized_label = re.replace_all(label, "").to_string();
+    if sanitized_label.len() > 64 {
+        sanitized_label[..64].to_string()
+    } else {
+        sanitized_label
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
