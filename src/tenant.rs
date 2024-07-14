@@ -23,7 +23,7 @@ pub struct TenantConfig {
 }
 
 pub async fn create_tenant(client: &Client, config: &Config) -> Result<TenantConfig, BiError> {
-    let tenant_display_name = format!("SW Rolling - {}", Utc::now().format("%Y%m%d-%H%M%S"));
+    let tenant_display_name = format!("SA - {}", Utc::now().format("%Y%m%d-%H%M%S"));
     let payload = serde_json::json!({
         "tenant_display_name": tenant_display_name,
         "admin_display_name": config.admin_display_name,
