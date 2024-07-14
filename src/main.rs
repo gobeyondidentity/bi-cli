@@ -4,6 +4,7 @@ mod bi_external_sso;
 mod bi_scim;
 mod config;
 mod error;
+mod fast_migrate;
 mod okta_identity_provider;
 mod okta_registration_attribute;
 mod okta_routing_rule;
@@ -15,6 +16,10 @@ use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use clap::{Parser, Subcommand};
 use config::Config;
+use fast_migrate::{
+    create_sso_config_and_assign_identities, delete_all_sso_configs, fetch_okta_applications,
+    load_okta_applications, select_applications,
+};
 use log::LevelFilter;
 use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
 use okta_registration_attribute::{create_custom_attribute, load_custom_attribute};
@@ -43,6 +48,8 @@ enum Commands {
     CreateIdentityProviderInOkta,
     CreateRoutingRuleInOkta,
     SendEnrollmentEmail,
+    FastMigrate,
+    DeleteAllSSOConfigsInBeyondIdentity,
 }
 
 #[tokio::main]
@@ -60,8 +67,8 @@ async fn main() {
         Some("debug") => LevelFilter::Debug,
         // Use for logging very detailed and fine-grained information, typically for tracing program execution.
         Some("trace") => LevelFilter::Trace,
-        // Logging is disabled if no flag is present.
-        _ => LevelFilter::Off,
+        // Logging is defaulted to info if none is specified.
+        _ => LevelFilter::Info,
     };
     env_logger::Builder::new().filter(None, log_level).init();
 
@@ -219,6 +226,49 @@ async fn main() {
                     ),
                 }
             }
+        }
+        Commands::FastMigrate => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+            let okta_applications = match load_okta_applications(&config).await {
+                Ok(okta_applications) => okta_applications,
+                Err(_) => fetch_okta_applications(&client, &config)
+                    .await
+                    .expect("Failed to fetch okta applications"),
+            };
+
+            let selected_applications = select_applications(&okta_applications);
+            for app in selected_applications {
+                match create_sso_config_and_assign_identities(
+                    &client,
+                    &config,
+                    &tenant_config,
+                    &app,
+                )
+                .await
+                {
+                    Ok(sso_config) => println!(
+                        "SSO config created for {}: {}",
+                        app.label,
+                        serde_json::to_string_pretty(&sso_config).unwrap()
+                    ),
+                    Err(err) => println!("Failed to create SSO config for {}: {}", app.label, err),
+                }
+            }
+        }
+        Commands::DeleteAllSSOConfigsInBeyondIdentity => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+
+            delete_all_sso_configs(&client, &config, &tenant_config)
+                .await
+                .expect("Failed to delete all SSO Configs");
         }
     }
 }

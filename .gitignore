@@ -24,3 +24,5 @@ Cargo.lock
 
 configs/*
 !configs/.gitkeep
+
+.env

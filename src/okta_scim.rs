@@ -498,7 +498,7 @@ pub async fn assign_all_groups_to_app(
 ) -> Result<(), BiError> {
     let groups = list_all_okta_groups(client, config).await?;
     for group in groups {
-        log::debug!("Assigning group: {:?}", group);
+        log::info!("Assigning group: {:?}", group);
         assign_group_to_app(client, config, app_id, &group).await?;
         let sleep_duration = rand::thread_rng().gen_range(5..=10);
         println!("Sleeping for {} seconds...", sleep_duration);
