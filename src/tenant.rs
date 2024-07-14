@@ -4,6 +4,8 @@ use chrono::Utc;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{self, Write};
+use webbrowser::{open_browser, Browser};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TenantConfig {
@@ -55,4 +57,37 @@ pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
     let tenant_config: TenantConfig =
         serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
     Ok(tenant_config)
+}
+
+pub fn open_magic_link(magic_link: &str) {
+    println!("To finish setting up tenant creation, select a browser:");
+    println!("1. Default");
+    println!("2. Firefox");
+    println!("3. Chrome");
+    println!("4. Safari");
+    println!("5. Show me the URL, I'll paste it into a browser myself");
+    print!("Enter the number of your choice: ");
+    io::stdout().flush().unwrap();
+
+    let mut choice = String::new();
+    io::stdin()
+        .read_line(&mut choice)
+        .expect("Failed to read line");
+
+    match choice.trim() {
+        "1" => open_browser(Browser::Default, magic_link),
+        "2" => open_browser(Browser::Firefox, magic_link),
+        "3" => open_browser(Browser::Chrome, magic_link),
+        "4" => open_browser(Browser::Safari, magic_link),
+        "5" => {
+            println!("Here is the magic link: {}", magic_link);
+            return;
+        }
+        _ => {
+            println!("Invalid choice, defaulting to system's default browser.");
+            open_browser(Browser::Default, magic_link)
+        }
+    }
+    .map(|_| println!("Opened magic link in selected browser."))
+    .unwrap_or_else(|_| println!("Failed to open magic link in the selected browser."));
 }

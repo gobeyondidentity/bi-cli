@@ -26,7 +26,7 @@ use okta_registration_attribute::{create_custom_attribute, load_custom_attribute
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
-use tenant::{create_tenant, load_tenant};
+use tenant::{create_tenant, load_tenant, open_magic_link};
 
 #[derive(Parser)]
 #[clap(name = "Provision SSO Tenant")]
@@ -76,16 +76,22 @@ async fn main() {
         Commands::CreateTenant => {
             let config = Config::from_env();
             let client = Client::new();
-            let tenant_config = match load_tenant(&config).await {
-                Ok(tenant_config) => tenant_config,
-                Err(_) => create_tenant(&client, &config)
-                    .await
-                    .expect("Failed to create tenant"),
+            match load_tenant(&config).await {
+                Ok(tenant_config) => {
+                    println!(
+                        "Tenant: {}",
+                        serde_json::to_string_pretty(&tenant_config).unwrap()
+                    );
+                    tenant_config
+                }
+                Err(_) => {
+                    let tenant_config = create_tenant(&client, &config)
+                        .await
+                        .expect("Failed to create tenant");
+                    open_magic_link(&tenant_config.magic_link);
+                    tenant_config
+                }
             };
-            println!(
-                "Tenant: {}",
-                serde_json::to_string_pretty(&tenant_config).unwrap()
-            );
         }
         Commands::CreateScimAppInBeyondIdentity => {
             let config = Config::from_env();
