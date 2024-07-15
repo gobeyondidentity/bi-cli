@@ -385,12 +385,13 @@ async fn create_sso_config(
 }
 
 fn sanitize_label(label: &str) -> String {
-    let re = Regex::new(r#"[{}\[\]<>;:?\\"/|*^%$#=~`!'']"#).unwrap();
-    let sanitized_label = re.replace_all(label, "").to_string();
-    if sanitized_label.len() > 64 {
-        sanitized_label[..64].to_string()
+    let re = Regex::new(r"[^a-zA-Z\s]").unwrap();
+    let sanitized_label: String = re.replace_all(label, "").to_string();
+    let trimmed_label = sanitized_label.trim();
+    if trimmed_label.len() > 60 {
+        trimmed_label[..60].to_string()
     } else {
-        sanitized_label
+        trimmed_label.to_string()
     }
 }
 
