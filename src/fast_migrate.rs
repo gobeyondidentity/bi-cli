@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Write};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -183,22 +184,22 @@ pub async fn fetch_okta_applications(
 }
 
 fn extract_next_link(response: &reqwest::Response) -> Option<String> {
-    response
-        .headers()
-        .get("link")
-        .and_then(|link| link.to_str().ok())
-        .and_then(parse_next_link)
-}
-
-fn parse_next_link(links: &str) -> Option<String> {
-    links
-        .split(',')
-        .find(|link| link.contains("rel=\"next\""))
-        .and_then(|link| {
-            link.split(';')
-                .next()
-                .map(|url| url.trim().trim_matches('<').trim_matches('>').to_string())
-        })
+    response.headers().get_all("link").iter().find_map(|link| {
+        let link_str = link.to_str().ok()?;
+        if link_str.contains("rel=\"next\"") {
+            Some(
+                link_str
+                    .split(';')
+                    .next()?
+                    .trim()
+                    .trim_matches('<')
+                    .trim_matches('>')
+                    .to_string(),
+            )
+        } else {
+            None
+        }
+    })
 }
 
 pub async fn load_okta_applications(config: &Config) -> Result<Vec<OktaApplication>, BiError> {
@@ -216,45 +217,64 @@ async fn get_users_assigned_to_app(
     app_id: &str,
     users_map: &HashMap<String, OktaUser>,
 ) -> Result<Vec<OktaUser>, BiError> {
-    let url = format!("{}/api/v1/apps/{}/users", config.okta_domain, app_id);
-    let response = client
-        .get(&url)
-        .header("Authorization", format!("SSWS {}", config.okta_api_key))
-        .send()
-        .await?;
-
-    let status = response.status();
-    let response_text = response.text().await?;
-
-    log::debug!(
-        "{} response status: {} and text: {}",
-        url,
-        status,
-        response_text
+    let mut all_users = Vec::new();
+    let mut url = format!(
+        "{}/api/v1/apps/{}/users?limit=450",
+        config.okta_domain, app_id
     );
 
-    if !status.is_success() {
-        return Err(BiError::RequestError(status, response_text));
-    }
+    loop {
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("SSWS {}", config.okta_api_key))
+            .send()
+            .await?;
 
-    let mut users: Vec<OktaUser> = serde_json::from_str(&response_text)?;
+        let status = response.status();
+        let next_link = extract_next_link(&response);
+        let response_text = response.text().await?;
 
-    // For some reason, some assigned users don't have the email field
-    // filled in. The id however is always filled in and since we can
-    // get a mapping of id to Okta User, we'll use that information
-    // to backfill the missing emails.
-    for user in &mut users {
-        if user.profile.email.is_none() {
-            if let Some(full_user) = users_map.get(&user.id) {
-                user.profile.email = full_user.profile.email.clone();
+        log::debug!(
+            "{} response status: {} and text: {}",
+            url,
+            status,
+            response_text
+        );
+
+        if !status.is_success() {
+            return Err(BiError::RequestError(status, response_text));
+        }
+
+        let mut users: Vec<OktaUser> = serde_json::from_str(&response_text)?;
+
+        // Backfill missing emails
+        for user in &mut users {
+            if user.profile.email.is_none() {
+                if let Some(full_user) = users_map.get(&user.id) {
+                    user.profile.email = full_user.profile.email.clone();
+                }
             }
+        }
+
+        println!("Fetched {} users for app {}", users.len(), app_id);
+        all_users.extend(users);
+
+        // Check for next link
+        if let Some(next) = next_link {
+            url = next;
+            println!("Fetching next page: {}", url);
+        } else {
+            break;
         }
     }
 
-    Ok(users)
+    println!(
+        "Total users fetched for app {}: {}",
+        app_id,
+        all_users.len()
+    );
+    Ok(all_users)
 }
-
-use std::io::{self, Write};
 
 pub fn select_applications(applications: &[OktaApplication]) -> Vec<OktaApplication> {
     println!("Select applications to fast migrate (comma separated indices or 'all' for all applications):");
