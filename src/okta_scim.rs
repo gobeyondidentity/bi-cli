@@ -9,42 +9,38 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OktaAppResponse {
     pub id: String,
     pub name: String,
     pub label: String,
     pub status: String,
-    #[serde(rename = "lastUpdated")]
     pub last_updated: String,
     pub created: String,
     pub accessibility: Accessibility,
     pub visibility: Visibility,
     pub features: Vec<String>,
-    #[serde(rename = "signOnMode")]
     pub sign_on_mode: String,
     pub credentials: Credentials,
     pub settings: Settings,
+    #[serde(rename = "_links")]
     pub _links: Links,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Accessibility {
-    #[serde(rename = "selfService")]
     pub self_service: bool,
-    #[serde(rename = "autoLaunch")]
     pub error_redirect_url: Option<String>,
-    #[serde(rename = "loginRedirectUrl")]
     pub login_redirect_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Visibility {
-    #[serde(rename = "autoLaunch")]
     pub auto_launch: bool,
-    #[serde(rename = "autoSubmitToolbar")]
     pub auto_submit_toolbar: bool,
     pub hide: Hide,
-    #[serde(rename = "appLinks")]
     pub app_links: AppLinks,
 }
 
@@ -56,13 +52,14 @@ pub struct Hide {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppLinks {
     pub scim2testapp_login: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Credentials {
-    #[serde(rename = "userNameTemplate")]
     pub user_name_template: UserNameTemplate,
     pub signing: Signing,
 }
@@ -79,25 +76,21 @@ pub struct Signing {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub app: AppSettings,
     pub notifications: Notifications,
-    #[serde(rename = "manualProvisioning")]
     pub manual_provisioning: bool,
-    #[serde(rename = "implicitAssignment")]
     pub implicit_assignment: bool,
     pub notes: Notes,
-    #[serde(rename = "signOn")]
     pub sign_on: SignOn,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
-    #[serde(rename = "acsUrl")]
     pub acs_url: Option<String>,
-    #[serde(rename = "audienceUri")]
     pub audience_uri: Option<String>,
-    #[serde(rename = "swaLoginUrl")]
     pub swa_login_url: Option<String>,
 }
 
@@ -107,10 +100,10 @@ pub struct Notifications {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Vpn {
     pub network: Network,
     pub message: Option<String>,
-    #[serde(rename = "helpUrl")]
     pub help_url: Option<String>,
 }
 
@@ -126,37 +119,28 @@ pub struct Notes {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SignOn {
-    #[serde(rename = "defaultRelayState")]
     pub default_relay_state: Option<String>,
-    #[serde(rename = "ssoAcsUrlOverride")]
     pub sso_acs_url_override: Option<String>,
-    #[serde(rename = "audienceOverride")]
     pub audience_override: Option<String>,
-    #[serde(rename = "recipientOverride")]
     pub recipient_override: Option<String>,
-    #[serde(rename = "destinationOverride")]
     pub destination_override: Option<String>,
-    #[serde(rename = "honorForceAuthn")]
     pub honor_force_authn: bool,
-    #[serde(rename = "attributeStatements")]
     pub attribute_statements: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Links {
     pub help: Link,
     pub metadata: Link,
-    #[serde(rename = "uploadLogo")]
     pub upload_logo: Link,
-    #[serde(rename = "appLinks")]
     pub app_links: Vec<AppLink>,
-    #[serde(rename = "profileEnrollment")]
     pub profile_enrollment: Link,
     pub policies: Link,
     pub groups: Link,
     pub logo: Vec<Logo>,
-    #[serde(rename = "accessPolicy")]
     pub access_policy: Link,
     pub users: Link,
     pub deactivate: Link,
