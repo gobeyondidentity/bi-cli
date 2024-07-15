@@ -10,6 +10,7 @@ use std::io::{self, Write};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IdentityResponse {
     pub identities: Vec<Identity>,
+    pub next_page_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -33,35 +34,60 @@ pub async fn get_all_identities(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-) -> Result<IdentityResponse, BiError> {
+) -> Result<Vec<Identity>, BiError> {
+    let mut all_identities = Vec::new();
+    let mut next_page_token: Option<String> = None;
     let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
-    );
 
-    let response = client
-        .get(&url)
-        .header("Authorization", format!("Bearer {}", bi_api_token))
-        .send()
-        .await?;
+    loop {
+        let url = match next_page_token {
+            Some(ref token) => format!(
+                "{}/v1/tenants/{}/realms/{}/identities?page_token={}",
+                config.beyond_identity_api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                token
+            ),
+            None => format!(
+                "{}/v1/tenants/{}/realms/{}/identities",
+                config.beyond_identity_api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id
+            ),
+        };
 
-    let status = response.status();
-    let response_text = response.text().await?;
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", bi_api_token))
+            .send()
+            .await?;
 
-    log::debug!(
-        "{} response status: {} and text: {}",
-        url,
-        status,
-        response_text
-    );
+        let status = response.status();
+        let response_text = response.text().await?;
 
-    if !status.is_success() {
-        return Err(BiError::RequestError(status, response_text));
+        log::debug!(
+            "{} response status: {} and text: {}",
+            url,
+            status,
+            response_text
+        );
+
+        if !status.is_success() {
+            return Err(BiError::RequestError(status, response_text));
+        }
+
+        let identity_response: IdentityResponse = serde_json::from_str(&response_text)?;
+
+        all_identities.extend(identity_response.identities);
+
+        if let Some(token) = identity_response.next_page_token {
+            next_page_token = Some(token);
+        } else {
+            break;
+        }
     }
 
-    let identity_response: IdentityResponse = serde_json::from_str(&response_text)?;
-    Ok(identity_response)
+    Ok(all_identities)
 }
 
 pub fn select_identities(identities: &[Identity]) -> Vec<Identity> {

@@ -233,10 +233,10 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            let identity_response = get_all_identities(&client, &config, &tenant_config)
+            let identities = get_all_identities(&client, &config, &tenant_config)
                 .await
                 .expect("Failed to fetch identities");
-            let selected_identities = select_identities(&identity_response.identities);
+            let selected_identities = select_identities(&identities);
 
             for identity in selected_identities {
                 match send_enrollment_email(&client, &config, &tenant_config, &identity).await {

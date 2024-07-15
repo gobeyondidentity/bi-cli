@@ -477,17 +477,14 @@ fn filter_identities(
         .iter()
         .filter_map(|user| user.profile.email.as_deref())
         .collect();
-
     beyond_identity_identities
         .iter()
         .filter(|identity| {
-            okta_user_emails.contains(
-                &identity
-                    .traits
-                    .primary_email_address
-                    .as_deref()
-                    .unwrap_or(""),
-            )
+            identity
+                .traits
+                .primary_email_address
+                .as_deref()
+                .map_or(false, |email| okta_user_emails.contains(&email))
         })
         .cloned()
         .collect()
