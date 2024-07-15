@@ -82,7 +82,7 @@ Make sure to replace the placeholders with your actual configuration values.
 
 To run the CLI tool, use the following syntax:
 ```sh
-./target/release/secure-access-cli -- [OPTIONS] <COMMAND>
+./target/release/secure-access-cli [OPTIONS] <COMMAND>
 ```
 
 ### Commands
@@ -92,7 +92,7 @@ To run the CLI tool, use the following syntax:
 Creates a new Secure Access tenant. This command is required for all the remaining commands to work as it provides the base configuration. The first time you run this command, it will ask you to open a browser with a magic link to complete the provisioning process. Subsequent runs will show you the existing tenant configuration.
 
 ```sh
-./target/release/secure-access-cli -- create-tenant
+./target/release/secure-access-cli create-tenant
 ```
 
 #### create-scim-app-in-beyond-identity
@@ -100,7 +100,7 @@ Creates a new Secure Access tenant. This command is required for all the remaini
 Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
 
 ```sh
-./target/release/secure-access-cli -- create-scim-app-in-beyond-identity
+./target/release/secure-access-cli create-scim-app-in-beyond-identity
 ```
 
 #### create-scim-app-in-okta
@@ -108,7 +108,7 @@ Creates an application in Beyond Identity that enables you to perform inbound SC
 Creates a SCIM app in Okta that is connected to the SCIM app created in the previous step. Note that this command will generate the app and assign all groups to the SCIM app. However, there is a manual step you have to complete on your own which unfortunately cannot be automated. When you run this command the first time, we'll provide you with a SCIM base URL and API token that you'll need to copy into the SCIM app in Okta. You will also have to enable provisioning of identities manually in Okta. The good news is that both of these steps are very easy to do. You can find the exact steps to follow [here](https://docs.beyondidentity.com/docs/directory/directory-integrations/okta#-finish-configuring-the-okta-scim-application).
 
 ```sh
-./target/release/secure-access-cli -- create-scim-app-in-okta
+./target/release/secure-access-cli create-scim-app-in-okta
 ```
 
 #### create-external-sso-connection-in-beyond-identity
@@ -116,7 +116,7 @@ Creates a SCIM app in Okta that is connected to the SCIM app created in the prev
 Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
 
 ```sh
-./target/release/secure-access-cli -- create-external-sso-connection-in-beyond-identity
+./target/release/secure-access-cli create-external-sso-connection-in-beyond-identity
 ```
 
 #### create-custom-attribute-in-okta
@@ -124,7 +124,7 @@ Creates an OIDC application in Beyond Identity that Okta will use to enable Okta
 Creates a custom attribute in Okta on the default user type that will be used to create an IDP routing rule in Okta. This is a boolean value that gets set to "true" whenever a passkey is bound for a specific user.
 
 ```sh
-./target/release/secure-access-cli -- create-custom-attribute-in-okta
+./target/release/secure-access-cli create-custom-attribute-in-okta
 ```
 
 #### create-identity-provider-in-okta
@@ -132,7 +132,7 @@ Creates a custom attribute in Okta on the default user type that will be used to
 Takes the external SSO connection you created in Beyond Identity and uses it to configure an identity provider in Okta. This is the identity provider that will be used to authenticate Okta users using Beyond Identity.
 
 ```sh
-./target/release/secure-access-cli -- create-identity-provider-in-okta
+./target/release/secure-access-cli create-identity-provider-in-okta
 ```
 
 #### create-routing-rule-in-okta
@@ -140,7 +140,7 @@ Takes the external SSO connection you created in Beyond Identity and uses it to 
 The final step when setting up Beyond Identity as an MFA in Okta. This will use the custom attribute you created using an earlier command to route users who have provisioned a Beyond Identity passkey to Beyond Identity during authentication.
 
 ```sh
-./target/release/secure-access-cli -- create-routing-rule-in-okta
+./target/release/secure-access-cli create-routing-rule-in-okta
 ```
 
 #### send-enrollment-email
@@ -148,7 +148,7 @@ The final step when setting up Beyond Identity as an MFA in Okta. This will use 
 Helps you send enrollment emails to one or more (or all) users in Beyond Identity.
 
 ```sh
-./target/release/secure-access-cli -- send-enrollment-email
+./target/release/secure-access-cli send-enrollment-email
 ```
 
 #### fast-migrate
@@ -156,7 +156,7 @@ Helps you send enrollment emails to one or more (or all) users in Beyond Identit
 Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
 
 ```sh
-./target/release/secure-access-cli -- fast-migrate
+./target/release/secure-access-cli fast-migrate
 ```
 
 #### delete-all-sso-configs-in-beyond-identity
@@ -164,7 +164,7 @@ Automatically populates Beyond Identities SSO with all of your Okta applications
 Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
 
 ```sh
-./target/release/secure-access-cli -- delete-all-sso-configs-in-beyond-identity
+./target/release/secure-access-cli delete-all-sso-configs-in-beyond-identity
 ```
 
 ## Options
