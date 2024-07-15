@@ -117,6 +117,8 @@ pub async fn create_custom_attribute(
     let okta_domain = &config.okta_domain;
     let okta_api_key = &config.okta_api_key;
 
+    let url = format!("{}/api/v1/meta/schemas/user/default", okta_domain);
+
     let payload = json!({
         "definitions": {
             "custom": {
@@ -134,7 +136,7 @@ pub async fn create_custom_attribute(
     });
 
     let response = client
-        .post(&format!("{}/api/v1/meta/schemas/user/default", okta_domain))
+        .post(&url)
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
         .json(&payload)
@@ -143,6 +145,13 @@ pub async fn create_custom_attribute(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));

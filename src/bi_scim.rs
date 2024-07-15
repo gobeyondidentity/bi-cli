@@ -43,6 +43,13 @@ async fn get_first_resource_server(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(
             reqwest::StatusCode::BAD_REQUEST,
@@ -94,6 +101,11 @@ async fn create_okta_registration(
     let tenant_id = &tenant_config.tenant_id;
     let realm_id = &tenant_config.realm_id;
 
+    let url = format!(
+        "{}/v1/tenants/{}/realms/{}/okta-registration",
+        beyond_identity_api_base_url, tenant_id, realm_id
+    );
+
     let payload = OktaRegistrationPayload {
         domain,
         okta_token,
@@ -102,10 +114,7 @@ async fn create_okta_registration(
     };
 
     let response = client
-        .post(format!(
-            "{}/v1/tenants/{}/realms/{}/okta-registration",
-            beyond_identity_api_base_url, tenant_id, realm_id
-        ))
+        .post(&url)
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
@@ -117,6 +126,13 @@ async fn create_okta_registration(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
@@ -137,11 +153,13 @@ async fn delete_okta_registration(
     let tenant_id = &tenant_config.tenant_id;
     let realm_id = &tenant_config.realm_id;
 
+    let url = format!(
+        "{}/v1/tenants/{}/realms/{}/okta-registration",
+        beyond_identity_api_base_url, tenant_id, realm_id
+    );
+
     let response = client
-        .delete(format!(
-            "{}/v1/tenants/{}/realms/{}/okta-registration",
-            beyond_identity_api_base_url, tenant_id, realm_id
-        ))
+        .delete(&url)
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
@@ -152,6 +170,13 @@ async fn delete_okta_registration(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
@@ -197,6 +222,11 @@ async fn create_scim_app(
     )
     .await?;
 
+    let url = format!(
+        "{}/v1/tenants/{}/realms/{}/applications",
+        beyond_identity_api_base_url, tenant_id, realm_id
+    );
+
     let payload = json!({
         "application": {
             "display_name": "SCIM 2.0 Application",
@@ -216,10 +246,7 @@ async fn create_scim_app(
     });
 
     let response = client
-        .post(format!(
-            "{}/v1/tenants/{}/realms/{}/applications",
-            beyond_identity_api_base_url, tenant_id, realm_id
-        ))
+        .post(&url)
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
@@ -231,6 +258,13 @@ async fn create_scim_app(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(
@@ -278,6 +312,13 @@ pub async fn generate_scim_app_token(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));

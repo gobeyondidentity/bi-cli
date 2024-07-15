@@ -100,6 +100,7 @@ async fn fetch_all_okta_users(
             .await?;
 
         let status = response.status();
+        log::debug!("{} response status: {}", url, status);
         let next_link = extract_next_link(&response);
         if !status.is_success() {
             let error_text = response.text().await?;
@@ -107,6 +108,7 @@ async fn fetch_all_okta_users(
         }
 
         let response_text = response.text().await?;
+        log::debug!("{} response text: {}", url, response_text);
         let page_users: Vec<OktaUser> = serde_json::from_str(&response_text)?;
 
         for user in page_users {
@@ -143,6 +145,7 @@ pub async fn fetch_okta_applications(
             .await?;
 
         let status = response.status();
+        log::debug!("{} response status: {}", url, status);
         if !status.is_success() {
             let error_text = response.text().await?;
             return Err(BiError::RequestError(status, error_text));
@@ -150,6 +153,7 @@ pub async fn fetch_okta_applications(
 
         let next_link = extract_next_link(&response);
         let response_text = response.text().await?;
+        log::debug!("{} response text: {}", url, response_text);
         let mut page_apps: Vec<OktaApplication> = serde_json::from_str(&response_text)?;
 
         for app in &mut page_apps {
@@ -221,6 +225,13 @@ async fn get_users_assigned_to_app(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
@@ -358,6 +369,13 @@ async fn create_sso_config(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
     }
@@ -418,12 +436,14 @@ pub async fn fetch_beyond_identity_identities(
             .await?;
 
         let status = response.status();
+        log::debug!("{} response status: {}", url, status);
         if !status.is_success() {
             let error_text = response.text().await?;
             return Err(BiError::RequestError(status, error_text));
         }
 
         let response_text = response.text().await?;
+        log::debug!("{} response text: {}", url, response_text);
         let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
         let page_identities: Vec<Identity> =
             serde_json::from_value(response_json["identities"].clone())?;
@@ -513,6 +533,13 @@ async fn assign_identities_to_sso_config(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
     }
@@ -579,12 +606,14 @@ async fn list_all_sso_configs(
             .await?;
 
         let status = response.status();
+        log::debug!("{} response status: {}", url, status);
         if !status.is_success() {
             let error_text = response.text().await?;
             return Err(BiError::RequestError(status, error_text));
         }
 
         let response_text = response.text().await?;
+        log::debug!("{} response text: {}", url, response_text);
         let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
         let page_sso_configs: Vec<DeleteSsoConfig> =
             serde_json::from_value(response_json["sso_configs"].clone())?;

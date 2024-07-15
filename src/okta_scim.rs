@@ -176,6 +176,8 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
     let okta_base_url = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
 
+    let url = format!("{}/api/v1/apps", okta_base_url);
+
     let payload = json!({
         "name": "scim2testapp",
         "label": "Beyond Identity SCIM",
@@ -246,7 +248,7 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
     });
 
     let response = client
-        .post(format!("{}/api/v1/apps", okta_base_url))
+        .post(&url)
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
         .json(&payload)
@@ -255,6 +257,13 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
@@ -293,6 +302,8 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
 //         bi_api_base_url, tenant_id, realm_id
 //     );
 //     let scim_bearer_token = bi_scim_config.oauth_bearer_token.clone();
+
+//     let url = format!("{}/api/v1/apps/{}", okta_base_url, app_id);
 
 //     let payload = json!({
 //         "status": "ACTIVE",
@@ -361,7 +372,7 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
 //     });
 
 //     let response = client
-//         .put(format!("{}/api/v1/apps/{}", okta_base_url, app_id))
+//         .put(&url)
 //         .header("Content-Type", "application/json")
 //         .header("Authorization", format!("SSWS {}", okta_api_key))
 //         .json(&payload)
@@ -370,6 +381,12 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
 
 //     let status = response.status();
 //     let response_text = response.text().await?;
+//     log::debug!(
+//         "{} response status: {} and text: {}",
+//         url,
+//         status,
+//         response_text
+//     );
 //     println!("Response status: {}", status);
 //     println!("Response body: {}", response_text);
 
@@ -427,6 +444,13 @@ pub async fn list_all_okta_groups(
 
         let response_text = response.text().await?;
 
+        log::debug!(
+            "{} response status: {} and text: {}",
+            url,
+            status,
+            response_text
+        );
+
         if !status.is_success() {
             return Err(BiError::RequestError(status, response_text));
         }
@@ -455,11 +479,13 @@ async fn assign_group_to_app(
     let okta_base_url = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
 
+    let url = format!(
+        "{}/api/v1/apps/{}/groups/{}",
+        okta_base_url, app_id, group.id
+    );
+
     let response = client
-        .put(format!(
-            "{}/api/v1/apps/{}/groups/{}",
-            okta_base_url, app_id, group.id
-        ))
+        .put(&url)
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
         .send()
@@ -467,6 +493,13 @@ async fn assign_group_to_app(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));

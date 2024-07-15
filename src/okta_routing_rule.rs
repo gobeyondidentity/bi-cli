@@ -75,6 +75,8 @@ pub async fn create_okta_routing_rule(
     let attribute_value = "true";
     let okta_policy = get_first_idp_discovery_policy(client, config).await?;
 
+    let url = format!("{}/api/v1/policies/{}/rules", okta_domain, okta_policy.id);
+
     let payload = json!({
         "type": "IDP_DISCOVERY",
         "name": format!("Route to Beyond Identity ({})", tenant_config.tenant_id),
@@ -104,10 +106,7 @@ pub async fn create_okta_routing_rule(
     });
 
     let response = client
-        .post(&format!(
-            "{}/api/v1/policies/{}/rules",
-            okta_domain, okta_policy.id
-        ))
+        .post(&url)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
@@ -117,6 +116,13 @@ pub async fn create_okta_routing_rule(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
@@ -152,11 +158,10 @@ async fn get_first_idp_discovery_policy(
     let okta_domain = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
 
+    let url = format!("{}/api/v1/policies?type=IDP_DISCOVERY", okta_domain);
+
     let response = client
-        .get(&format!(
-            "{}/api/v1/policies?type=IDP_DISCOVERY",
-            okta_domain
-        ))
+        .get(&url)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
@@ -166,15 +171,19 @@ async fn get_first_idp_discovery_policy(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
     }
 
     let policies: Vec<OktaPolicyResponse> = serde_json::from_str(&response_text)?;
-    if let Some(policy) = policies
-        .into_iter()
-        .find(|p| p.r#type == "IDP_DISCOVERY")
-    {
+    if let Some(policy) = policies.into_iter().find(|p| p.r#type == "IDP_DISCOVERY") {
         Ok(policy)
     } else {
         Err(BiError::RequestError(

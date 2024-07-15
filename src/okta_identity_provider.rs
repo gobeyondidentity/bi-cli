@@ -155,6 +155,8 @@ async fn create_idp(
     let okta_domain = config.okta_domain.clone();
     let okta_api_key = config.okta_api_key.clone();
 
+    let url = format!("{}/api/v1/idps", okta_domain);
+
     let client_id = external_sso_config.protocol_config.client_id.clone();
     let client_secret = external_sso_config.protocol_config.client_secret.clone();
     let issuer = format!(
@@ -247,7 +249,7 @@ async fn create_idp(
     });
 
     let response = client
-        .post(&format!("{}/api/v1/idps", okta_domain))
+        .post(&url)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .header("Authorization", format!("SSWS {}", okta_api_key))
@@ -257,6 +259,13 @@ async fn create_idp(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));

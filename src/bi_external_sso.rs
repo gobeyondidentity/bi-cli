@@ -59,6 +59,13 @@ async fn create_authenticator_config(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
     }
@@ -155,6 +162,13 @@ async fn create_application(
     let status = response.status();
     let response_text = response.text().await?;
 
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
+
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
     }
@@ -209,6 +223,13 @@ pub async fn update_application_redirect_uri(
 
     let status = response.status();
     let response_text = response.text().await?;
+
+    log::debug!(
+        "{} response status: {} and text: {}",
+        url,
+        status,
+        response_text
+    );
 
     if !status.is_success() {
         return Err(BiError::RequestError(status, response_text));
