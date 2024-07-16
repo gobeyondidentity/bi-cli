@@ -107,7 +107,8 @@ async fn main() {
                     let tenant_config = create_tenant(&client, &config)
                         .await
                         .expect("Failed to create tenant");
-                    open_magic_link(&tenant_config.magic_link);
+                    let magic_link = tenant_config.magic_link.as_ref().expect("Magic link missing from tenant config");
+                    open_magic_link(magic_link.as_ref());
                     tenant_config
                 }
             };

@@ -10,15 +10,15 @@ use webbrowser::{open_browser, Browser};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TenantConfig {
     pub application_id: String,
-    pub authenticator_config_id: String,
+    pub authenticator_config_id: Option<String>,
     pub client_id: String,
     pub client_secret: String,
-    pub console_login_link: String,
-    pub identity_id: String,
-    pub magic_link: String,
-    pub open_id_configuration_url: String,
+    pub console_login_link: Option<String>,
+    pub identity_id: Option<String>,
+    pub magic_link: Option<String>,
+    pub open_id_configuration_url: Option<String>,
     pub realm_id: String,
-    pub resource_server_id: String,
+    pub resource_server_id: Option<String>,
     pub tenant_id: String,
 }
 
