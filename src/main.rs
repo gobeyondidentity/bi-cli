@@ -11,6 +11,7 @@ mod okta_routing_rule;
 mod okta_scim;
 mod tenant;
 
+use bi_api_token::get_beyond_identity_api_token;
 use bi_enrollment::{get_all_identities, select_identities, send_enrollment_email};
 use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
@@ -69,6 +70,9 @@ enum Commands {
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
     DeleteAllSSOConfigsInBeyondIdentity,
+
+    /// Get bearer token
+    GetToken,
 }
 
 #[tokio::main]
@@ -295,6 +299,15 @@ async fn main() {
             delete_all_sso_configs(&client, &config, &tenant_config)
                 .await
                 .expect("Failed to delete all SSO Configs");
+        }
+        Commands::GetToken => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+            let token = get_beyond_identity_api_token(&client, &config, &tenant_config).await.expect("missing");
+            println!("TOKEN: {}", token);
         }
     }
 }
