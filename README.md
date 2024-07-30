@@ -167,6 +167,22 @@ Clears out your Beyond Identity SSO apps in case you want to run fast migrate fr
 ./target/release/secure-access-cli delete-all-sso-configs-in-beyond-identity
 ```
 
+#### get-token
+
+Get a bearer token for curl use.
+
+```sh
+./target/release/secure-access-cli get-token
+```
+
+#### review-unenrolled
+
+Review which identities have not completed the enrollment process. En enrolled identitie is defined as having a passkey for the given tenant/realm configuration.
+
+```sh
+./target/release/secure-access-cli review-unenrolled
+```
+
 ## Options
 
 - `-l, --log-level <LOG_LEVEL>`: Set the log level (error, warn, info, debug, trace).

@@ -12,7 +12,10 @@ mod okta_scim;
 mod tenant;
 
 use bi_api_token::get_beyond_identity_api_token;
-use bi_enrollment::{get_all_identities, select_identities, send_enrollment_email};
+use bi_enrollment::{
+    get_all_identities, get_unenrolled_identities, select_identities, send_enrollment_email,
+    Identity,
+};
 use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use clap::{Parser, Subcommand};
@@ -27,6 +30,7 @@ use okta_registration_attribute::{create_custom_attribute, load_custom_attribute
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
+use std::io::{self, Write};
 use tenant::{create_tenant, load_tenant, open_magic_link};
 
 #[derive(Parser)]
@@ -73,6 +77,9 @@ enum Commands {
 
     /// Get bearer token
     GetToken,
+
+    /// Get a list of identities who have not enrolled yet (identities without a passkey).
+    ReviewUnenrolled,
 }
 
 #[tokio::main]
@@ -111,7 +118,10 @@ async fn main() {
                     let tenant_config = create_tenant(&client, &config)
                         .await
                         .expect("Failed to create tenant");
-                    let magic_link = tenant_config.magic_link.as_ref().expect("Magic link missing from tenant config");
+                    let magic_link = tenant_config
+                        .magic_link
+                        .as_ref()
+                        .expect("Magic link missing from tenant config");
                     open_magic_link(magic_link.as_ref());
                     tenant_config
                 }
@@ -238,9 +248,30 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            let identities = get_all_identities(&client, &config, &tenant_config)
-                .await
-                .expect("Failed to fetch identities");
+
+            println!("Select identities to review before sending enrollment email ('all' for all identities, 'unenrolled' for identities who have not completed the enrollment email process.):");
+
+            print!("Your selection: ");
+            io::stdout().flush().unwrap();
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+            let input = input.trim();
+
+            let mut identities: Vec<Identity> = Vec::new();
+
+            if input == "all" {
+                identities = get_all_identities(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to fetch all identities");
+            }
+
+            if input == "unenrolled" {
+                identities = get_unenrolled_identities(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to fetch unenrolled identities");
+            }
+
             let selected_identities = select_identities(&identities);
 
             for identity in selected_identities {
@@ -306,8 +337,31 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
-            let token = get_beyond_identity_api_token(&client, &config, &tenant_config).await.expect("missing");
+            let token = get_beyond_identity_api_token(&client, &config, &tenant_config)
+                .await
+                .expect("missing");
             println!("TOKEN: {}", token);
+        }
+        Commands::ReviewUnenrolled => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+            let unenrolled_identities = get_unenrolled_identities(&client, &config, &tenant_config)
+                .await
+                .expect("Failed to fetch unenrolled identities");
+
+            println!(
+                "{} identities have not completed enrollment yet:",
+                unenrolled_identities.len()
+            );
+            for identity in unenrolled_identities.iter() {
+                println!(
+                    "{} - {}",
+                    identity.traits.primary_email_address, identity.id,
+                );
+            }
         }
     }
 }
