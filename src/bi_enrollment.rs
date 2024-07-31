@@ -4,7 +4,7 @@ use crate::error::BiError;
 use crate::tenant::TenantConfig;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::io::{self, Write};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -321,21 +321,11 @@ pub struct IdpAuthorization {}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MagicLink {}
 
-pub async fn send_enrollment_email(
+pub async fn get_send_email_payload(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-    identity: &Identity,
-) -> Result<EnrollmentJobResponse, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities/{}/enrollment-jobs",
-        config.beyond_identity_api_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        identity.id
-    );
-
+) -> Result<Value, BiError> {
     let template = "secure_workforce_credential_binding_with_platform_authenticator_download_link";
 
     let mut payload = json!({
@@ -370,16 +360,10 @@ pub async fn send_enrollment_email(
         let input = input.trim();
 
         // Ike only has acces to the sso_config_id but we need the identity_provider_id
-        let sso_config = get_idp_application_for_sso_config(
-            client,
-            config,
-            tenant_config,
-            input.to_string(),
-        )
-        .await
-        .expect(
-            "Failed to load get identity provider sso config.",
-        );
+        let sso_config =
+            get_idp_application_for_sso_config(&client, &config, &tenant_config, input.to_string())
+                .await
+                .expect("Failed to load get identity provider sso config.");
 
         payload = json!({
             "job": {
@@ -395,7 +379,26 @@ pub async fn send_enrollment_email(
                 }
             }
         });
-    }
+    };
+
+    Ok(payload)
+}
+
+pub async fn send_enrollment_email(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+    identity: &Identity,
+    payload: Value,
+) -> Result<EnrollmentJobResponse, BiError> {
+    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let url = format!(
+        "{}/v1/tenants/{}/realms/{}/identities/{}/enrollment-jobs",
+        config.beyond_identity_api_base_url,
+        tenant_config.tenant_id,
+        tenant_config.realm_id,
+        identity.id
+    );
 
     let response = client
         .post(&url)

@@ -13,8 +13,8 @@ mod tenant;
 
 use bi_api_token::get_beyond_identity_api_token;
 use bi_enrollment::{
-    get_all_identities, get_unenrolled_identities, select_identities, send_enrollment_email,
-    Identity,
+    get_all_identities, get_send_email_payload,
+    get_unenrolled_identities, select_identities, send_enrollment_email, Identity,
 };
 use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
@@ -274,8 +274,20 @@ async fn main() {
 
             let selected_identities = select_identities(&identities);
 
+            let payload = get_send_email_payload(&client, &config, &tenant_config)
+                .await
+                .expect("unable to get email payload");
+
             for identity in selected_identities {
-                match send_enrollment_email(&client, &config, &tenant_config, &identity).await {
+                match send_enrollment_email(
+                    &client,
+                    &config,
+                    &tenant_config,
+                    &identity,
+                    payload.clone(),
+                )
+                .await
+                {
                     Ok(job) => println!(
                         "Enrollment job created for {}: {}",
                         identity.traits.primary_email_address,
