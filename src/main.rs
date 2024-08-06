@@ -9,12 +9,15 @@ mod okta_identity_provider;
 mod okta_registration_attribute;
 mod okta_routing_rule;
 mod okta_scim;
+mod onelogin;
+mod onelogin_fast_migrate;
 mod tenant;
 
+use crate::onelogin::identities::onelogin_create_identities;
 use bi_api_token::get_beyond_identity_api_token;
 use bi_enrollment::{
-    get_all_identities, get_send_email_payload,
-    get_unenrolled_identities, select_identities, send_enrollment_email, Identity,
+    get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
+    send_enrollment_email, Identity,
 };
 use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
@@ -29,6 +32,15 @@ use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_p
 use okta_registration_attribute::{create_custom_attribute, load_custom_attribute};
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
+use onelogin::{
+    applications::{
+        onelogin_assign_groups_to_applications, onelogin_assign_identities_to_applications,
+        onelogin_create_applications,
+    },
+    groups::{onelogin_assign_identities_to_groups, onelogin_create_groups},
+    token::get_onelogin_access_token,
+};
+
 use reqwest::Client;
 use std::io::{self, Write};
 use tenant::{create_tenant, load_tenant, open_magic_link};
@@ -71,6 +83,9 @@ enum Commands {
 
     /// Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
     FastMigrate,
+
+    /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
+    OneloginFastMigrate,
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
     DeleteAllSSOConfigsInBeyondIdentity,
@@ -331,6 +346,94 @@ async fn main() {
                     Err(err) => println!("Failed to create SSO config for {}: {}", app.label, err),
                 }
             }
+        }
+        Commands::OneloginFastMigrate => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+
+            // 1. Get OneLogin Access Token and Beyond Identity Access Token.
+            let onelogin_token = get_onelogin_access_token(&client, &config)
+                .await
+                .expect("failed to get OneLogin access token");
+
+            let bi_token = get_beyond_identity_api_token(&client, &config, &tenant_config)
+                .await
+                .expect("failed to get BI access token");
+
+            log::info!("1. Got OneLogin and Beyond Identity Access Token.");
+
+            // 2. Read Users in OneLogin and Create Identities in Beyond Identity.
+            let identities_mapping = onelogin_create_identities(
+                &client,
+                &config,
+                &tenant_config,
+                &onelogin_token,
+                &bi_token,
+            )
+            .await
+            .expect("failed to create identities");
+
+            log::info!(
+                "2. Created Identities in Beyond Identity: {:?}, Total Identities: {}",
+                identities_mapping,
+                identities_mapping.len()
+            );
+
+            // 3. Read Roles in OneLogin and Create Groups in Beyond Identity
+            // let groups_mapping =
+            //     onelogin_create_groups(&client, &config, &tenant_config, &access_token)
+            //         .await
+            //         .expect("failed to create identities");
+            // println!("3. Created Groups in Beyond Identity.");
+
+            // // 4. Read Applications and Create Applications in Beyond Identity
+            // let applications_mapping =
+            //     onelogin_create_applications(&client, &config, &tenant_config, &access_token)
+            //         .await
+            //         .expect("failed to create applications");
+            // println!("4. Created Applications in Beyond Identity.");
+
+            // // 5. Assign Identities to Groups in Beyond Identity
+            // onelogin_assign_identities_to_groups(
+            //     &client,
+            //     &config,
+            //     &tenant_config,
+            //     &access_token,
+            //     groups_mapping,
+            //     identities_mapping,
+            // )
+            // .await
+            // .expect("failed to assign identities to groups");
+            // println!("5. Assigned Identities to Groups in Beyond Identity.");
+
+            // // 6. Assign groups to applications
+            // onelogin_assign_groups_to_applications(
+            //     &client,
+            //     &config,
+            //     &tenant_config,
+            //     &access_token,
+            //     applications_mapping,
+            //     groups_mapping,
+            // )
+            // .await
+            // .expect("failed to assign groups to applications");
+            // println!("6. Assigned Groups to Applications in Beyond Identity.");
+
+            // // 7. Assign identities to applications
+            // onelogin_assign_identities_to_applications(
+            //     &client,
+            //     &config,
+            //     &tenant_config,
+            //     &access_token,
+            //     applications_mapping,
+            //     identities_mapping,
+            // )
+            // .await
+            // .expect("failed to assign identities to applications");
+            // println!("7. Assigned Identities to Applications in Beyond Identity.");
         }
         Commands::DeleteAllSSOConfigsInBeyondIdentity => {
             let config = Config::from_env();

@@ -13,6 +13,9 @@ pub struct FilePaths {
     pub okta_routing_rule: String,
     pub okta_custom_attribute: String,
     pub okta_applications: String,
+    pub onelogin_identities_mapping: String,
+    pub onelogin_groups_mapping: String,
+    pub onelogin_applications_mapping: String,
     pub token_path: String,
 }
 
@@ -28,6 +31,9 @@ impl FilePaths {
             okta_custom_attribute: "configs/okta_custom_attribute.json".to_string(),
             okta_applications: "configs/okta_applications.json".to_string(),
             token_path: "configs/token.json".to_string(),
+            onelogin_identities_mapping: "configs/onelogin_identities.json".to_string(),
+            onelogin_groups_mapping: "configs/onelogin_groups.json".to_string(),
+            onelogin_applications_mapping: "configs/onelogin_applications.json".to_string(),
         }
     }
 }
@@ -41,6 +47,9 @@ pub struct Config {
     pub beyond_identity_auth_base_url: String,
     pub admin_display_name: String,
     pub admin_primary_email_address: String,
+    pub onelogin_client_id: String,
+    pub onelogin_client_secret: String,
+    pub onelogin_base_url: String,
     pub file_paths: FilePaths,
 }
 
@@ -61,6 +70,10 @@ impl Config {
             admin_display_name: env::var("ADMIN_DISPLAY_NAME").expect("ADMIN_DISPLAY_NAME not set"),
             admin_primary_email_address: env::var("ADMIN_PRIMARY_EMAIL_ADDRESS")
                 .expect("ADMIN_PRIMARY_EMAIL_ADDRESS not set"),
+            onelogin_client_id: env::var("ONELOGIN_CLIENT_ID").expect("ONELOGIN_CLIENT_ID not set"),
+            onelogin_client_secret: env::var("ONELOGIN_CLIENT_SECRET")
+                .expect("ONELOGIN_CLIENT_SECRET not set"),
+            onelogin_base_url: env::var("ONELOGIN_BASE_URL").expect("ONELOGIN_BASE_URL not set"),
             file_paths: FilePaths::new(),
         }
     }
@@ -126,6 +139,18 @@ fn validate_env() -> Result<(), String> {
         }
     } else {
         return Err("ADMIN_PRIMARY_EMAIL_ADDRESS is missing. Please set ADMIN_PRIMARY_EMAIL_ADDRESS in your .env file. Example: 'ADMIN_PRIMARY_EMAIL_ADDRESS=admin@example.com'".to_string());
+    }
+
+    // Validate ONELOGIN_BASE_URL
+    if let Some(onelogin_base_url) = env_vars.get("ONELOGIN_BASE_URL") {
+        if !onelogin_base_url.starts_with("https://") || onelogin_base_url.ends_with('/') {
+            return Err(format!(
+                "Invalid ONELOGIN_BASE_URL: {}. It must begin with 'https://' and not end with a '/'. Example: 'https://sa-rolling.onelogin.com'",
+                onelogin_base_url
+            ));
+        }
+    } else {
+        return Err("ONELOGIN_BASE_URL is missing. Please set ONELOGIN_BASE_URL in your .env file. Example: 'ONELOGIN_BASE_URL=https://sa-rolling.onelogin.com'".to_string());
     }
 
     Ok(())
