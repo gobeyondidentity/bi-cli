@@ -22,6 +22,8 @@ Secure Access CLI is a command-line interface designed to automate the setup of 
         - [send-enrollment-email](#send-enrollment-email)
         - [fast-migrate](#fast-migrate)
         - [delete-all-sso-configs-in-beyond-identity](#delete-all-sso-configs-in-beyond-identity)
+        - [get-token](#get-token)
+        - [review-unenrolled](#review-unenrolled)
 
 ## Installation
 
