@@ -366,14 +366,10 @@ async fn create_sso_config(
         "sso_config": {
             "display_name": display_name,
             "payload": {
-                "type": "generic_oidc",
+                "type": "bookmark",
                 "login_link": login_link.href,
-                "is_tile_visible": true,
                 "icon": logo.href,
-                "redirect_uris": ["https://example.com"],
-                "scopes": [],
-                "confidentiality": "confidential",
-                "pkce": "disabled",
+                "is_tile_visible": true
             }
         }
     });
