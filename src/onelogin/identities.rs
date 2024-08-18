@@ -46,15 +46,15 @@ pub async fn onelogin_create_identities(
 ) -> Result<IdentityMapping, BiError> {
     // Fetch all users (paginated).
     // TODO: Remove the limits when I'm ready to fully run this.
-    let list_users_url = format!("{}/api/2/users?limit=3", config.onelogin_base_url);
-    let mut identities_mapping = IdentityMapping::new();
+    let mut identity_mapping = IdentityMapping::new();
 
-    if let Ok(data) = fs::read_to_string(&config.file_paths.onelogin_identities_mapping) {
+    if let Ok(data) = fs::read_to_string(&config.file_paths.onelogin_identity_mapping) {
         if let Ok(existing_mapping) = serde_json::from_str::<IdentityMapping>(&data) {
-            identities_mapping = existing_mapping;
+            identity_mapping = existing_mapping;
         }
     }
 
+    let mut list_users_url = format!("{}/api/2/users?limit=3", config.onelogin_base_url);
     let mut new_identities_created = 0;
 
     loop {
@@ -63,6 +63,18 @@ pub async fn onelogin_create_identities(
             .header("Authorization", format!("Bearer {}", onelogin_token))
             .send()
             .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let error_text = response.text().await?;
+            return Err(BiError::RequestError(status, error_text));
+        }
+
+        let after_cursor = response
+            .headers()
+            .get("After-Cursor")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
 
         let users: Vec<serde_json::Value> = response.json().await?;
 
@@ -79,7 +91,7 @@ pub async fn onelogin_create_identities(
                 }
 
                 // If identity already created, skip.
-                if identities_mapping.contains_key(&user_id.to_string()) {
+                if identity_mapping.contains_key(&user_id.to_string()) {
                     log::info!("User already mapped, skipping. ID: {}", user_id);
                     continue;
                 }
@@ -93,11 +105,10 @@ pub async fn onelogin_create_identities(
                     .await?;
 
                 let onelogin_user: OneLoginUser = user_response.json().await?;
-
                 match create_identity(client, config, tenant_config, bi_token, &onelogin_user).await
                 {
                     Ok(bi_identity_id) => {
-                        identities_mapping.insert(user_id.to_string(), bi_identity_id);
+                        identity_mapping.insert(user_id.to_string(), bi_identity_id);
                         new_identities_created += 1;
                     }
                     Err(e) => {
@@ -107,30 +118,21 @@ pub async fn onelogin_create_identities(
             }
         }
 
-        // let after_cursor = response
-        //     .headers()
-        //     .get("After-Cursor")
-        //     .and_then(|v| v.to_str().ok())
-        //     .map(String::from);
-
-        // if let Some(cursor) = after_cursor {
-        //     url = format!(
-        //         "{}/api/2/users?after_cursor={}",
-        //         config.onelogin_base_url, cursor
-        //     );
-        // } else {
-        //     break;
-        // }
-        break;
+        // TODO: when this is ready, uncomment
+        if let Some(cursor) = after_cursor {
+            list_users_url = format!("{}/api/2/users?cursor={}", config.onelogin_base_url, cursor);
+        } else {
+            break;
+        }
     }
-    let serialized = serde_json::to_string_pretty(&identities_mapping)?;
-    let config_path = config.file_paths.onelogin_identities_mapping.clone();
+    let serialized = serde_json::to_string_pretty(&identity_mapping)?;
+    let config_path = config.file_paths.onelogin_identity_mapping.clone();
     fs::write(config_path.clone(), serialized)
         .map_err(|_| BiError::UnableToWriteFile(config_path))?;
 
     log::info!("New identities created: {}", new_identities_created);
 
-    Ok(identities_mapping)
+    Ok(identity_mapping)
 }
 
 // Creates a Beyond Identity based on the OneLogin user.

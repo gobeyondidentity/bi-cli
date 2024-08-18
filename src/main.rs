@@ -10,7 +10,6 @@ mod okta_registration_attribute;
 mod okta_routing_rule;
 mod okta_scim;
 mod onelogin;
-mod onelogin_fast_migrate;
 mod tenant;
 
 use crate::onelogin::identities::onelogin_create_identities;
@@ -366,7 +365,7 @@ async fn main() {
             log::info!("1. Got OneLogin and Beyond Identity Access Token.");
 
             // 2. Read Users in OneLogin and Create Identities in Beyond Identity.
-            let identities_mapping = onelogin_create_identities(
+            let identity_mapping = onelogin_create_identities(
                 &client,
                 &config,
                 &tenant_config,
@@ -378,43 +377,55 @@ async fn main() {
 
             log::info!(
                 "2. Created Identities in Beyond Identity: {:?}, Total Identities: {}",
-                identities_mapping,
-                identities_mapping.len()
+                identity_mapping,
+                identity_mapping.len()
             );
 
             // 3. Read Roles in OneLogin and Create Groups in Beyond Identity
-            // let groups_mapping =
-            //     onelogin_create_groups(&client, &config, &tenant_config, &access_token)
-            //         .await
-            //         .expect("failed to create identities");
-            // println!("3. Created Groups in Beyond Identity.");
+            let groups_mapping = onelogin_create_groups(
+                &client,
+                &config,
+                &tenant_config,
+                &onelogin_token,
+                &bi_token,
+            )
+            .await
+            .expect("failed to create groups");
 
-            // // 4. Read Applications and Create Applications in Beyond Identity
+            log::info!(
+                "3. Created Groups in Beyond Identity: {:?}, Total Groups: {}",
+                groups_mapping,
+                groups_mapping.len()
+            );
+
+            // 4. Assign Identities to Groups in Beyond Identity
+            onelogin_assign_identities_to_groups(
+                &client,
+                &config,
+                &tenant_config,
+                &onelogin_token,
+                &bi_token,
+                groups_mapping,
+                identity_mapping,
+            )
+            .await
+            .expect("failed to assign identities to groups");
+
+            log::info!("4. Assigned Identities to Groups in Beyond Identity.");
+
+            // // 5. Read Applications and Create Applications in Beyond Identity
             // let applications_mapping =
-            //     onelogin_create_applications(&client, &config, &tenant_config, &access_token)
+            //     onelogin_create_applications(&client, &config, &tenant_config, &onelogin_token)
             //         .await
             //         .expect("failed to create applications");
-            // println!("4. Created Applications in Beyond Identity.");
-
-            // // 5. Assign Identities to Groups in Beyond Identity
-            // onelogin_assign_identities_to_groups(
-            //     &client,
-            //     &config,
-            //     &tenant_config,
-            //     &access_token,
-            //     groups_mapping,
-            //     identities_mapping,
-            // )
-            // .await
-            // .expect("failed to assign identities to groups");
-            // println!("5. Assigned Identities to Groups in Beyond Identity.");
+            // println!("5. Created Applications in Beyond Identity.");
 
             // // 6. Assign groups to applications
             // onelogin_assign_groups_to_applications(
             //     &client,
             //     &config,
             //     &tenant_config,
-            //     &access_token,
+            //     &onelogin_token,
             //     applications_mapping,
             //     groups_mapping,
             // )
@@ -427,9 +438,9 @@ async fn main() {
             //     &client,
             //     &config,
             //     &tenant_config,
-            //     &access_token,
+            //     &onelogin_token,
             //     applications_mapping,
-            //     identities_mapping,
+            //     identity_mapping,
             // )
             // .await
             // .expect("failed to assign identities to applications");
