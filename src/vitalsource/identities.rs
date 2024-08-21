@@ -53,7 +53,7 @@ pub async fn vitalsource_create_identities(
     }
 
     // TODO: Remove the limits when I'm ready to fully run this.
-    let mut list_users_url = format!("{}/api/2/users?limit=3", config.onelogin_base_url);
+    let mut list_users_url = format!("{}/api/2/users", config.onelogin_base_url);
     let mut new_identities_created = 0;
 
     loop {
@@ -118,13 +118,13 @@ pub async fn vitalsource_create_identities(
         }
 
         // TODO: when this is ready, uncomment
-        // if let Some(cursor) = after_cursor {
-        //     list_users_url = format!("{}/api/2/users?cursor={}", config.onelogin_base_url, cursor);
-        // } else {
-        //     break;
-        // }
+        if let Some(cursor) = after_cursor {
+            list_users_url = format!("{}/api/2/users?cursor={}", config.onelogin_base_url, cursor);
+        } else {
+            break;
+        }
 
-        break;
+        // break;
     }
 
     let serialized = serde_json::to_string_pretty(&identity_mapping)?;
