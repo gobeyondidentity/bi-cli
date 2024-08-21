@@ -17,25 +17,25 @@ struct OneLoginRole {
 // Map of <OneLoginRoleID, BeyondIdentityGroupID>
 pub type GroupMapping = HashMap<String, String>;
 
-pub async fn onelogin_create_groups(
+// Map of <BeyondIdentityGroupID, [BeyondIdentityIdentityIDs]>
+pub type GroupAssignmentMapping = HashMap<String, Vec<String>>;
+
+pub async fn vitalsource_create_groups(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
     onelogin_token: &str,
     bi_token: &str,
 ) -> Result<GroupMapping, BiError> {
-    // Fetch all users (paginated).
-    // TODO: Remove the limits when I'm ready to fully run this.
-
     let mut group_mapping = GroupMapping::new();
 
-    if let Ok(data) = fs::read_to_string(&config.file_paths.onelogin_group_mapping) {
+    if let Ok(data) = fs::read_to_string(&config.file_paths.vitalsource_group_mapping) {
         if let Ok(existing_mapping) = serde_json::from_str::<GroupMapping>(&data) {
             group_mapping = existing_mapping;
         }
     }
 
-    let mut list_roles_url = format!("{}/api/2/roles?limit=2", config.onelogin_base_url);
+    let mut list_roles_url = format!("{}/api/2/roles", config.onelogin_base_url);
     let mut new_groups_created = 0;
 
     loop {
@@ -72,7 +72,9 @@ pub async fn onelogin_create_groups(
                     users: Vec::new(), // not needed in this step
                 };
 
-                match create_group(client, config, tenant_config, &bi_token, &onelogin_role).await {
+                match bi_create_group(client, config, tenant_config, &bi_token, &onelogin_role)
+                    .await
+                {
                     Ok(bi_group_id) => {
                         group_mapping.insert(role_id.to_string(), bi_group_id);
                         new_groups_created += 1;
@@ -92,7 +94,7 @@ pub async fn onelogin_create_groups(
     }
 
     let serialized = serde_json::to_string_pretty(&group_mapping)?;
-    let config_path = config.file_paths.onelogin_group_mapping.clone();
+    let config_path = config.file_paths.vitalsource_group_mapping.clone();
     fs::write(config_path.clone(), serialized)
         .map_err(|_| BiError::UnableToWriteFile(config_path))?;
 
@@ -103,7 +105,7 @@ pub async fn onelogin_create_groups(
 
 // Creates a Beyond Identity based on the OneLogin Role.
 // Returns the ID of the group created in Beyond Identity.
-async fn create_group(
+async fn bi_create_group(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
@@ -131,16 +133,18 @@ async fn create_group(
     let status = response.status();
     let response_text = response.text().await?;
 
-    if status.is_success() {
+    log::info!("{} URL: {} and response: {}", status, url, response_text);
+
+    if !status.is_success() {
+        Err(BiError::RequestError(status, response_text))
+    } else {
         let bi_group: serde_json::Value = serde_json::from_str(&response_text)?;
         Ok(bi_group["id"].as_str().unwrap().to_string())
-    } else {
-        Err(BiError::RequestError(status, response_text))
     }
 }
 
 // Assigns members to groups based on the OneLogin role mapping.
-pub async fn onelogin_assign_identities_to_groups(
+pub async fn vitalsource_assign_identities_to_groups(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
@@ -149,6 +153,8 @@ pub async fn onelogin_assign_identities_to_groups(
     groups_mapping: GroupMapping,
     identities_mapping: IdentityMapping,
 ) -> Result<(), BiError> {
+    let mut group_assignments = GroupAssignmentMapping::new();
+
     for (onelogin_role_id, bi_group_id) in groups_mapping {
         let url = format!(
             "{}/api/2/roles/{}",
@@ -176,6 +182,8 @@ pub async fn onelogin_assign_identities_to_groups(
             .cloned()
             .collect();
 
+        group_assignments.insert(bi_group_id.clone(), bi_identity_ids.clone());
+
         if !bi_identity_ids.is_empty() {
             add_members_to_group(
                 client,
@@ -188,6 +196,16 @@ pub async fn onelogin_assign_identities_to_groups(
             .await?;
         }
     }
+
+    let serialized = serde_json::to_string_pretty(&group_assignments)?;
+    let config_path = config
+        .file_paths
+        .vitalsource_group_assignment_mapping
+        .clone();
+    fs::write(config_path.clone(), serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
+
+    log::info!("OneLogin Migration Group Assignments Completed!");
 
     Ok(())
 }
@@ -220,12 +238,14 @@ async fn add_members_to_group(
         .send()
         .await?;
 
-    if response.status().is_success() {
-        Ok(())
+    let status = response.status();
+    let response_text = response.text().await?;
+
+    log::info!("{} URL: {} and response: {}", status, url, response_text);
+
+    if !status.is_success() {
+        Err(BiError::RequestError(status, response_text))
     } else {
-        Err(BiError::RequestError(
-            response.status(),
-            response.text().await?,
-        ))
+        Ok(())
     }
 }

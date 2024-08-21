@@ -9,10 +9,9 @@ mod okta_identity_provider;
 mod okta_registration_attribute;
 mod okta_routing_rule;
 mod okta_scim;
-mod onelogin;
 mod tenant;
+mod vitalsource;
 
-use crate::onelogin::identities::onelogin_create_identities;
 use bi_api_token::get_beyond_identity_api_token;
 use bi_enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
@@ -31,12 +30,10 @@ use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_p
 use okta_registration_attribute::{create_custom_attribute, load_custom_attribute};
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
-use onelogin::{
-    applications::{
-        onelogin_assign_groups_to_applications, onelogin_assign_identities_to_applications,
-        onelogin_create_applications,
-    },
-    groups::{onelogin_assign_identities_to_groups, onelogin_create_groups},
+use vitalsource::{
+    groups::{vitalsource_assign_identities_to_groups, vitalsource_create_groups},
+    identities::vitalsource_create_identities,
+    rollback::{vitalsource_rollback_groups, vitalsource_rollback_identities},
     token::get_onelogin_access_token,
 };
 
@@ -83,8 +80,11 @@ enum Commands {
     /// Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
     FastMigrate,
 
-    /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
-    OneloginFastMigrate,
+    /// Automatically populates Beyond Identities SSO with all of your OneLogin users, groups, and group assignments.
+    VitalsourceFastMigrate,
+
+    /// Automatically populates Beyond Identities SSO with all of your OneLogin users, groups, and group assignments.
+    VitalsourceFastMigrateRollback,
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
     DeleteAllSSOConfigsInBeyondIdentity,
@@ -346,7 +346,7 @@ async fn main() {
                 }
             }
         }
-        Commands::OneloginFastMigrate => {
+        Commands::VitalsourceFastMigrate => {
             let config = Config::from_env();
             let client = Client::new();
             let tenant_config = load_tenant(&config).await.expect(
@@ -365,7 +365,7 @@ async fn main() {
             log::info!("1. Got OneLogin and Beyond Identity Access Token.");
 
             // 2. Read Users in OneLogin and Create Identities in Beyond Identity.
-            let identity_mapping = onelogin_create_identities(
+            let identity_mapping = vitalsource_create_identities(
                 &client,
                 &config,
                 &tenant_config,
@@ -382,7 +382,7 @@ async fn main() {
             );
 
             // 3. Read Roles in OneLogin and Create Groups in Beyond Identity
-            let groups_mapping = onelogin_create_groups(
+            let groups_mapping = vitalsource_create_groups(
                 &client,
                 &config,
                 &tenant_config,
@@ -399,7 +399,7 @@ async fn main() {
             );
 
             // 4. Assign Identities to Groups in Beyond Identity
-            onelogin_assign_identities_to_groups(
+            vitalsource_assign_identities_to_groups(
                 &client,
                 &config,
                 &tenant_config,
@@ -412,39 +412,29 @@ async fn main() {
             .expect("failed to assign identities to groups");
 
             log::info!("4. Assigned Identities to Groups in Beyond Identity.");
+        }
+        Commands::VitalsourceFastMigrateRollback => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
 
-            // // 5. Read Applications and Create Applications in Beyond Identity
-            // let applications_mapping =
-            //     onelogin_create_applications(&client, &config, &tenant_config, &onelogin_token)
-            //         .await
-            //         .expect("failed to create applications");
-            // println!("5. Created Applications in Beyond Identity.");
+            let bi_token = get_beyond_identity_api_token(&client, &config, &tenant_config)
+                .await
+                .expect("failed to get BI access token");
 
-            // // 6. Assign groups to applications
-            // onelogin_assign_groups_to_applications(
-            //     &client,
-            //     &config,
-            //     &tenant_config,
-            //     &onelogin_token,
-            //     applications_mapping,
-            //     groups_mapping,
-            // )
-            // .await
-            // .expect("failed to assign groups to applications");
-            // println!("6. Assigned Groups to Applications in Beyond Identity.");
+            log::info!("1. Got OneLogin and Beyond Identity Access Token.");
 
-            // // 7. Assign identities to applications
-            // onelogin_assign_identities_to_applications(
-            //     &client,
-            //     &config,
-            //     &tenant_config,
-            //     &onelogin_token,
-            //     applications_mapping,
-            //     identity_mapping,
-            // )
-            // .await
-            // .expect("failed to assign identities to applications");
-            // println!("7. Assigned Identities to Applications in Beyond Identity.");
+            vitalsource_rollback_groups(&client, &config, &tenant_config, &bi_token)
+                .await
+                .expect("failed to rollback groups");
+            log::info!("2. Rolled back Vitalsource created groups.");
+
+            vitalsource_rollback_identities(&client, &config, &tenant_config, &bi_token)
+                .await
+                .expect("failed to rollback identities");
+            log::info!("3. Rolled back Vitalsource created identities.");
         }
         Commands::DeleteAllSSOConfigsInBeyondIdentity => {
             let config = Config::from_env();

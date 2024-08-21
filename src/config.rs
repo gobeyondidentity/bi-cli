@@ -13,9 +13,9 @@ pub struct FilePaths {
     pub okta_routing_rule: String,
     pub okta_custom_attribute: String,
     pub okta_applications: String,
-    pub onelogin_identity_mapping: String,
-    pub onelogin_group_mapping: String,
-    pub onelogin_application_mapping: String,
+    pub vitalsource_identity_mapping: String,
+    pub vitalsource_group_mapping: String,
+    pub vitalsource_group_assignment_mapping: String,
     pub token_path: String,
 }
 
@@ -31,9 +31,9 @@ impl FilePaths {
             okta_custom_attribute: "configs/okta_custom_attribute.json".to_string(),
             okta_applications: "configs/okta_applications.json".to_string(),
             token_path: "configs/token.json".to_string(),
-            onelogin_identity_mapping: "configs/onelogin_identities.json".to_string(),
-            onelogin_group_mapping: "configs/onelogin_groups.json".to_string(),
-            onelogin_application_mapping: "configs/onelogin_applications.json".to_string(),
+            vitalsource_identity_mapping: "configs/vitalsource_identities.json".to_string(),
+            vitalsource_group_mapping: "configs/vitalsource_groups.json".to_string(),
+            vitalsource_group_assignment_mapping: "configs/vitalsource_group_assignment.json".to_string(),
         }
     }
 }
