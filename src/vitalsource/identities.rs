@@ -52,7 +52,6 @@ pub async fn vitalsource_create_identities(
         }
     }
 
-    // TODO: Remove the limits when I'm ready to fully run this.
     let mut list_users_url = format!("{}/api/2/users", config.onelogin_base_url);
     let mut new_identities_created = 0;
 
@@ -111,13 +110,16 @@ pub async fn vitalsource_create_identities(
                         new_identities_created += 1;
                     }
                     Err(e) => {
-                        log::error!("Failed to create identity for user {}: {:?}", user, e);
+                        log::error!(
+                            "Failed to create identity for user {:?}: {:?}",
+                            onelogin_user,
+                            e
+                        );
                     }
                 }
             }
         }
 
-        // TODO: when this is ready, uncomment
         if let Some(cursor) = after_cursor {
             list_users_url = format!("{}/api/2/users?cursor={}", config.onelogin_base_url, cursor);
         } else {
@@ -175,12 +177,11 @@ pub async fn bi_create_identity(
             traits["samaccountname"] = json!(sam);
         }
     }
-    // TODO: Uncomment this when there are no more restrictions.
-    // if let Some(mo) = &user.member_of {
-    //     if !mo.is_empty() {
-    //         traits["member_of"] = json!(mo);
-    //     }
-    // }
+    if let Some(mo) = &user.member_of {
+        if !mo.is_empty() {
+            traits["member_of"] = json!(mo);
+        }
+    }
     if let Some(adp) = &user.custom_attributes.adpid {
         if !adp.is_empty() {
             traits["adp_id"] = json!(adp);
@@ -306,12 +307,11 @@ pub async fn bi_update_identity(
             traits["samaccountname"] = json!(sam);
         }
     }
-    // TODO: Uncomment this when there are no more restrictions.
-    // if let Some(mo) = &user.member_of {
-    //     if !mo.is_empty() {
-    //         traits["member_of"] = json!(mo);
-    //     }
-    // }
+    if let Some(mo) = &user.member_of {
+        if !mo.is_empty() {
+            traits["member_of"] = json!(mo);
+        }
+    }
     if let Some(adp) = &user.custom_attributes.adpid {
         if !adp.is_empty() {
             traits["adp_id"] = json!(adp);
