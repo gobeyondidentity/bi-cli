@@ -31,6 +31,7 @@ use okta_registration_attribute::{create_custom_attribute, load_custom_attribute
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use vitalsource::{
+    applications::vitalsource_create_bookmarks,
     groups::{vitalsource_assign_identities_to_groups, vitalsource_create_groups},
     identities::vitalsource_create_identities,
     rollback::{vitalsource_rollback_groups, vitalsource_rollback_identities},
@@ -83,8 +84,11 @@ enum Commands {
     /// Automatically populates Beyond Identities SSO with all of your OneLogin users, groups, and group assignments.
     VitalsourceFastMigrate,
 
-    /// Automatically populates Beyond Identities SSO with all of your OneLogin users, groups, and group assignments.
+    /// Rollsback the previous command.
     VitalsourceFastMigrateRollback,
+
+    /// Reads a config file of VitalSource application IDs and creates bookmark apps.
+    VitalsourceCreateBookmarks,
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
     DeleteAllSSOConfigsInBeyondIdentity,
@@ -435,6 +439,34 @@ async fn main() {
                 .await
                 .expect("failed to rollback identities");
             log::info!("3. Rolled back Vitalsource created identities.");
+        }
+        Commands::VitalsourceCreateBookmarks => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+
+            let onelogin_token = get_onelogin_access_token(&client, &config)
+                .await
+                .expect("failed to get OneLogin access token");
+
+            let bi_token = get_beyond_identity_api_token(&client, &config, &tenant_config)
+                .await
+                .expect("failed to get BI access token");
+
+            log::info!("1. Got OneLogin and Beyond Identity Access Token.");
+
+            vitalsource_create_bookmarks(
+                &client,
+                &config,
+                &tenant_config,
+                &onelogin_token,
+                &bi_token,
+            )
+            .await
+            .expect("failed to create bookmarks");
+            log::info!("2. Created bookmarks in Beyond Identity.");
         }
         Commands::DeleteAllSSOConfigsInBeyondIdentity => {
             let config = Config::from_env();

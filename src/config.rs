@@ -16,6 +16,8 @@ pub struct FilePaths {
     pub vitalsource_identity_mapping: String,
     pub vitalsource_group_mapping: String,
     pub vitalsource_group_assignment_mapping: String,
+    pub vitalsource_apps_to_migrate: String,
+    pub vitalsource_app_mapping: String,
     pub token_path: String,
 }
 
@@ -33,7 +35,10 @@ impl FilePaths {
             token_path: "configs/token.json".to_string(),
             vitalsource_identity_mapping: "configs/vitalsource_identities.json".to_string(),
             vitalsource_group_mapping: "configs/vitalsource_groups.json".to_string(),
-            vitalsource_group_assignment_mapping: "configs/vitalsource_group_assignment.json".to_string(),
+            vitalsource_group_assignment_mapping: "configs/vitalsource_group_assignment.json"
+                .to_string(),
+            vitalsource_apps_to_migrate: "configs/vitalsource_apps_to_migrate.json".to_string(),
+            vitalsource_app_mapping: "configs/vitalsource_apps.json".to_string(),
         }
     }
 }
@@ -94,16 +99,16 @@ fn validate_env() -> Result<(), String> {
     ];
 
     // Validate OKTA_DOMAIN
-    if let Some(okta_domain) = env_vars.get("OKTA_DOMAIN") {
-        if !okta_domain.starts_with("https://") || okta_domain.ends_with('/') {
-            return Err(format!(
-                "Invalid OKTA_DOMAIN: {}. It must begin with 'https://' and not end with a '/'. Example: 'https://beyondidentity.okta.com'",
-                okta_domain
-            ));
-        }
-    } else {
-        return Err("OKTA_DOMAIN is missing. Please set OKTA_DOMAIN in your .env file. Example: 'OKTA_DOMAIN=https://beyondidentity.okta.com'".to_string());
-    }
+    // if let Some(okta_domain) = env_vars.get("OKTA_DOMAIN") {
+    //     if !okta_domain.starts_with("https://") || okta_domain.ends_with('/') {
+    //         return Err(format!(
+    //             "Invalid OKTA_DOMAIN: {}. It must begin with 'https://' and not end with a '/'. Example: 'https://beyondidentity.okta.com'",
+    //             okta_domain
+    //         ));
+    //     }
+    // } else {
+    //     return Err("OKTA_DOMAIN is missing. Please set OKTA_DOMAIN in your .env file. Example: 'OKTA_DOMAIN=https://beyondidentity.okta.com'".to_string());
+    // }
 
     // Validate BEYOND_IDENTITY_API_BASE_URL
     if let Some(api_base_url) = env_vars.get("BEYOND_IDENTITY_API_BASE_URL") {

@@ -116,9 +116,17 @@ async fn bi_create_group(
         "{}/v1/tenants/{}/realms/{}/groups",
         config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
+
+    let sanitized_name = role
+        .name
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .take(64)
+        .collect::<String>();
+
     let payload = json!({
         "group": {
-            "display_name": role.name,
+            "display_name": sanitized_name,
             "description": format!("Group created from OneLogin Role ID {}, Role Name {}", role.id, role.name)
         }
     });
