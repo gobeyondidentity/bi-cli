@@ -142,7 +142,7 @@ pub async fn vitalsource_create_identities(
 // Creates a Beyond Identity based on the OneLogin user.
 // Returns the ID of the identity created in Beyond Identity.
 // NOTE: If it is a 409 conflict error, we also return the ID from the resource info.
-pub async fn bi_create_identity(
+async fn bi_create_identity(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
@@ -268,7 +268,7 @@ pub async fn bi_create_identity(
 // Creates a Beyond Identity based on the OneLogin user.
 // Returns the ID of the identity created in Beyond Identity.
 // NOTE: If it is a 409 conflict error, we also return the ID from the resource info.
-pub async fn bi_update_identity(
+async fn bi_update_identity(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,

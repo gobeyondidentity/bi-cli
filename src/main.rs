@@ -32,10 +32,11 @@ use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use vitalsource::{
     applications::vitalsource_create_bookmarks,
+    entra::vitalsource_entra_sync,
     groups::{vitalsource_assign_identities_to_groups, vitalsource_create_groups},
     identities::vitalsource_create_identities,
     rollback::{vitalsource_rollback_groups, vitalsource_rollback_identities},
-    token::get_onelogin_access_token,
+    token::{get_entra_access_token, get_onelogin_access_token},
 };
 
 use reqwest::Client;
@@ -89,6 +90,9 @@ enum Commands {
 
     /// Reads a config file of VitalSource application IDs and creates bookmark apps.
     VitalsourceCreateBookmarks,
+
+    /// Acts as a SCIM connector for VitalSource while SCIM is is actively being worked on.
+    VitalsourceEntraSync,
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
     DeleteAllSSOConfigsInBeyondIdentity,
@@ -467,6 +471,35 @@ async fn main() {
             .await
             .expect("failed to create bookmarks");
             log::info!("2. Created bookmarks in Beyond Identity.");
+        }
+        Commands::VitalsourceEntraSync => {
+            let config = Config::from_env();
+            let client = Client::new();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+
+            let entra_api_token = get_entra_access_token(&client, &config)
+                .await
+                .expect("failed to get Entra access token");
+
+            let bi_token = get_beyond_identity_api_token(&client, &config, &tenant_config)
+                .await
+                .expect("failed to get BI access token");
+
+            log::info!("1. Got Entra and Beyond Identity Access Token.");
+
+            vitalsource_entra_sync(
+                &client,
+                &config,
+                &tenant_config,
+                &entra_api_token,
+                &bi_token,
+            )
+            .await
+            .expect("failed to sync with entra");
+
+            log::info!("2. Synced Entra with Beyond Identity.");
         }
         Commands::DeleteAllSSOConfigsInBeyondIdentity => {
             let config = Config::from_env();

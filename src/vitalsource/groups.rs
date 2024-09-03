@@ -120,14 +120,16 @@ async fn bi_create_group(
     let sanitized_name = role
         .name
         .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
         .take(64)
         .collect::<String>();
+
+    log::info!("Creating group for role {}: {}", role.name, sanitized_name);
 
     let payload = json!({
         "group": {
             "display_name": sanitized_name,
-            "description": format!("Group created from OneLogin Role ID {}, Role Name {}", role.id, role.name)
+            "description": format!("Group created from OneLogin Role ID {}, Role Name {}", role.id, sanitized_name)
         }
     });
 

@@ -55,6 +55,9 @@ pub struct Config {
     pub onelogin_client_id: String,
     pub onelogin_client_secret: String,
     pub onelogin_base_url: String,
+    pub entra_tenant_id: String,
+    pub entra_client_id: String,
+    pub entra_client_secret: String,
     pub file_paths: FilePaths,
 }
 
@@ -79,6 +82,10 @@ impl Config {
             onelogin_client_secret: env::var("ONELOGIN_CLIENT_SECRET")
                 .expect("ONELOGIN_CLIENT_SECRET not set"),
             onelogin_base_url: env::var("ONELOGIN_BASE_URL").expect("ONELOGIN_BASE_URL not set"),
+            entra_tenant_id: env::var("ENTRA_TENANT_ID").expect("ENTRA_TENANT_ID not set"),
+            entra_client_id: env::var("ENTRA_CLIENT_ID").expect("ENTRA_CLIENT_ID not set"),
+            entra_client_secret: env::var("ENTRA_CLIENT_SECRET")
+                .expect("ENTRA_CLIENT_SECRET not set"),
             file_paths: FilePaths::new(),
         }
     }
