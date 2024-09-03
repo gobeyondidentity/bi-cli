@@ -1,5 +1,3 @@
-use std::process::id;
-
 use crate::config::Config;
 use crate::error::BiError;
 use crate::tenant::TenantConfig;
@@ -117,13 +115,13 @@ pub async fn vitalsource_entra_sync(
             }
         }
 
-        // if let Some(next_link) = entra_response.next_link {
-        //     url = next_link;
-        // } else {
-        //     break;
-        // }
+        if let Some(next_link) = entra_response.next_link {
+            url = next_link;
+        } else {
+            break;
+        }
 
-        break;
+        // break;
     }
 
     Ok(())
@@ -263,6 +261,7 @@ async fn bi_update_identity(
     let mut traits = json!({
         "type": "traits_v0",
         "primary_email_address": user.mail,
+        "status": if user.account_enabled { "active" } else { "suspended" },
         "given_name": user.given_name,
         "family_name": user.surname
     });
