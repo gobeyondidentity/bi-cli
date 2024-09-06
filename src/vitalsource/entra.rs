@@ -78,7 +78,7 @@ pub async fn vitalsource_entra_sync(
                             identity_id
                         );
                         // If user is found, update the existing identity.
-                        bi_update_identity(
+                        match bi_update_identity(
                             client,
                             config,
                             tenant_config,
@@ -86,7 +86,23 @@ pub async fn vitalsource_entra_sync(
                             &user,
                             &identity_id,
                         )
-                        .await?;
+                        .await
+                        {
+                            Ok(identity_id) => {
+                                log::info!(
+                                    "Successfully updated identity with ID: {}",
+                                    identity_id
+                                );
+                            }
+                            Err(e) => {
+                                log::error!(
+                                    "Failed to update identity for user {:?} id {:?}: {:?}",
+                                    username,
+                                    identity_id,
+                                    e
+                                );
+                            }
+                        }
                     } else {
                         // If user is enabled and not already in BI directory, create the identity.
                         // This is the logic for new users that are onboarded.
@@ -95,8 +111,23 @@ pub async fn vitalsource_entra_sync(
                             "Did not find a user in BI with username: {:?}, attempting to CREATE a new identity",
                             username,
                         );
-                            bi_create_identity(client, config, tenant_config, bi_token, &user)
-                                .await?;
+                            match bi_create_identity(client, config, tenant_config, bi_token, &user)
+                                .await
+                            {
+                                Ok(identity_id) => {
+                                    log::info!(
+                                        "Successfully created identity with ID: {}",
+                                        identity_id
+                                    );
+                                }
+                                Err(e) => {
+                                    log::error!(
+                                        "Failed to create identity for user {:?}: {:?}",
+                                        username,
+                                        e
+                                    );
+                                }
+                            }
                         } else {
                             log::info!(
                             "Did not find a user in BI with usernamee {:?}, but they are inactive, skipping",
@@ -230,7 +261,12 @@ async fn bi_create_identity(
     let status = response.status();
     let response_text = response.text().await?;
 
-    log::info!("Created User with status {} URL: {} and response: {}", status, url, response_text);
+    log::info!(
+        "CreateUser with status {} URL: {} and response: {}",
+        status,
+        url,
+        response_text
+    );
 
     if status.is_success() {
         let bi_identity: serde_json::Value = serde_json::from_str(&response_text)?;
@@ -304,7 +340,12 @@ async fn bi_update_identity(
     let status = response.status();
     let response_text = response.text().await?;
 
-    log::info!("Updated User with status: {} URL: {} and response: {}", status, url, response_text);
+    log::info!(
+        "UpdateUser with status: {} URL: {} and response: {}",
+        status,
+        url,
+        response_text
+    );
 
     if status.is_success() {
         let bi_identity: serde_json::Value = serde_json::from_str(&response_text)?;
