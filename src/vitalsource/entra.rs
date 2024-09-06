@@ -230,7 +230,7 @@ async fn bi_create_identity(
     let status = response.status();
     let response_text = response.text().await?;
 
-    log::info!("{} URL: {} and response: {}", status, url, response_text);
+    log::info!("Created User with status {} URL: {} and response: {}", status, url, response_text);
 
     if status.is_success() {
         let bi_identity: serde_json::Value = serde_json::from_str(&response_text)?;
@@ -261,7 +261,6 @@ async fn bi_update_identity(
     let mut traits = json!({
         "type": "traits_v0",
         "primary_email_address": user.mail,
-        "status": if user.account_enabled { "active" } else { "suspended" },
         "given_name": user.given_name,
         "family_name": user.surname
     });
@@ -289,6 +288,7 @@ async fn bi_update_identity(
     let payload = json!({
         "identity": {
             "display_name": format!("{} {}", user.given_name.as_deref().unwrap_or(""), user.surname.as_deref().unwrap_or("")),
+            "status": if user.account_enabled { "active" } else { "suspended" },
             "traits": traits
         }
     });
@@ -304,7 +304,7 @@ async fn bi_update_identity(
     let status = response.status();
     let response_text = response.text().await?;
 
-    log::info!("{} URL: {} and response: {}", status, url, response_text);
+    log::info!("Updated User with status: {} URL: {} and response: {}", status, url, response_text);
 
     if status.is_success() {
         let bi_identity: serde_json::Value = serde_json::from_str(&response_text)?;
