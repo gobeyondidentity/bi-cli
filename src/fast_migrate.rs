@@ -309,27 +309,21 @@ pub fn select_applications(applications: &[OktaApplication]) -> Vec<OktaApplicat
 pub struct SsoConfig {
     id: String,
     display_name: String,
+    is_migrated: bool,
     payload: SsoConfigPayload,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SsoConfigPayload {
-    #[serde(rename = "GenericOidc")]
-    generic_oidc: GenericOidc,
+    #[serde(rename = "Bookmark")]
+    bookmark: Bookmark,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct GenericOidc {
-    redirect_uris: Vec<String>,
-    scopes: Vec<String>,
-    confidentiality: String,
-    pkce: String,
+pub struct Bookmark {
     login_link: String,
     icon: String,
     is_tile_visible: bool,
-    application_id: String,
-    authenticator_config_id: String,
-    resource_server_id: String,
     application_tile_id: String,
 }
 
@@ -365,6 +359,7 @@ async fn create_sso_config(
     let payload = json!({
         "sso_config": {
             "display_name": display_name,
+            "is_migrated": true,
             "payload": {
                 "type": "bookmark",
                 "login_link": login_link.href,
