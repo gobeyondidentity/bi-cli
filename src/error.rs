@@ -15,4 +15,6 @@ pub enum BiError {
     ConfigFileNotFound(String),
     #[error("Unable to write file '{0}'")]
     UnableToWriteFile(String),
+    #[error("Failed to read input")]
+    IoError(std::io::Error),
 }

@@ -9,12 +9,13 @@ mod okta_identity_provider;
 mod okta_registration_attribute;
 mod okta_routing_rule;
 mod okta_scim;
+mod provision_existing_tenant;
 mod tenant;
 
 use bi_api_token::get_beyond_identity_api_token;
 use bi_enrollment::{
-    get_all_identities, get_send_email_payload,
-    get_unenrolled_identities, select_identities, send_enrollment_email, Identity,
+    get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
+    send_enrollment_email, Identity,
 };
 use bi_external_sso::{create_external_sso, load_external_sso};
 use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
@@ -29,6 +30,7 @@ use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_p
 use okta_registration_attribute::{create_custom_attribute, load_custom_attribute};
 use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
+use provision_existing_tenant::provision_existing_tenant;
 use reqwest::Client;
 use std::io::{self, Write};
 use tenant::{create_tenant, load_tenant, open_magic_link};
@@ -47,6 +49,9 @@ struct Cli {
 enum Commands {
     /// Creates a new Secure Access tenant. This command is required for all the remaining commands to work as it provides the base configuration. The first time you run this command, it will ask you to open a browser with a magic link to complete the provisioning process. Subsequent runs will show you the existing tenant configuration.
     CreateTenant,
+
+    /// Provisions configuration for an existing tenant provided a tenant id, realm id, and API token are supplied.
+    ProvisionExistingTenant,
 
     /// Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
     CreateScimAppInBeyondIdentity,
@@ -123,6 +128,24 @@ async fn main() {
                         .as_ref()
                         .expect("Magic link missing from tenant config");
                     open_magic_link(magic_link.as_ref());
+                    tenant_config
+                }
+            };
+        }
+        Commands::ProvisionExistingTenant => {
+            let config = Config::from_env();
+            match load_tenant(&config).await {
+                Ok(tenant_config) => {
+                    println!(
+                        "Tenant already exists: {}",
+                        serde_json::to_string_pretty(&tenant_config).unwrap()
+                    );
+                    tenant_config
+                }
+                Err(_) => {
+                    let tenant_config = provision_existing_tenant(&config)
+                        .await
+                        .expect("Failed to provision existing tenant");
                     tenant_config
                 }
             };
