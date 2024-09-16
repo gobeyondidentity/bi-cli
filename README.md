@@ -13,6 +13,7 @@ Secure Access CLI is a command-line interface designed to automate the setup of 
 3. [Usage](#usage)
     - [Commands](#commands)
         - [create-tenant](#create-tenant)
+        - [provision-existing-tenant](#provision-existing-tenant)
         - [create-scim-app-in-beyond-identity](#create-scim-app-in-beyond-identity)
         - [create-scim-app-in-okta](#create-scim-app-in-okta)
         - [create-external-sso-connection-in-beyond-identity](#create-external-sso-connection-in-beyond-identity)
@@ -92,6 +93,14 @@ To run the CLI tool, use the following syntax:
 #### create-tenant
 
 Creates a new Secure Access tenant. This command is required for all the remaining commands to work as it provides the base configuration. The first time you run this command, it will ask you to open a browser with a magic link to complete the provisioning process. Subsequent runs will show you the existing tenant configuration.
+
+```sh
+./target/release/secure-access-cli create-tenant
+```
+
+#### provision-existing-tenant
+
+Provisions configuration for an existing tenant provided a tenant id, realm id, and API token are supplied.
 
 ```sh
 ./target/release/secure-access-cli create-tenant
