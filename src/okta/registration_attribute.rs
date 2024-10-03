@@ -1,5 +1,5 @@
-use crate::config::Config;
-use crate::error::BiError;
+use crate::common::config::Config;
+use crate::common::error::BiError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

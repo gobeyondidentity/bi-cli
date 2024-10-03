@@ -1,6 +1,6 @@
-use crate::config::Config;
-use crate::error::BiError;
-use crate::tenant::TenantConfig;
+use crate::beyond_identity::tenant::TenantConfig;
+use crate::common::config::Config;
+use crate::common::error::BiError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs;

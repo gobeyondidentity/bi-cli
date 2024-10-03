@@ -1,8 +1,7 @@
-use crate::bi_external_sso::update_application_redirect_uri;
-use crate::bi_external_sso::ExternalSSO;
-use crate::config::Config;
-use crate::error::BiError;
-use crate::tenant::TenantConfig;
+use crate::beyond_identity::external_sso::{update_application_redirect_uri, ExternalSSO};
+use crate::beyond_identity::tenant::TenantConfig;
+use crate::common::config::Config;
+use crate::common::error::BiError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

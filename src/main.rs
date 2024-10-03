@@ -1,39 +1,29 @@
-mod bi_api_token;
-mod bi_enrollment;
-mod bi_external_sso;
-mod bi_scim;
-mod config;
-mod error;
-mod fast_migrate;
-mod okta_identity_provider;
-mod okta_registration_attribute;
-mod okta_routing_rule;
-mod okta_scim;
-mod provision_existing_tenant;
-mod tenant;
+mod beyond_identity;
+mod common;
+mod okta;
 
-use bi_api_token::get_beyond_identity_api_token;
-use bi_enrollment::{
+use beyond_identity::api_token::get_beyond_identity_api_token;
+use beyond_identity::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
     send_enrollment_email, Identity,
 };
-use bi_external_sso::{create_external_sso, load_external_sso};
-use bi_scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
+use beyond_identity::external_sso::{create_external_sso, load_external_sso};
+use beyond_identity::provision_existing_tenant::provision_existing_tenant;
+use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
+use beyond_identity::tenant::{create_tenant, load_tenant, open_magic_link};
 use clap::{Parser, Subcommand};
-use config::Config;
-use fast_migrate::{
+use common::config::Config;
+use log::LevelFilter;
+use okta::fast_migrate::{
     create_sso_config_and_assign_identities, delete_all_sso_configs, fetch_okta_applications,
     load_okta_applications, select_applications,
 };
-use log::LevelFilter;
-use okta_identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
-use okta_registration_attribute::{create_custom_attribute, load_custom_attribute};
-use okta_routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
-use okta_scim::{create_scim_app_in_okta, load_scim_app_in_okta};
-use provision_existing_tenant::provision_existing_tenant;
+use okta::identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
+use okta::registration_attribute::{create_custom_attribute, load_custom_attribute};
+use okta::routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
+use okta::scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use reqwest::Client;
 use std::io::{self, Write};
-use tenant::{create_tenant, load_tenant, open_magic_link};
 
 #[derive(Parser)]
 #[clap(name = "Provision SSO Tenant")]

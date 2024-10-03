@@ -1,6 +1,7 @@
-use crate::error::BiError;
-use crate::okta_identity_provider::OktaIdpResponse;
-use crate::{config::Config, tenant::TenantConfig};
+use crate::beyond_identity::tenant::TenantConfig;
+use crate::common::config::Config;
+use crate::common::error::BiError;
+use crate::okta::identity_provider::OktaIdpResponse;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

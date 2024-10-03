@@ -1,7 +1,7 @@
-use crate::bi_api_token::get_beyond_identity_api_token;
-use crate::config::Config;
-use crate::error::BiError;
-use crate::tenant::TenantConfig;
+use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::tenant::TenantConfig;
+use crate::common::config::Config;
+use crate::common::error::BiError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

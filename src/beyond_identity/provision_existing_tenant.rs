@@ -1,9 +1,10 @@
-use crate::config::Config;
-use crate::error::BiError;
+use crate::beyond_identity::tenant::TenantConfig;
+use crate::common::config::Config;
+use crate::common::error::BiError;
 use std::fs;
 use std::io::{self, Write};
 
-pub async fn provision_existing_tenant(config: &Config) -> Result<crate::tenant::TenantConfig, BiError> {
+pub async fn provision_existing_tenant(config: &Config) -> Result<TenantConfig, BiError> {
     // Prompt for tenant_id
     print!("Enter tenant_id: ");
     io::stdout().flush().map_err(BiError::IoError)?;
@@ -50,7 +51,7 @@ pub async fn provision_existing_tenant(config: &Config) -> Result<crate::tenant:
     let client_secret = client_secret.trim().to_string();
 
     // Create the tenant configuration
-    let tenant_config = crate::tenant::TenantConfig {
+    let tenant_config = TenantConfig {
         application_id,
         client_id,
         client_secret,
