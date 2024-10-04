@@ -5,29 +5,31 @@ Secure Access CLI is a command-line interface designed to automate the setup of 
 ## Table of Contents
 
 1. [Installation](#installation)
-    - [Install Rust](#install-rust)
-    - [Clone the Repository](#clone-the-repository)
-    - [Build the Project](#build-the-project)
+   - [Install Rust](#install-rust)
+   - [Clone the Repository](#clone-the-repository)
+   - [Build the Project](#build-the-project)
 2. [Configuration](#configuration)
-    - [Environment Variables](#environment-variables)
+   - [Environment Variables](#environment-variables)
 3. [Usage](#usage)
-    - [Commands](#commands)
-        - [Beyond Identity Commands](#beyond-identity-commands)
-            - [create-tenant](#create-tenant)
-            - [provision-existing-tenant](#provision-existing-tenant)
-            - [create-scim-app](#create-scim-app)
-            - [create-external-sso-connection](#create-external-sso-connection)
-            - [get-token](#get-token)
-            - [send-enrollment-email](#send-enrollment-email)
-            - [delete-all-sso-configs](#delete-all-sso-configs)
-            - [review-unenrolled](#review-unenrolled)
-        - [Okta Commands](#okta-commands)
-            - [create-scim-app](#create-scim-app-okta)
-            - [create-custom-attribute](#create-custom-attribute)
-            - [create-identity-provider](#create-identity-provider)
-            - [create-routing-rule](#create-routing-rule)
-            - [fast-migrate](#fast-migrate)
-    - [Options](#options)
+   - [Commands](#commands)
+     - [Beyond Identity Commands](#beyond-identity-commands)
+       - [create-tenant](#create-tenant)
+       - [provision-existing-tenant](#provision-existing-tenant)
+       - [create-scim-app](#create-scim-app)
+       - [create-external-sso-connection](#create-external-sso-connection)
+       - [get-token](#get-token)
+       - [send-enrollment-email](#send-enrollment-email)
+       - [delete-all-sso-configs](#delete-all-sso-configs)
+       - [review-unenrolled](#review-unenrolled)
+     - [Okta Commands](#okta-commands)
+       - [create-scim-app](#create-scim-app-okta)
+       - [create-custom-attribute](#create-custom-attribute)
+       - [create-identity-provider](#create-identity-provider)
+       - [create-routing-rule](#create-routing-rule)
+       - [fast-migrate](#okta-fast-migrate)
+     - [OneLogin Commands](#onelogin-commands)
+       - [fast-migrate](#onelogin-fast-migrate)
+   - [Options](#options)
 4. [Examples](#examples)
 5. [Additional Information](#additional-information)
 
@@ -39,21 +41,21 @@ If you don't have Rust installed, you need to install it first. Follow these ste
 
 1. **Download Rustup**: Rustup is an installer for the Rust programming language.
 
-    ```sh
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    ```
+   ```sh
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
 
 2. **Follow the On-Screen Instructions**: The installer will guide you through the installation process. Once installed, configure your current shell session to use Rust by running:
 
-    ```sh
-    source $HOME/.cargo/env
-    ```
+   ```sh
+   source $HOME/.cargo/env
+   ```
 
 3. **Verify Installation**: To ensure Rust is installed correctly, you can run:
 
-    ```sh
-    rustc --version
-    ```
+   ```sh
+   rustc --version
+   ```
 
 ### Clone the Repository
 
@@ -86,6 +88,9 @@ BEYOND_IDENTITY_API_BASE_URL="https://api-<eu|us>.beyondidentity.<run|xyz|com>"
 BEYOND_IDENTITY_AUTH_BASE_URL="https://auth-<eu|us>.beyondidentity.<run|xyz|com>"
 ADMIN_DISPLAY_NAME="<YOUR_NAME>"
 ADMIN_PRIMARY_EMAIL_ADDRESS="<YOUR_EMAIL_ADDRESS>"
+ONELOGIN_CLIENT_ID="<ONELOGIN_CLIENT_ID>"
+ONELOGIN_CLIENT_SECRET="<ONELOGIN_CLIENT_SECRET>"
+ONELOGIN_DOMAIN="<ONELOGIN_DOMAIN>"
 ```
 
 Make sure to replace the placeholders with your actual configuration values.
@@ -212,12 +217,28 @@ The final step when setting up Beyond Identity as an MFA in Okta. This will use 
 ./target/release/secure-access-cli okta create-routing-rule
 ```
 
-##### fast-migrate
+##### okta-fast-migrate
 
 Automatically populates Beyond Identity's SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
 
 ```sh
 ./target/release/secure-access-cli okta fast-migrate
+```
+
+#### OneLogin Commands
+
+To access OneLogin specific commands, use:
+
+```sh
+./target/release/secure-access-cli onelogin <SUBCOMMAND>
+```
+
+##### onelogin-fast-migrate
+
+Automatically populates Beyond Identity's SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
+
+```sh
+./target/release/secure-access-cli onelogin fast-migrate
 ```
 
 ### Options
@@ -232,6 +253,7 @@ Automatically populates Beyond Identity's SSO with all of your Okta applications
 - **Manual Steps**: Some commands require manual configuration steps that cannot be automated due to platform limitations. Instructions are provided within the command descriptions and linked documentation.
 
 - **Documentation Links**:
+
   - [Okta SCIM Application Configuration](https://docs.beyondidentity.com/docs/directory/directory-integrations/okta#-finish-configuring-the-okta-scim-application)
 
 - **Logging**: Use the `--log-level` option to control the verbosity of the CLI output. This can be helpful for debugging or monitoring the progress of operations.
