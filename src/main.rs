@@ -1,6 +1,7 @@
 mod beyond_identity;
 mod common;
 mod okta;
+mod onelogin;
 
 use beyond_identity::api_token::get_beyond_identity_api_token;
 use beyond_identity::enrollment::{
@@ -10,18 +11,21 @@ use beyond_identity::enrollment::{
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
 use beyond_identity::provision_existing_tenant::provision_existing_tenant;
 use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
+use beyond_identity::sso_configs::delete_all_sso_configs;
 use beyond_identity::tenant::{create_tenant, load_tenant, open_magic_link};
-use clap::{Parser, Subcommand};
-use common::config::Config;
-use log::LevelFilter;
+
 use okta::fast_migrate::{
-    create_sso_config_and_assign_identities, delete_all_sso_configs, fetch_okta_applications,
-    load_okta_applications, select_applications,
+    create_sso_config_and_assign_identities, fetch_okta_applications, load_okta_applications,
+    select_applications,
 };
 use okta::identity_provider::{create_okta_identity_provider, load_okta_identity_provider};
 use okta::registration_attribute::{create_custom_attribute, load_custom_attribute};
 use okta::routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta::scim::{create_scim_app_in_okta, load_scim_app_in_okta};
+
+use clap::{Parser, Subcommand};
+use common::config::Config;
+use log::LevelFilter;
 use reqwest::Client;
 use std::io::{self, Write};
 
@@ -44,6 +48,10 @@ enum Commands {
     /// Commands related to Okta
     #[clap(subcommand)]
     Okta(OktaCommands),
+
+    /// Commands related to OneLogin
+    #[clap(subcommand)]
+    Onelogin(OneloginCommands),
 }
 
 #[derive(Subcommand)]
@@ -88,6 +96,12 @@ enum OktaCommands {
     CreateRoutingRule,
 
     /// Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
+    FastMigrate,
+}
+
+#[derive(Subcommand)]
+enum OneloginCommands {
+    /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
     FastMigrate,
 }
 
@@ -407,6 +421,46 @@ async fn main() {
                         ),
                         Err(err) => {
                             println!("Failed to create SSO config for {}: {}", app.label, err)
+                        }
+                    }
+                }
+            }
+        },
+        Commands::Onelogin(cmd) => match cmd {
+            OneloginCommands::FastMigrate => {
+                let config = Config::from_env();
+                let client = Client::new();
+                let tenant_config = load_tenant(&config).await.expect(
+                            "Failed to load tenant. Make sure you create a tenant before running this command.",
+                        );
+                let onelogin_applications =
+                    match onelogin::fast_migrate::load_onelogin_applications(&config).await {
+                        Ok(onelogin_applications) => onelogin_applications,
+                        Err(_) => {
+                            onelogin::fast_migrate::fetch_onelogin_applications(&client, &config)
+                                .await
+                                .expect("Failed to fetch onelogin applications")
+                        }
+                    };
+
+                let selected_applications =
+                    onelogin::fast_migrate::select_applications(&onelogin_applications);
+                for app in selected_applications {
+                    match onelogin::fast_migrate::create_sso_config_and_assign_identities(
+                        &client,
+                        &config,
+                        &tenant_config,
+                        &app,
+                    )
+                    .await
+                    {
+                        Ok(sso_config) => println!(
+                            "SSO config created for {}: {}",
+                            app.name,
+                            serde_json::to_string_pretty(&sso_config).unwrap()
+                        ),
+                        Err(err) => {
+                            println!("Failed to create SSO config for {}: {}", app.name, err)
                         }
                     }
                 }

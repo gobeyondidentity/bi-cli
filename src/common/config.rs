@@ -13,6 +13,7 @@ pub struct FilePaths {
     pub okta_routing_rule: String,
     pub okta_custom_attribute: String,
     pub okta_applications: String,
+    pub onelogin_applications: String,
     pub token_path: String,
 }
 
@@ -27,6 +28,7 @@ impl FilePaths {
             okta_routing_rule: "configs/okta_routing_rule.json".to_string(),
             okta_custom_attribute: "configs/okta_custom_attribute.json".to_string(),
             okta_applications: "configs/okta_applications.json".to_string(),
+            onelogin_applications: "configs/onelogin_applications.json".to_string(),
             token_path: "configs/token.json".to_string(),
         }
     }
@@ -41,6 +43,9 @@ pub struct Config {
     pub beyond_identity_auth_base_url: String,
     pub admin_display_name: String,
     pub admin_primary_email_address: String,
+    pub onelogin_client_id: String,
+    pub onelogin_client_secret: String,
+    pub onelogin_domain: String,
     pub file_paths: FilePaths,
 }
 
@@ -61,6 +66,11 @@ impl Config {
             admin_display_name: env::var("ADMIN_DISPLAY_NAME").expect("ADMIN_DISPLAY_NAME not set"),
             admin_primary_email_address: env::var("ADMIN_PRIMARY_EMAIL_ADDRESS")
                 .expect("ADMIN_PRIMARY_EMAIL_ADDRESS not set"),
+            onelogin_client_id: env::var("ONE_LOGIN_CLIENT_ID")
+                .expect("ONE_LOGIN_CLIENT_ID not set"),
+            onelogin_client_secret: env::var("ONE_LOGIN_CLIENT_SECRET")
+                .expect("ONE_LOGIN_CLIENT_SECRET not set"),
+            onelogin_domain: env::var("ONE_LOGIN_DOMAIN").expect("ONE_LOGIN_DOMAIN not set"),
             file_paths: FilePaths::new(),
         }
     }
