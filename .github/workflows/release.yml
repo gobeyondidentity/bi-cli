@@ -48,7 +48,7 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          binary_name="secure-access-cli"
+          binary_name="bi"
           dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
           mkdir "$dirname"
           if [ "${{ matrix.os }}" = "windows-latest" ]; then

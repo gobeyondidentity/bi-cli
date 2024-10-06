@@ -43,7 +43,7 @@ struct Cli {
 enum Commands {
     /// Commands related to Beyond Identity
     #[clap(subcommand)]
-    BeyondIdentity(BeyondIdentityCommands),
+    Api(BeyondIdentityCommands),
 
     /// Commands related to Okta
     #[clap(subcommand)]
@@ -126,7 +126,7 @@ async fn main() {
     env_logger::Builder::new().filter(None, log_level).init();
 
     match &cli.command {
-        Commands::BeyondIdentity(cmd) => match cmd {
+        Commands::Api(cmd) => match cmd {
             BeyondIdentityCommands::CreateTenant => {
                 let config = Config::from_env();
                 let client = Client::new();
