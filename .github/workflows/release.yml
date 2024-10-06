@@ -1,83 +1,136 @@
-name: Release Rust Binaries
+name: Build
 
 on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
+env:
+  PROJECT_NAME: bi
+
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    runs-on: ${{ matrix.os }}
-
+  build:
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
-          - build: linux
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-          - build: windows
-            os: windows-latest
+          - name: linux-amd64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - name: win-amd64
+            runner: windows-latest
             target: x86_64-pc-windows-msvc
-          - build: macos
-            os: macos-latest
+          - name: macos-amd64
+            runner: macos-latest
             target: x86_64-apple-darwin
+          - name: macos-arm64
+            runner: macos-latest
+            target: aarch64-apple-darwin
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Get the release version from the tag
-        shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: "${{ matrix.target }}"
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --verbose --release --target ${{ matrix.target }}
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
 
-      - name: Build archive
+      - name: Build Binary
+        run: cargo build --verbose --release --target ${{ matrix.target }}
+
+      - name: Release Binary
+        id: release_binary
         shell: bash
         run: |
-          binary_name="bi"
-          dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
-          mkdir "$dirname"
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
-          else
-            mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
+          BIN_SUFFIX=""
+          if [[ "${{ matrix.runner }}" == "windows-latest" ]]; then
+            BIN_SUFFIX=".exe"
           fi
 
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a "$dirname.zip" "$dirname"
-            echo "ASSET=$dirname.zip" >> $GITHUB_ENV
-          else
-            tar -czf "$dirname.tar.gz" "$dirname"
-            echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
-          fi
+          # The built binary output location
+          BIN_OUTPUT="target/${{ matrix.target }}/release/${PROJECT_NAME}${BIN_SUFFIX}"
+
+          # Define a better name for the final binary
+          BIN_RELEASE_VERSIONED="${PROJECT_NAME}-${{ github.ref_name }}-${{ matrix.name }}${BIN_SUFFIX}"
+
+          # Rename the binary for release
+          mv "${BIN_OUTPUT}" "./${BIN_RELEASE_VERSIONED}"
+
+          # Output for later steps
+          echo "BIN_RELEASE_VERSIONED=${BIN_RELEASE_VERSIONED}" >> $GITHUB_OUTPUT
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.name }}-binary
+          path: ./${{ steps.release_binary.outputs.BIN_RELEASE_VERSIONED }}
+
+  create_release:
+    needs: build # This waits for the build job to finish for all runners
+    runs-on: ubuntu-latest # Only one runner will create the release
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          name: ${{ github.ref }}
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload to GitHub Release
-        uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.ASSET }}
-          asset_name: ${{ env.ASSET }}
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+  upload_assets:
+    needs: [create_release, build] # Wait for both the build job and the release creation
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - name: linux-amd64
+            runner: ubuntu-latest
+          - name: win-amd64
+            runner: windows-latest
+          - name: macos-amd64
+            runner: macos-latest
+          - name: macos-arm64
+            runner: macos-latest
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.name }}-binary
+
+      - name: Set Variables
+        id: set_vars
+        shell: bash
+        run: |
+          PROJECT_NAME=bi
+          BIN_SUFFIX=""
+          if [[ "${{ matrix.runner }}" == "windows-latest" ]]; then
+            BIN_SUFFIX=".exe"
+          fi
+          BIN_RELEASE_VERSIONED="${PROJECT_NAME}-${{ github.ref_name }}-${{ matrix.name }}${BIN_SUFFIX}"
+          echo "BIN_RELEASE_VERSIONED=${BIN_RELEASE_VERSIONED}" >> $GITHUB_OUTPUT
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.set_vars.outputs.BIN_RELEASE_VERSIONED }}
+          asset_name: ${{ steps.set_vars.outputs.BIN_RELEASE_VERSIONED }}
           asset_content_type: application/octet-stream
