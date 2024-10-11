@@ -11,6 +11,7 @@ pub struct ResourceServer {
     pub realm_id: String,
     pub tenant_id: String,
     pub display_name: String,
+    pub identifier: String,
 }
 
 pub async fn fetch_beyond_identity_resource_servers(

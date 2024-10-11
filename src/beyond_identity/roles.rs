@@ -131,3 +131,65 @@ pub async fn fetch_role_memberships(
 
     Ok(roles)
 }
+
+pub async fn fetch_beyond_identity_roles(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+    resource_server_id: &str,
+) -> Result<Vec<Role>, BiError> {
+    let mut roles = Vec::new();
+    let mut url = format!(
+        "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles",
+        config.beyond_identity_api_base_url,
+        tenant_config.tenant_id,
+        tenant_config.realm_id,
+        resource_server_id,
+    );
+
+    loop {
+        let response = client
+            .get(&url)
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                ),
+            )
+            .send()
+            .await?;
+
+        let status = response.status();
+        log::debug!("{} response status: {}", url, status);
+        if !status.is_success() {
+            let error_text = response.text().await?;
+            return Err(BiError::RequestError(status, error_text));
+        }
+
+        let response_text = response.text().await?;
+        log::debug!("{} response text: {}", url, response_text);
+        let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
+        let page_roles: Vec<Role> = serde_json::from_value(response_json["roles"].clone())?;
+
+        roles.extend(page_roles);
+
+        if let Some(next_page_token) = response_json
+            .get("next_page_token")
+            .and_then(|token| token.as_str())
+        {
+            url = format!(
+                "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles?page_size=200&page_token={}",
+                config.beyond_identity_api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                resource_server_id,
+                next_page_token
+            );
+        } else {
+            break;
+        }
+    }
+
+    Ok(roles)
+}

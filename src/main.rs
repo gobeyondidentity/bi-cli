@@ -3,6 +3,7 @@ mod common;
 mod okta;
 mod onelogin;
 
+use beyond_identity::admin::create_admin_account;
 use beyond_identity::api_token::get_beyond_identity_api_token;
 use beyond_identity::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
@@ -73,6 +74,9 @@ enum BeyondIdentityCommands {
 
     /// Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
     CreateExternalSSOConnection,
+
+    /// Creates an administrator account in the account.
+    CreateAdminAccount,
 
     /// Deletes all identities from a realm in case you want to set them up from scratch.
     /// The identities are unassigned from roles and groups automatically.
@@ -160,6 +164,17 @@ async fn main() {
                         tenant_config
                     }
                 };
+            }
+            BeyondIdentityCommands::CreateAdminAccount => {
+                let config = Config::from_env();
+                let client = Client::new();
+                let tenant_config = load_tenant(&config).await.expect(
+                            "Failed to load tenant. Make sure you create a tenant before running this command.",
+                        );
+                let identity = create_admin_account(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to create admin account");
+                println!("Created identity with id={}", identity.id);
             }
             BeyondIdentityCommands::ProvisionExistingTenant => {
                 let config = Config::from_env();
