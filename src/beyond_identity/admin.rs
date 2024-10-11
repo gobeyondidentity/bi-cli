@@ -1,12 +1,11 @@
 use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::identities::{fetch_beyond_identity_identities, Identity};
+use crate::beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
+use crate::beyond_identity::roles::{fetch_beyond_identity_roles, fetch_role_memberships};
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
 use reqwest::Client;
-
-use super::identities::Identity;
-use super::resource_servers::fetch_beyond_identity_resource_servers;
-use super::roles::fetch_beyond_identity_roles;
 
 pub async fn create_admin_account(
     client: &Client,
@@ -103,4 +102,37 @@ pub async fn create_admin_account(
     }
 
     Ok(identity)
+}
+
+pub async fn get_identities_without_role(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+) -> Result<Vec<Identity>, BiError> {
+    let identities = fetch_beyond_identity_identities(client, config, tenant_config).await?;
+    let resource_servers =
+        fetch_beyond_identity_resource_servers(client, config, tenant_config).await?;
+
+    let mut identities_without_roles = vec![];
+    for identity in &identities {
+        let mut has_role = false;
+        for resource_server in &resource_servers {
+            let roles = fetch_role_memberships(
+                client,
+                config,
+                tenant_config,
+                &identity.id,
+                &resource_server.id,
+            )
+            .await?;
+
+            has_role |= !roles.is_empty();
+        }
+
+        if !has_role {
+            identities_without_roles.push(identity.clone());
+        }
+    }
+
+    Ok(identities_without_roles)
 }
