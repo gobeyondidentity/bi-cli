@@ -22,6 +22,47 @@ pub struct IdentityTraits {
     pub primary_email_address: Option<String>,
 }
 
+pub async fn delete_all_identities(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+) -> Result<(), BiError> {
+    let identities = fetch_beyond_identity_identities(client, config, tenant_config).await?;
+
+    for identity in identities {
+        let url = format!(
+            "{}/v1/tenants/{}/realms/{}/identities{}",
+            config.beyond_identity_api_base_url,
+            tenant_config.tenant_id,
+            tenant_config.realm_id,
+            identity.id,
+        );
+
+        let response = client
+            .delete(&url)
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                ),
+            )
+            .send()
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            log::debug!("{} response status: {}", url, status);
+            let error_text = response.text().await?;
+            return Err(BiError::RequestError(status, error_text));
+        }
+
+        println!("Deleted {} ({})", identity.id, identity.display_name);
+    }
+
+    Ok(())
+}
+
 pub async fn fetch_beyond_identity_identities(
     client: &Client,
     config: &Config,

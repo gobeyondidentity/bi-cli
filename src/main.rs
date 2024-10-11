@@ -9,6 +9,7 @@ use beyond_identity::enrollment::{
     send_enrollment_email, Identity,
 };
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
+use beyond_identity::identities::delete_all_identities;
 use beyond_identity::provision_existing_tenant::provision_existing_tenant;
 use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use beyond_identity::sso_configs::delete_all_sso_configs;
@@ -67,6 +68,9 @@ enum BeyondIdentityCommands {
 
     /// Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
     CreateExternalSSOConnection,
+
+    /// Deletes all identities from a realm in case you want to provision identities from scratch.
+    DeleteAllIdentities,
 
     /// Get bearer token
     GetToken,
@@ -271,6 +275,17 @@ async fn main() {
                 delete_all_sso_configs(&client, &config, &tenant_config)
                     .await
                     .expect("Failed to delete all SSO Configs");
+            }
+            BeyondIdentityCommands::DeleteAllIdentities => {
+                let config = Config::from_env();
+                let client = Client::new();
+                let tenant_config = load_tenant(&config).await.expect(
+                            "Failed to load tenant. Make sure you create a tenant before running this command.",
+                        );
+
+                delete_all_identities(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to delete all identities");
             }
             BeyondIdentityCommands::GetToken => {
                 let config = Config::from_env();
