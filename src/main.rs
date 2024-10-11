@@ -9,8 +9,13 @@ use beyond_identity::enrollment::{
     send_enrollment_email, Identity,
 };
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
-use beyond_identity::identities::delete_all_identities;
+use beyond_identity::groups::delete_group_memberships;
+use beyond_identity::identities::{
+    delete_beyond_identity_identities, fetch_beyond_identity_identities,
+};
 use beyond_identity::provision_existing_tenant::provision_existing_tenant;
+use beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
+use beyond_identity::roles::delete_role_memberships;
 use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use beyond_identity::sso_configs::delete_all_sso_configs;
 use beyond_identity::tenant::{create_tenant, load_tenant, open_magic_link};
@@ -69,7 +74,8 @@ enum BeyondIdentityCommands {
     /// Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
     CreateExternalSSOConnection,
 
-    /// Deletes all identities from a realm in case you want to provision identities from scratch.
+    /// Deletes all identities from a realm in case you want to set them up from scratch.
+    /// The identities are unassigned from roles and groups automatically.
     DeleteAllIdentities,
 
     /// Get bearer token
@@ -283,7 +289,33 @@ async fn main() {
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
 
-                delete_all_identities(&client, &config, &tenant_config)
+                let identities = fetch_beyond_identity_identities(&client, &config, &tenant_config)
+                    .await
+                    .expect("Failed to fetch identities");
+
+                let resource_servers =
+                    fetch_beyond_identity_resource_servers(&client, &config, &tenant_config)
+                        .await
+                        .expect("Failed to fetch resource servers");
+
+                for identity in identities {
+                    delete_group_memberships(&client, &config, &tenant_config, &identity.id)
+                        .await
+                        .expect("Failed to delete role memberships");
+                    for rs in &resource_servers {
+                        delete_role_memberships(
+                            &client,
+                            &config,
+                            &tenant_config,
+                            &identity.id,
+                            &rs.id,
+                        )
+                        .await
+                        .expect("Failed to delete role memberships");
+                    }
+                }
+
+                delete_beyond_identity_identities(&client, &config, &tenant_config)
                     .await
                     .expect("Failed to delete all identities");
             }

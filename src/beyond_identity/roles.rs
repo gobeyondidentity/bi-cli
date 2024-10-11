@@ -6,40 +6,42 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Identity {
+pub struct Role {
     pub id: String,
     pub realm_id: String,
     pub tenant_id: String,
+    pub resource_server_id: String,
     pub display_name: String,
-    pub create_time: String,
-    pub update_time: String,
-    pub traits: IdentityTraits,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct IdentityTraits {
-    pub username: String,
-    pub primary_email_address: Option<String>,
-}
-
-pub async fn delete_beyond_identity_identities(
+pub async fn delete_role_memberships(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
+    identity_id: &str,
+    resource_server_id: &str,
 ) -> Result<(), BiError> {
-    let identities = fetch_beyond_identity_identities(client, config, tenant_config).await?;
+    let roles = fetch_role_memberships(
+        client,
+        config,
+        tenant_config,
+        identity_id,
+        resource_server_id,
+    )
+    .await?;
 
-    for identity in identities {
+    for role in roles {
         let url = format!(
-            "{}/v1/tenants/{}/realms/{}/identities/{}",
+            "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles/{}:deleteMembers",
             config.beyond_identity_api_base_url,
             tenant_config.tenant_id,
             tenant_config.realm_id,
-            identity.id,
+            role.resource_server_id,
+            role.id,
         );
 
         let response = client
-            .delete(&url)
+            .post(&url)
             .header(
                 "Authorization",
                 format!(
@@ -47,6 +49,10 @@ pub async fn delete_beyond_identity_identities(
                     get_beyond_identity_api_token(client, config, tenant_config).await?
                 ),
             )
+            .json(&serde_json::json!({
+                "group_ids": [],
+                "identity_ids": [identity_id]
+            }))
             .send()
             .await?;
 
@@ -57,21 +63,26 @@ pub async fn delete_beyond_identity_identities(
             return Err(BiError::RequestError(status, error_text));
         }
 
-        println!("Deleted {} ({})", identity.id, identity.display_name);
+        println!("Unassigned {} from {}", identity_id, role.id);
     }
-
     Ok(())
 }
 
-pub async fn fetch_beyond_identity_identities(
+pub async fn fetch_role_memberships(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-) -> Result<Vec<Identity>, BiError> {
-    let mut identities = Vec::new();
+    identity_id: &str,
+    resource_server_id: &str,
+) -> Result<Vec<Role>, BiError> {
+    let mut roles = Vec::new();
     let mut url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities?page_size=200",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        "{}/v1/tenants/{}/realms/{}/identities/{}:listRoles?resource_server_id={}",
+        config.beyond_identity_api_base_url,
+        tenant_config.tenant_id,
+        tenant_config.realm_id,
+        identity_id,
+        resource_server_id,
     );
 
     loop {
@@ -97,20 +108,20 @@ pub async fn fetch_beyond_identity_identities(
         let response_text = response.text().await?;
         log::debug!("{} response text: {}", url, response_text);
         let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
-        let page_identities: Vec<Identity> =
-            serde_json::from_value(response_json["identities"].clone())?;
+        let page_roles: Vec<Role> = serde_json::from_value(response_json["roles"].clone())?;
 
-        identities.extend(page_identities);
+        roles.extend(page_roles);
 
         if let Some(next_page_token) = response_json
             .get("next_page_token")
             .and_then(|token| token.as_str())
         {
             url = format!(
-                "{}/v1/tenants/{}/realms/{}/identities?page_size=200&page_token={}",
+                "{}/v1/tenants/{}/realms/{}/identities/{}:listRoles?page_size=200&page_token={}",
                 config.beyond_identity_api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
+                identity_id,
                 next_page_token
             );
         } else {
@@ -118,5 +129,5 @@ pub async fn fetch_beyond_identity_identities(
         }
     }
 
-    Ok(identities)
+    Ok(roles)
 }
