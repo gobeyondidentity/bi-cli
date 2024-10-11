@@ -1,4 +1,5 @@
 use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
@@ -46,23 +47,6 @@ pub struct GenericOidcIdp {
 pub struct IdentityResponse {
     pub identities: Vec<Identity>,
     pub next_page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Identity {
-    pub id: String,
-    pub realm_id: String,
-    pub tenant_id: String,
-    pub display_name: String,
-    pub create_time: String,
-    pub update_time: String,
-    pub traits: IdentityTraits,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct IdentityTraits {
-    pub username: String,
-    pub primary_email_address: String,
 }
 
 pub async fn get_all_identities(
@@ -260,12 +244,19 @@ pub async fn get_idp_application_for_sso_config(
 }
 
 pub fn select_identities(identities: &[Identity]) -> Vec<Identity> {
-    println!("Select identities to send enrollment email (comma separated indices or 'all' for all identities):");
+    println!("Select identities (comma separated indices or 'all' for all identities):");
 
     for (index, identity) in identities.iter().enumerate() {
         println!(
             "{}: {} - {}",
-            index, identity.id, identity.traits.primary_email_address
+            index,
+            identity.id,
+            identity
+                .traits
+                .primary_email_address
+                .as_ref()
+                .map(String::as_str)
+                .unwrap_or("<no email provided>")
         );
     }
 

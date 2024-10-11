@@ -120,3 +120,39 @@ pub async fn fetch_beyond_identity_identities(
 
     Ok(identities)
 }
+
+pub async fn delete_identity(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+    identity_id: &str,
+) -> Result<(), BiError> {
+    let url = format!(
+        "{}/v1/tenants/{}/realms/{}/identities/{}",
+        config.beyond_identity_api_base_url,
+        tenant_config.tenant_id,
+        tenant_config.realm_id,
+        identity_id,
+    );
+
+    let response = client
+        .delete(&url)
+        .header(
+            "Authorization",
+            format!(
+                "Bearer {}",
+                get_beyond_identity_api_token(client, config, tenant_config).await?
+            ),
+        )
+        .send()
+        .await?;
+
+    let status = response.status();
+    if !status.is_success() {
+        log::debug!("{} response status: {}", url, status);
+        let error_text = response.text().await?;
+        return Err(BiError::RequestError(status, error_text));
+    }
+
+    Ok(())
+}

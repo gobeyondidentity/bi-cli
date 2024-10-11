@@ -3,17 +3,15 @@ mod common;
 mod okta;
 mod onelogin;
 
-use beyond_identity::admin::create_admin_account;
+use beyond_identity::admin::{create_admin_account, get_identities_without_role};
 use beyond_identity::api_token::get_beyond_identity_api_token;
 use beyond_identity::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
-    send_enrollment_email, Identity,
+    send_enrollment_email,
 };
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
 use beyond_identity::groups::delete_group_memberships;
-use beyond_identity::identities::{
-    delete_beyond_identity_identities, fetch_beyond_identity_identities,
-};
+use beyond_identity::identities::{delete_beyond_identity_identities, delete_identity, Identity};
 use beyond_identity::provision_existing_tenant::provision_existing_tenant;
 use beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
 use beyond_identity::roles::delete_role_memberships;
@@ -276,12 +274,19 @@ async fn main() {
                     {
                         Ok(job) => println!(
                             "Enrollment job created for {}: {}",
-                            identity.traits.primary_email_address,
+                            identity
+                                .traits
+                                .primary_email_address
+                                .unwrap_or_else(|| "<no email provided>".to_string()),
                             serde_json::to_string_pretty(&job).unwrap()
                         ),
                         Err(err) => println!(
                             "Failed to create enrollment job for {}: {}",
-                            identity.traits.primary_email_address, err
+                            identity
+                                .traits
+                                .primary_email_address
+                                .unwrap_or_else(|| "<no email provided>".to_string()),
+                            err
                         ),
                     }
                 }
@@ -304,16 +309,39 @@ async fn main() {
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
 
-                let identities = fetch_beyond_identity_identities(&client, &config, &tenant_config)
-                    .await
-                    .expect("Failed to fetch identities");
+                println!("Select identities to review before deleting ('all' for all identities, 'unenrolled' for identities who have not completed the enrollment email process, 'norole' for identities without roles):");
+
+                let mut input = String::new();
+                io::stdin().read_line(&mut input).unwrap();
+                let input = input.trim();
+
+                let mut identities = vec![];
+                if input == "all" {
+                    identities = get_all_identities(&client, &config, &tenant_config)
+                        .await
+                        .expect("Failed to fetch all identities");
+                }
+
+                if input == "unenrolled" {
+                    identities = get_unenrolled_identities(&client, &config, &tenant_config)
+                        .await
+                        .expect("Failed to fetch unenrolled identities");
+                }
+
+                if input == "norole" {
+                    identities = get_identities_without_role(&client, &config, &tenant_config)
+                        .await
+                        .expect("Failed to fetch unenrolled identities");
+                }
+
+                let selected_identities = select_identities(&identities);
 
                 let resource_servers =
                     fetch_beyond_identity_resource_servers(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch resource servers");
 
-                for identity in identities {
+                for identity in &selected_identities {
                     delete_group_memberships(&client, &config, &tenant_config, &identity.id)
                         .await
                         .expect("Failed to delete role memberships");
@@ -330,9 +358,11 @@ async fn main() {
                     }
                 }
 
-                delete_beyond_identity_identities(&client, &config, &tenant_config)
-                    .await
-                    .expect("Failed to delete all identities");
+                for identity in &selected_identities {
+                    delete_identity(&client, &config, &tenant_config, &identity.id)
+                        .await
+                        .expect("Failed to delete identity");
+                }
             }
             BeyondIdentityCommands::GetToken => {
                 let config = Config::from_env();
@@ -363,7 +393,13 @@ async fn main() {
                 for identity in unenrolled_identities.iter() {
                     println!(
                         "{} - {}",
-                        identity.traits.primary_email_address, identity.id,
+                        identity
+                            .traits
+                            .primary_email_address
+                            .as_ref()
+                            .map(String::as_str)
+                            .unwrap_or("<no email provided>"),
+                        identity.id,
                     );
                 }
             }
