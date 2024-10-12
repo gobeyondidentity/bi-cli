@@ -1,5 +1,7 @@
 # Secure Access CLI
 
+$${\color{red}\textbf{WARNING: This tool is in alpha. Expect breaking changes.}}$$
+
 Secure Access CLI is a command-line interface designed to automate the setup of a Secure Access Tenant with Single Sign-On (SSO) capabilities. This guide will walk you through the installation process, how to configure your environment, and detailed usage instructions for each available command.
 
 ## Table of Contents

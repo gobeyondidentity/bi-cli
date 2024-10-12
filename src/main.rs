@@ -119,6 +119,8 @@ enum OneloginCommands {
 
 #[tokio::main]
 async fn main() {
+    println!("\x1b[31mWARNING: This tool is in alpha. Expect breaking changes.\x1b[0m\n");
+
     let cli = Cli::parse();
 
     let log_level = match cli.log_level.as_deref() {
