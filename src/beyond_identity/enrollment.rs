@@ -3,7 +3,7 @@ use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::{self, Write};
@@ -177,14 +177,14 @@ pub async fn get_unenrolled_identities(
     config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<Identity>, BiError> {
-    let identities = get_all_identities(&client, &config, &tenant_config)
+    let identities = get_all_identities(client, config, tenant_config)
         .await
         .expect("Failed to fetch identities");
 
     let mut unenrolled_identities = Vec::new();
 
     for i in identities {
-        let credentials = get_credentials_for_identity(&client, &config, &tenant_config, &i.id)
+        let credentials = get_credentials_for_identity(client, config, tenant_config, &i.id)
             .await
             .expect("Failed to fetch credentials");
         let enrolled = credentials
@@ -193,7 +193,7 @@ pub async fn get_unenrolled_identities(
                 cred.realm_id == tenant_config.realm_id && cred.tenant_id == tenant_config.tenant_id
             })
             .collect::<Vec<Credential>>();
-        if enrolled.len() == 0 {
+        if enrolled.is_empty() {
             unenrolled_identities.push(i);
         }
     }
@@ -253,9 +253,7 @@ pub fn select_identities(identities: &[Identity]) -> Vec<Identity> {
             identity.id,
             identity
                 .traits
-                .primary_email_address
-                .as_ref()
-                .map(String::as_str)
+                .primary_email_address.as_deref()
                 .unwrap_or("<no email provided>")
         );
     }
@@ -352,7 +350,7 @@ pub async fn get_send_email_payload(
 
         // Ike only has acces to the sso_config_id but we need the identity_provider_id
         let sso_config =
-            get_idp_application_for_sso_config(&client, &config, &tenant_config, input.to_string())
+            get_idp_application_for_sso_config(client, config, tenant_config, input.to_string())
                 .await
                 .expect("Failed to load get identity provider sso config.");
 

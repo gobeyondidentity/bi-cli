@@ -79,16 +79,12 @@ impl Config {
 fn validate_env() -> Result<(), String> {
     let env_vars: HashMap<String, String> = env::vars().collect();
     let email_regex = Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap();
-    let valid_api_urls = vec![
-        "https://api-us.beyondidentity.run",
+    let valid_api_urls = ["https://api-us.beyondidentity.run",
         "https://api-us.beyondidentity.xyz",
-        "https://api-us.beyondidentity.com",
-    ];
-    let valid_auth_urls = vec![
-        "https://auth-us.beyondidentity.run",
+        "https://api-us.beyondidentity.com"];
+    let valid_auth_urls = ["https://auth-us.beyondidentity.run",
         "https://auth-us.beyondidentity.xyz",
-        "https://auth-us.beyondidentity.com",
-    ];
+        "https://auth-us.beyondidentity.com"];
 
     // Validate OKTA_DOMAIN
     if let Some(okta_domain) = env_vars.get("OKTA_DOMAIN") {

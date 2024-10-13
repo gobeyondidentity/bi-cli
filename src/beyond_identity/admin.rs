@@ -5,7 +5,7 @@ use crate::beyond_identity::roles::{fetch_beyond_identity_roles, fetch_role_memb
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 
 pub async fn create_admin_account(
     client: &Client,

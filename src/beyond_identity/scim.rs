@@ -2,7 +2,7 @@ use crate::beyond_identity::api_token::get_beyond_identity_api_token;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
@@ -208,7 +208,7 @@ async fn create_scim_app(
 ) -> Result<BeyondIdentityAppResponse, BiError> {
     let beyond_identity_api_base_url = config.beyond_identity_api_base_url.clone();
     let beyond_identity_api_token =
-        get_beyond_identity_api_token(&client, &config, &tenant_config).await?;
+        get_beyond_identity_api_token(client, config, tenant_config).await?;
     let tenant_id = tenant_config.tenant_id.clone();
     let realm_id = tenant_config.realm_id.clone();
 
@@ -339,7 +339,7 @@ pub async fn load_beyond_identity_scim_app(config: &Config) -> Result<BiScimConf
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let bi_scim_config: BiScimConfig =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(bi_scim_config)
 }
 

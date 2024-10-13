@@ -11,7 +11,7 @@ use beyond_identity::enrollment::{
 };
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
 use beyond_identity::groups::delete_group_memberships;
-use beyond_identity::identities::{delete_beyond_identity_identities, delete_identity, Identity};
+use beyond_identity::identities::{delete_identity, Identity};
 use beyond_identity::provision_existing_tenant::provision_existing_tenant;
 use beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
 use beyond_identity::roles::delete_role_memberships;
@@ -19,6 +19,7 @@ use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identit
 use beyond_identity::sso_configs::delete_all_sso_configs;
 use beyond_identity::tenant::{create_tenant, load_tenant, open_magic_link};
 
+use common::http::new_http_client_for_api;
 use okta::fast_migrate::{
     create_sso_config_and_assign_identities, fetch_okta_applications, load_okta_applications,
     select_applications,
@@ -31,7 +32,6 @@ use okta::scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use clap::{Parser, Subcommand};
 use common::config::Config;
 use log::LevelFilter;
-use reqwest::Client;
 use std::io::{self, Write};
 
 #[derive(Parser)]
@@ -141,7 +141,7 @@ async fn main() {
         Commands::Api(cmd) => match cmd {
             BeyondIdentityCommands::CreateTenant => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 match load_tenant(&config).await {
                     Ok(tenant_config) => {
                         println!(
@@ -165,7 +165,7 @@ async fn main() {
             }
             BeyondIdentityCommands::CreateAdminAccount => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -185,16 +185,16 @@ async fn main() {
                         tenant_config
                     }
                     Err(_) => {
-                        let tenant_config = provision_existing_tenant(&config)
+                        
+                        provision_existing_tenant(&config)
                             .await
-                            .expect("Failed to provision existing tenant");
-                        tenant_config
+                            .expect("Failed to provision existing tenant")
                     }
                 };
             }
             BeyondIdentityCommands::CreateScimApp => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -211,7 +211,7 @@ async fn main() {
             }
             BeyondIdentityCommands::CreateExternalSSOConnection => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -228,7 +228,7 @@ async fn main() {
             }
             BeyondIdentityCommands::SendEnrollmentEmail => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -293,7 +293,7 @@ async fn main() {
             }
             BeyondIdentityCommands::DeleteAllSSOConfigs => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -304,7 +304,7 @@ async fn main() {
             }
             BeyondIdentityCommands::DeleteAllIdentities => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -366,7 +366,7 @@ async fn main() {
             }
             BeyondIdentityCommands::GetToken => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -377,7 +377,7 @@ async fn main() {
             }
             BeyondIdentityCommands::ReviewUnenrolled => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -395,9 +395,7 @@ async fn main() {
                         "{} - {}",
                         identity
                             .traits
-                            .primary_email_address
-                            .as_ref()
-                            .map(String::as_str)
+                            .primary_email_address.as_deref()
                             .unwrap_or("<no email provided>"),
                         identity.id,
                     );
@@ -407,7 +405,7 @@ async fn main() {
         Commands::Okta(cmd) => match cmd {
             OktaCommands::CreateScimApp => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -432,7 +430,7 @@ async fn main() {
             }
             OktaCommands::CreateCustomAttribute => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let okta_user_schema = match load_custom_attribute(&config).await {
                     Ok(okta_user_schema) => okta_user_schema,
                     Err(_) => create_custom_attribute(&client, &config)
@@ -446,7 +444,7 @@ async fn main() {
             }
             OktaCommands::CreateIdentityProvider => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -471,7 +469,7 @@ async fn main() {
             }
             OktaCommands::CreateRoutingRule => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -491,7 +489,7 @@ async fn main() {
             }
             OktaCommands::FastMigrate => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
@@ -527,7 +525,7 @@ async fn main() {
         Commands::Onelogin(cmd) => match cmd {
             OneloginCommands::FastMigrate => {
                 let config = Config::from_env();
-                let client = Client::new();
+                let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
