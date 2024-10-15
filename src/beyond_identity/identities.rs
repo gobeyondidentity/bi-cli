@@ -32,7 +32,7 @@ pub async fn delete_beyond_identity_identities(
     for identity in identities {
         let url = format!(
             "{}/v1/tenants/{}/realms/{}/identities/{}",
-            config.beyond_identity_api_base_url,
+            tenant_config.api_base_url,
             tenant_config.tenant_id,
             tenant_config.realm_id,
             identity.id,
@@ -71,7 +71,7 @@ pub async fn fetch_beyond_identity_identities(
     let mut identities = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities?page_size=200",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
     loop {
@@ -108,7 +108,7 @@ pub async fn fetch_beyond_identity_identities(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_size=200&page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 next_page_token
@@ -129,7 +129,7 @@ pub async fn delete_identity(
 ) -> Result<(), BiError> {
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}",
-        config.beyond_identity_api_base_url,
+        tenant_config.api_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         identity_id,

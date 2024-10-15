@@ -24,3 +24,4 @@ reqwest-middleware = { version = "0.3.3", features = ["json"] }
 async-trait = "0.1.83"
 http = "1.1.0"
 anyhow = "1.0.89"
+url = "2.2"

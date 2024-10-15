@@ -11,8 +11,8 @@ pub async fn create_admin_account(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
+    email: String,
 ) -> Result<Identity, BiError> {
-    let email = &config.admin_primary_email_address;
     let resource_servers =
         fetch_beyond_identity_resource_servers(client, config, tenant_config).await?;
 
@@ -31,7 +31,7 @@ pub async fn create_admin_account(
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id,
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id,
     );
 
     let response = client
@@ -71,7 +71,7 @@ pub async fn create_admin_account(
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles/{}:addMembers",
-        config.beyond_identity_api_base_url,
+        tenant_config.api_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         bi_management_api_rs.id,

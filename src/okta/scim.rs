@@ -1,4 +1,4 @@
-use crate::common::config::Config;
+use crate::common::config::{Config, OktaConfig};
 use crate::common::error::BiError;
 use rand::Rng;
 use reqwest_middleware::ClientWithMiddleware as Client;
@@ -172,9 +172,12 @@ pub struct Logo {
     pub r#type: String,
 }
 
-async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResponse, BiError> {
-    let okta_base_url = config.okta_domain.clone();
-    let okta_api_key = config.okta_api_key.clone();
+async fn create_scim_app(
+    client: &Client,
+    okta_config: &OktaConfig,
+) -> Result<OktaAppResponse, BiError> {
+    let okta_base_url = okta_config.domain.clone();
+    let okta_api_key = okta_config.api_key.clone();
 
     let url = format!("{}/api/v1/apps", okta_base_url);
 
@@ -280,7 +283,7 @@ async fn create_scim_app(client: &Client, config: &Config) -> Result<OktaAppResp
     // )
     // .await?;
 
-    assign_all_groups_to_app(client, config, &app_response.id).await?;
+    assign_all_groups_to_app(client, okta_config, &app_response.id).await?;
 
     Ok(app_response)
 }
@@ -411,10 +414,10 @@ struct OktaGroupProfile {
 
 pub async fn list_all_okta_groups(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
 ) -> Result<Vec<OktaGroup>, BiError> {
-    let okta_domain = config.okta_domain.clone();
-    let okta_api_key = config.okta_api_key.clone();
+    let okta_domain = okta_config.domain.clone();
+    let okta_api_key = okta_config.api_key.clone();
     let mut groups: Vec<OktaGroup> = Vec::new();
     let mut next_link: Option<String> = None;
 
@@ -472,12 +475,12 @@ pub async fn list_all_okta_groups(
 
 async fn assign_group_to_app(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
     app_id: &str,
     group: &OktaGroup,
 ) -> Result<(), BiError> {
-    let okta_base_url = config.okta_domain.clone();
-    let okta_api_key = config.okta_api_key.clone();
+    let okta_base_url = okta_config.domain.clone();
+    let okta_api_key = okta_config.api_key.clone();
 
     let url = format!(
         "{}/api/v1/apps/{}/groups/{}",
@@ -510,13 +513,13 @@ async fn assign_group_to_app(
 
 pub async fn assign_all_groups_to_app(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
     app_id: &str,
 ) -> Result<(), BiError> {
-    let groups = list_all_okta_groups(client, config).await?;
+    let groups = list_all_okta_groups(client, okta_config).await?;
     for group in groups {
         log::info!("Assigning group: {:?}", group);
-        assign_group_to_app(client, config, app_id, &group).await?;
+        assign_group_to_app(client, okta_config, app_id, &group).await?;
         let sleep_duration = rand::thread_rng().gen_range(5..=10);
         println!("Sleeping for {} seconds...", sleep_duration);
         sleep(Duration::from_secs(sleep_duration)).await;
@@ -536,8 +539,9 @@ pub async fn load_scim_app_in_okta(config: &Config) -> Result<OktaAppResponse, B
 pub async fn create_scim_app_in_okta(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
 ) -> Result<OktaAppResponse, BiError> {
-    let response = create_scim_app(client, config).await?;
+    let response = create_scim_app(client, okta_config).await?;
     let serialized = serde_json::to_string_pretty(&response)?;
 
     let config_path = config.file_paths.okta_scim_app_config.clone();

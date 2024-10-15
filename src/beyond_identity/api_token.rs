@@ -52,7 +52,7 @@ pub async fn get_beyond_identity_api_token(
     // If no valid token, fetch a new one
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}/token",
-        config.beyond_identity_auth_base_url,
+        tenant_config.auth_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         tenant_config.application_id

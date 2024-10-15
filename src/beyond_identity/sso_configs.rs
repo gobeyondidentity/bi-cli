@@ -22,7 +22,7 @@ async fn list_all_sso_configs(
     let mut sso_configs = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs?page_size=100",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
     let beyond_identity_api_token =
         get_beyond_identity_api_token(client, config, tenant_config).await?;
@@ -58,7 +58,7 @@ async fn list_all_sso_configs(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/sso-configs?page_size=100&page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 next_page_token
@@ -79,10 +79,7 @@ async fn delete_sso_config(
 ) -> Result<(), BiError> {
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}",
-        config.beyond_identity_api_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        sso_config_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, sso_config_id
     );
 
     let response = client
@@ -154,7 +151,7 @@ pub async fn create_sso_config(
     let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
     let name = sanitize_label(&name);
@@ -218,10 +215,7 @@ pub async fn assign_identities_to_sso_config(
 ) -> Result<(), BiError> {
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}:addIdentities",
-        config.beyond_identity_api_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        sso_config.id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, sso_config.id
     );
 
     let identity_ids: Vec<String> = identities

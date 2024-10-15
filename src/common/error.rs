@@ -19,4 +19,6 @@ pub enum BiError {
     UnableToWriteFile(String),
     #[error("Failed to read input")]
     IoError(std::io::Error),
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(url::ParseError),
 }

@@ -62,14 +62,14 @@ pub async fn get_all_identities(
         let url = match next_page_token {
             Some(ref token) => format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 token
             ),
             None => format!(
                 "{}/v1/tenants/{}/realms/{}/identities",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id
             ),
@@ -123,7 +123,7 @@ pub async fn get_credentials_for_identity(
         let url = match next_page_token {
             Some(ref token) => format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}/credentials?page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 identity_id,
@@ -131,7 +131,7 @@ pub async fn get_credentials_for_identity(
             ),
             None => format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}/credentials",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 identity_id,
@@ -212,7 +212,7 @@ pub async fn get_idp_application_for_sso_config(
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}",
-        config.beyond_identity_api_base_url,
+        tenant_config.api_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         sso_config_id
@@ -383,7 +383,7 @@ pub async fn send_enrollment_email(
     let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}/enrollment-jobs",
-        config.beyond_identity_api_base_url,
+        tenant_config.api_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         identity.id

@@ -22,7 +22,7 @@ pub async fn fetch_beyond_identity_resource_servers(
     let mut resource_servers = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/resource-servers?page_size=100",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
     loop {
@@ -59,7 +59,7 @@ pub async fn fetch_beyond_identity_resource_servers(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/resource-servers?page_size=200&page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 next_page_token

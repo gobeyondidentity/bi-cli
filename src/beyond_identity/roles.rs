@@ -33,7 +33,7 @@ pub async fn delete_role_memberships(
     for role in roles {
         let url = format!(
             "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles/{}:deleteMembers",
-            config.beyond_identity_api_base_url,
+            tenant_config.api_base_url,
             tenant_config.tenant_id,
             tenant_config.realm_id,
             role.resource_server_id,
@@ -78,7 +78,7 @@ pub async fn fetch_role_memberships(
     let mut roles = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}:listRoles?resource_server_id={}",
-        config.beyond_identity_api_base_url,
+        tenant_config.api_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         identity_id,
@@ -118,7 +118,7 @@ pub async fn fetch_role_memberships(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}:listRoles?page_size=200&page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 identity_id,
@@ -141,7 +141,7 @@ pub async fn fetch_beyond_identity_roles(
     let mut roles = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles",
-        config.beyond_identity_api_base_url,
+        tenant_config.api_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         resource_server_id,
@@ -180,7 +180,7 @@ pub async fn fetch_beyond_identity_roles(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles?page_size=200&page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 resource_server_id,

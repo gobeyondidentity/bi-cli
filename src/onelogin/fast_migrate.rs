@@ -2,6 +2,7 @@ use crate::beyond_identity::identities;
 use crate::beyond_identity::sso_configs;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
+use crate::common::config::OneloginConfig;
 use crate::common::error::BiError;
 use rand::Rng;
 use reqwest_middleware::ClientWithMiddleware as Client;
@@ -35,13 +36,16 @@ pub struct OneLoginUser {
     username: Option<String>,
 }
 
-async fn get_onelogin_access_token(client: &Client, config: &Config) -> Result<String, BiError> {
-    let url = format!("{}/auth/oauth2/v2/token", config.onelogin_domain);
+async fn get_onelogin_access_token(
+    client: &Client,
+    onelogin_config: &OneloginConfig,
+) -> Result<String, BiError> {
+    let url = format!("{}/auth/oauth2/v2/token", onelogin_config.domain);
 
     let payload = json!({
         "grant_type": "client_credentials",
-        "client_id": config.onelogin_client_id,
-        "client_secret": config.onelogin_client_secret,
+        "client_id": onelogin_config.client_id,
+        "client_secret": onelogin_config.client_secret,
     });
 
     let response = client
@@ -77,10 +81,11 @@ async fn get_onelogin_access_token(client: &Client, config: &Config) -> Result<S
 pub async fn fetch_onelogin_applications(
     client: &Client,
     config: &Config,
+    onelogin_config: &OneloginConfig,
 ) -> Result<Vec<OneLoginApplication>, BiError> {
-    let url = format!("{}/api/2/apps", config.onelogin_domain);
+    let url = format!("{}/api/2/apps", onelogin_config.domain);
 
-    let access_token = get_onelogin_access_token(client, config).await?;
+    let access_token = get_onelogin_access_token(client, onelogin_config).await?;
 
     let response = client
         .get(&url)
@@ -106,13 +111,14 @@ pub async fn fetch_onelogin_applications(
 
     for app in &mut applications {
         log::info!("Fetching assigned users for app: {:?}", app.name);
-        let users = get_users_assigned_to_app(client, config, app.id).await?;
+        let users = get_users_assigned_to_app(client, onelogin_config, app.id).await?;
         app.assigned_users = users;
         // Fetch application directly to get more info like "icon_url"
         let application =
-            fetch_onelogin_application(client, config, app.id, access_token.clone()).await?;
+            fetch_onelogin_application(client, onelogin_config, app.id, access_token.clone())
+                .await?;
         app.icon = application.icon;
-        app.login_link = format!("{}/launch/{}", config.onelogin_domain, app.id);
+        app.login_link = format!("{}/launch/{}", onelogin_config.domain, app.id);
         let sleep_duration = rand::thread_rng().gen_range(2..=4);
         sleep(Duration::from_secs(sleep_duration)).await;
     }
@@ -128,11 +134,11 @@ pub async fn fetch_onelogin_applications(
 
 async fn fetch_onelogin_application(
     client: &Client,
-    config: &Config,
+    onelogin_config: &OneloginConfig,
     app_id: u64,
     access_token: String,
 ) -> Result<OneLoginApplication, BiError> {
-    let url = format!("{}/api/2/apps/{}", config.onelogin_domain, app_id);
+    let url = format!("{}/api/2/apps/{}", onelogin_config.domain, app_id);
 
     let response = client
         .get(&url)
@@ -161,12 +167,12 @@ async fn fetch_onelogin_application(
 
 async fn get_users_assigned_to_app(
     client: &Client,
-    config: &Config,
+    onelogin_config: &OneloginConfig,
     app_id: u64,
 ) -> Result<Vec<OneLoginUser>, BiError> {
-    let url = format!("{}/api/2/apps/{}/users", config.onelogin_domain, app_id);
+    let url = format!("{}/api/2/apps/{}/users", onelogin_config.domain, app_id);
 
-    let access_token = get_onelogin_access_token(client, config).await?;
+    let access_token = get_onelogin_access_token(client, onelogin_config).await?;
 
     let response = client
         .get(&url)

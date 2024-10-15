@@ -1,4 +1,4 @@
-use crate::common::config::Config;
+use crate::common::config::{Config, OktaConfig};
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -113,9 +113,11 @@ pub struct Link {
 pub async fn create_custom_attribute(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
+    okta_registration_sync_attribute: String,
 ) -> Result<OktaUserSchema, BiError> {
-    let okta_domain = &config.okta_domain;
-    let okta_api_key = &config.okta_api_key;
+    let okta_domain = &okta_config.domain;
+    let okta_api_key = &okta_config.api_key;
 
     let url = format!("{}/api/v1/meta/schemas/user/default", okta_domain);
 
@@ -123,7 +125,7 @@ pub async fn create_custom_attribute(
         "definitions": {
             "custom": {
                 "properties": {
-                    config.okta_registration_sync_attribute.clone(): {
+                    okta_registration_sync_attribute.clone(): {
                         "type": "boolean",
                         "title": "Beyond Identity Registration Attribute",
                         "description": "A registration attribute used for routing rules when using Beyond Identity as a Delegate IdP",
