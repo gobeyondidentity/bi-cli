@@ -61,7 +61,7 @@ enum Commands {
 #[derive(Subcommand)]
 enum BeyondIdentityCommands {
     /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
-    Login,
+    Setup,
 
     /// Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
     CreateScimApp {
@@ -171,7 +171,7 @@ async fn main() {
                         .expect("Failed to create admin account");
                 println!("Created identity with id={}", identity.id);
             }
-            BeyondIdentityCommands::Login => {
+            BeyondIdentityCommands::Setup => {
                 let config = Config::new();
                 match load_tenant(&config).await {
                     Ok(tenant_config) => {
@@ -408,6 +408,10 @@ async fn main() {
         },
         Commands::Okta(cmd) => match cmd {
             OktaCommands::Setup { domain, api_key } => {
+                if let Ok(c) = OktaConfig::load_from_file() {
+                    println!("Already configured: {:?}", c);
+                    return;
+                }
                 let okta_config = OktaConfig {
                     domain: domain.to_string(),
                     api_key: api_key.to_string(),
@@ -560,6 +564,10 @@ async fn main() {
                 client_id,
                 client_secret,
             } => {
+                if let Ok(c) = OneloginConfig::load_from_file() {
+                    println!("Already configured: {:?}", c);
+                    return;
+                }
                 let onelogin_config = OneloginConfig {
                     domain: domain.to_string(),
                     client_id: client_id.to_string(),

@@ -111,7 +111,7 @@ impl OktaConfig {
         Ok(())
     }
 
-    fn load_from_file() -> Result<Self, BiError> {
+    pub fn load_from_file() -> Result<Self, BiError> {
         let file_paths = FilePaths::new();
         let config_path = &file_paths.okta_config_path;
         let data = fs::read_to_string(&config_path)
@@ -138,7 +138,7 @@ impl OneloginConfig {
         Ok(())
     }
 
-    fn load_from_file() -> Result<Self, BiError> {
+    pub fn load_from_file() -> Result<Self, BiError> {
         let file_paths = FilePaths::new();
         let config_path = &file_paths.onelogin_config_path;
         let data = fs::read_to_string(&config_path)
