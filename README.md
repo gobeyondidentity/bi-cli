@@ -7,16 +7,12 @@ Secure Access CLI is a command-line interface designed to automate the setup of 
 ## Table of Contents
 
 1. [Installation](#installation)
-   - [Install Rust](#install-rust)
-   - [Clone the Repository](#clone-the-repository)
-   - [Build the Project](#build-the-project)
-2. [Configuration](#configuration)
-   - [Environment Variables](#environment-variables)
-3. [Usage](#usage)
+   - [macOS and Linux](#macos-and-linux)
+   - [Windows](#windows)
+2. [Usage](#usage)
    - [Commands](#commands)
      - [Beyond Identity Commands](#beyond-identity-commands)
-       - [create-tenant](#create-tenant)
-       - [provision-existing-tenant](#provision-existing-tenant)
+       - [login](#login)
        - [create-scim-app](#create-scim-app)
        - [create-external-sso-connection](#create-external-sso-connection)
        - [get-token](#get-token)
@@ -24,85 +20,72 @@ Secure Access CLI is a command-line interface designed to automate the setup of 
        - [delete-all-sso-configs](#delete-all-sso-configs)
        - [review-unenrolled](#review-unenrolled)
      - [Okta Commands](#okta-commands)
+       - [setup](#setup-okta)
        - [create-scim-app](#create-scim-app-okta)
        - [create-custom-attribute](#create-custom-attribute)
        - [create-identity-provider](#create-identity-provider)
        - [create-routing-rule](#create-routing-rule)
        - [fast-migrate](#okta-fast-migrate)
      - [OneLogin Commands](#onelogin-commands)
+       - [setup](#setup-onelogin)
        - [fast-migrate](#onelogin-fast-migrate)
    - [Options](#options)
-4. [Examples](#examples)
-5. [Additional Information](#additional-information)
+3. [Examples](#examples)
+4. [Additional Information](#additional-information)
 
 ## Installation
 
-### Install Rust
+### macOS and Linux
 
-If you don't have Rust installed, you need to install it first. Follow these steps to install Rust:
+You can install bi using the provided install.sh script.
 
-1. **Download Rustup**: Rustup is an installer for the Rust programming language.
+#### Using cURL
 
-   ```sh
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
+Open your terminal and run:
 
-2. **Follow the On-Screen Instructions**: The installer will guide you through the installation process. Once installed, configure your current shell session to use Rust by running:
-
-   ```sh
-   source $HOME/.cargo/env
-   ```
-
-3. **Verify Installation**: To ensure Rust is installed correctly, you can run:
-
-   ```sh
-   rustc --version
-   ```
-
-### Clone the Repository
-
-Clone the project repository to your local machine:
-
-```sh
-git clone git@github.com:gobeyondidentity/bi-cli.git
-cd bi-cli
+```bash
+curl -fsSL https://raw.githubusercontent.com/gobeyondidentity/bi-cli/main/install.sh | sh
 ```
 
-### Build the Project
+#### Using wget
 
-Build the project using Cargo (Rust's package manager):
+If you prefer wget, run:
 
-```sh
-cargo build --release
+```bash
+wget -qO- https://raw.githubusercontent.com/gobeyondidentity/bi-cli/main/install.sh | sh
 ```
 
-## Configuration
+### Windows
 
-### Environment Variables
+For Windows users, follow these steps:
 
-Secure Access CLI uses environment variables for configuration. Create a `.env` file in the root of the project directory and populate it with the necessary variables. Here is an example of the required variables:
+1. Download the executable:
 
-```sh
-OKTA_API_KEY="<OKTA_API_KEY_READ+WRITE>"
-OKTA_DOMAIN="<YOUR_OKTA_DOMAIN>"
-OKTA_REGISTRATION_SYNC_ATTRIBUTE="byndidRegistered" # You can update this to be any non-conflicting value if you need to
-BEYOND_IDENTITY_API_BASE_URL="https://api-<eu|us>.beyondidentity.<run|xyz|com>"
-BEYOND_IDENTITY_AUTH_BASE_URL="https://auth-<eu|us>.beyondidentity.<run|xyz|com>"
-ADMIN_DISPLAY_NAME="<YOUR_NAME>"
-ADMIN_PRIMARY_EMAIL_ADDRESS="<YOUR_EMAIL_ADDRESS>"
-ONELOGIN_CLIENT_ID="<ONELOGIN_CLIENT_ID>"
-ONELOGIN_CLIENT_SECRET="<ONELOGIN_CLIENT_SECRET>"
-ONELOGIN_DOMAIN="<ONELOGIN_DOMAIN>"
-```
+- Go to the Releases page.
+- Download bi-vx.x.x-win-amd64.exe.
 
-Make sure to replace the placeholders with your actual configuration values.
+2. Add to PATH (Optional but Recommended):
+
+- Move the downloaded .exe file to a preferred directory, e.g., C:\Program Files\bi.
+- Add this directory to your system's PATH:
+  - Press Win + X and select System.
+  - Click on Advanced system settings.
+  - Click Environment Variables.
+  - Under System variables, scroll to Path and click Edit.
+  - Click New and add the path to your bi executable.
+  - Click OK to close all dialogs.
+
+3. Run bi:
+
+- Open Command Prompt or PowerShell.
+- Type bi to verify the installation.
 
 ## Usage
 
 To run the CLI tool, use the following syntax:
 
 ```sh
-./target/release/bi [OPTIONS] <COMMAND> <SUBCOMMAND> [ARGS]
+bi [OPTIONS] <COMMAND> <SUBCOMMAND> [ARGS]
 ```
 
 ### Commands
@@ -112,23 +95,15 @@ To run the CLI tool, use the following syntax:
 To access Beyond Identity specific commands, use:
 
 ```sh
-./target/release/bi api <SUBCOMMAND>
+bi api <SUBCOMMAND>
 ```
 
-##### create-tenant
+##### login
 
-Creates a new Secure Access tenant. This command is required for all the remaining commands to work as it provides the base configuration. The first time you run this command, it will ask you to open a browser with a magic link to complete the provisioning process. Subsequent runs will show you the existing tenant configuration.
-
-```sh
-./target/release/bi api create-tenant
-```
-
-##### provision-existing-tenant
-
-Provisions configuration for an existing tenant provided a tenant ID, realm ID, and API token are supplied.
+Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
 
 ```sh
-./target/release/bi api provision-existing-tenant
+bi api login
 ```
 
 ##### create-scim-app
@@ -136,7 +111,7 @@ Provisions configuration for an existing tenant provided a tenant ID, realm ID, 
 Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
 
 ```sh
-./target/release/bi api create-scim-app
+bi api create-scim-app
 ```
 
 ##### create-external-sso-connection
@@ -144,7 +119,7 @@ Creates an application in Beyond Identity that enables you to perform inbound SC
 Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
 
 ```sh
-./target/release/bi api create-external-sso-connection
+bi api create-external-sso-connection
 ```
 
 ##### get-token
@@ -152,7 +127,7 @@ Creates an OIDC application in Beyond Identity that Okta will use to enable Okta
 Gets a bearer token for use with API calls.
 
 ```sh
-./target/release/bi api get-token
+bi api get-token
 ```
 
 ##### send-enrollment-email
@@ -160,7 +135,7 @@ Gets a bearer token for use with API calls.
 Helps you send enrollment emails to one or more (or all) users in Beyond Identity.
 
 ```sh
-./target/release/bi api send-enrollment-email
+bi api send-enrollment-email
 ```
 
 ##### delete-all-sso-configs
@@ -168,7 +143,7 @@ Helps you send enrollment emails to one or more (or all) users in Beyond Identit
 Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
 
 ```sh
-./target/release/bi api delete-all-sso-configs
+bi api delete-all-sso-configs
 ```
 
 ##### review-unenrolled
@@ -176,7 +151,7 @@ Clears out your Beyond Identity SSO apps in case you want to run fast migrate fr
 Reviews which identities have not completed the enrollment process. An unenrolled identity is defined as one without a passkey for the given tenant/realm configuration.
 
 ```sh
-./target/release/bi api review-unenrolled
+bi api review-unenrolled
 ```
 
 #### Okta Commands
@@ -184,7 +159,15 @@ Reviews which identities have not completed the enrollment process. An unenrolle
 To access Okta specific commands, use:
 
 ```sh
-./target/release/bi okta <SUBCOMMAND>
+bi okta <SUBCOMMAND>
+```
+
+##### setup-okta
+
+Setup allows you to provision an Okta tenant to be used for subsequent commands.
+
+```sh
+bi okta setup
 ```
 
 ##### create-scim-app
@@ -192,7 +175,7 @@ To access Okta specific commands, use:
 Creates a SCIM app in Okta that is connected to the SCIM app created in the previous step. Note that this command will generate the app and assign all groups to the SCIM app. However, there is a manual step you have to complete on your own which unfortunately cannot be automated. When you run this command the first time, we'll provide you with a SCIM base URL and API token that you'll need to copy into the SCIM app in Okta. You will also have to enable provisioning of identities manually in Okta. The good news is that both of these steps are very easy to do. You can find the exact steps to follow [here](https://docs.beyondidentity.com/docs/directory/directory-integrations/okta#-finish-configuring-the-okta-scim-application).
 
 ```sh
-./target/release/bi okta create-scim-app
+bi okta create-scim-app
 ```
 
 ##### create-custom-attribute
@@ -200,7 +183,7 @@ Creates a SCIM app in Okta that is connected to the SCIM app created in the prev
 Creates a custom attribute in Okta on the default user type that will be used to create an IDP routing rule in Okta. This is a boolean value that gets set to "true" whenever a passkey is bound for a specific user.
 
 ```sh
-./target/release/bi okta create-custom-attribute
+bi okta create-custom-attribute
 ```
 
 ##### create-identity-provider
@@ -208,7 +191,7 @@ Creates a custom attribute in Okta on the default user type that will be used to
 Takes the external SSO connection you created in Beyond Identity and uses it to configure an identity provider in Okta. This is the identity provider that will be used to authenticate Okta users using Beyond Identity.
 
 ```sh
-./target/release/bi okta create-identity-provider
+bi okta create-identity-provider
 ```
 
 ##### create-routing-rule
@@ -216,7 +199,7 @@ Takes the external SSO connection you created in Beyond Identity and uses it to 
 The final step when setting up Beyond Identity as an MFA in Okta. This will use the custom attribute you created using an earlier command to route users who have provisioned a Beyond Identity passkey to Beyond Identity during authentication.
 
 ```sh
-./target/release/bi okta create-routing-rule
+bi okta create-routing-rule
 ```
 
 ##### okta-fast-migrate
@@ -224,7 +207,7 @@ The final step when setting up Beyond Identity as an MFA in Okta. This will use 
 Automatically populates Beyond Identity's SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
 
 ```sh
-./target/release/bi okta fast-migrate
+bi okta fast-migrate
 ```
 
 #### OneLogin Commands
@@ -232,7 +215,15 @@ Automatically populates Beyond Identity's SSO with all of your Okta applications
 To access OneLogin specific commands, use:
 
 ```sh
-./target/release/bi onelogin <SUBCOMMAND>
+bi onelogin <SUBCOMMAND>
+```
+
+##### setup-onelogin
+
+Setup allows you to provision a Onelogin tenant to be used for subsequent commands.
+
+```sh
+bi onelogin setup
 ```
 
 ##### onelogin-fast-migrate
@@ -240,7 +231,7 @@ To access OneLogin specific commands, use:
 Automatically populates Beyond Identity's SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
 
 ```sh
-./target/release/bi onelogin fast-migrate
+bi onelogin fast-migrate
 ```
 
 ### Options
@@ -263,9 +254,9 @@ Automatically populates Beyond Identity's SSO with all of your OneLogin applicat
 - **Help Command**: For more detailed information about a command and its options, use the `--help` flag after any command or subcommand.
 
   ```sh
-  ./target/release/bi api --help
+  bi api --help
   ```
 
   ```sh
-  ./target/release/bi okta create-scim-app --help
+  bi okta create-scim-app --help
   ```
