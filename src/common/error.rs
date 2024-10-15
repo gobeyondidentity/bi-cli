@@ -7,6 +7,8 @@ pub enum BiError {
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
     #[error(transparent)]
+    ReqwestMiddlewareError(#[from] reqwest_middleware::Error),
+    #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error("{0}")]
     #[allow(dead_code)]

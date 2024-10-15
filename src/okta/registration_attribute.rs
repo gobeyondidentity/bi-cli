@@ -1,6 +1,6 @@
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
@@ -173,6 +173,6 @@ pub async fn load_custom_attribute(config: &Config) -> Result<OktaUserSchema, Bi
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let okta_user_schema: OktaUserSchema =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(okta_user_schema)
 }

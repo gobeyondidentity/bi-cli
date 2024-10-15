@@ -2,7 +2,7 @@ use crate::beyond_identity::api_token::get_beyond_identity_api_token;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
@@ -184,7 +184,7 @@ pub async fn update_application_redirect_uri(
     application_id: &str,
     redirect_uri: &str,
 ) -> Result<(), BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, &tenant_config).await?;
+    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
     let tenant_id = tenant_config.tenant_id.clone();
     let realm_id = tenant_config.realm_id.clone();
 
@@ -243,7 +243,7 @@ pub async fn load_external_sso(config: &Config) -> Result<ExternalSSO, BiError> 
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let external_sso_config: ExternalSSO =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(external_sso_config)
 }
 

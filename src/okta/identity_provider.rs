@@ -2,7 +2,7 @@ use crate::beyond_identity::external_sso::{update_application_redirect_uri, Exte
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
@@ -279,7 +279,7 @@ pub async fn load_okta_identity_provider(config: &Config) -> Result<OktaIdpRespo
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let okta_idp_response: OktaIdpResponse =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(okta_idp_response)
 }
 

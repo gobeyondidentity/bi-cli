@@ -1,7 +1,7 @@
 use crate::common::config::Config;
 use crate::common::error::BiError;
 use chrono::Utc;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, Write};
@@ -55,7 +55,7 @@ pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let tenant_config: TenantConfig =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(tenant_config)
 }
 

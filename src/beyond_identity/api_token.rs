@@ -1,7 +1,7 @@
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -101,7 +101,7 @@ pub async fn get_beyond_identity_api_token(
         application_id: tenant_config.application_id.clone(),
     };
     let serialized =
-        serde_json::to_string(&stored_token).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::to_string(&stored_token).map_err(BiError::SerdeError)?;
     fs::write(token_file_path.clone(), serialized)
         .map_err(|_| BiError::UnableToWriteFile(token_file_path))?;
 

@@ -4,7 +4,7 @@ use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
 use rand::Rng;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -204,7 +204,7 @@ pub async fn load_okta_applications(config: &Config) -> Result<Vec<OktaApplicati
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let okta_applications: Vec<OktaApplication> =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(okta_applications)
 }
 
@@ -248,7 +248,7 @@ async fn get_users_assigned_to_app(
         for user in &mut users {
             if user.profile.email.is_none() {
                 if let Some(full_user) = users_map.get(&user.id) {
-                    user.profile.email = full_user.profile.email.clone();
+                    user.profile.email.clone_from(&full_user.profile.email);
                 }
             }
         }
@@ -331,13 +331,11 @@ pub async fn create_sso_config_and_assign_identities(
 ) -> Result<sso_configs::SsoConfigBookmark, BiError> {
     let login_link = okta_application
         ._links
-        .app_links
-        .get(0)
+        .app_links.first()
         .ok_or_else(|| BiError::StringError("No app_link present".to_string()))?;
     let logo = okta_application
         ._links
-        .logo
-        .get(0)
+        .logo.first()
         .cloned()
         .unwrap_or(Logo {
             name: "default".to_string(),

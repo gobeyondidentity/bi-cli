@@ -1,7 +1,7 @@
 use crate::common::config::Config;
 use crate::common::error::BiError;
 use rand::Rng;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
@@ -529,7 +529,7 @@ pub async fn load_scim_app_in_okta(config: &Config) -> Result<OktaAppResponse, B
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
     let okta_app_response: OktaAppResponse =
-        serde_json::from_str(&data).map_err(|err| BiError::SerdeError(err))?;
+        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(okta_app_response)
 }
 
