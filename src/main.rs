@@ -117,7 +117,14 @@ enum BeyondIdentityCommands {
 #[derive(Subcommand)]
 enum OktaCommands {
     /// Setup allows you to provision an Okta tenant to be used for subsequent commands.
-    Setup { domain: String, api_key: String },
+    Setup {
+        domain: String,
+        api_key: String,
+
+        /// Flag to allow force reconfiguration
+        #[arg(long)]
+        force: bool,
+    },
 
     /// Creates a SCIM app in Okta that is connected to the SCIM app created in the previous step. Note that this command will generate the app and assign all groups to the SCIM app. However, there is a manual step you have to complete on your own which unfortunately cannot be automated. When you run this command the first time, we'll provide you with a SCIM base URL and API token that you'll need to copy into the SCIM app in Okta. You will also have to enable provisioning of identities manually in Okta. The good news is that both of these steps are very easy to do.
     CreateScimApp,
@@ -148,6 +155,10 @@ enum OneloginCommands {
         domain: String,
         client_id: String,
         client_secret: String,
+
+        /// Flag to allow force reconfiguration
+        #[arg(long)]
+        force: bool,
     },
 
     /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
@@ -438,10 +449,18 @@ async fn main() {
             }
         },
         Commands::Okta(cmd) => match cmd {
-            OktaCommands::Setup { domain, api_key } => {
+            OktaCommands::Setup {
+                domain,
+                api_key,
+                force,
+            } => {
                 if let Ok(c) = OktaConfig::load_from_file() {
-                    println!("Already configured: {:?}", c);
-                    return;
+                    if !force {
+                        println!("Already configured: {:?}", c);
+                        return;
+                    } else {
+                        println!("Forcing reconfiguration...");
+                    }
                 }
                 let okta_config = OktaConfig {
                     domain: domain.to_string(),
@@ -594,10 +613,15 @@ async fn main() {
                 domain,
                 client_id,
                 client_secret,
+                force,
             } => {
                 if let Ok(c) = OneloginConfig::load_from_file() {
-                    println!("Already configured: {:?}", c);
-                    return;
+                    if !force {
+                        println!("Already configured: {:?}", c);
+                        return;
+                    } else {
+                        println!("Forcing reconfiguration...");
+                    }
                 }
                 let onelogin_config = OneloginConfig {
                     domain: domain.to_string(),
