@@ -282,7 +282,7 @@ async fn main() {
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
 
-                println!("Select identities to review before sending enrollment email ('all' for all identities, 'unenrolled' for identities who have not completed the enrollment email process.):");
+                println!("Select identities to review before sending enrollment email ('all' for all identities, 'unenrolled' for identities who have not completed the enrollment email process):");
 
                 print!("Your selection: ");
                 io::stdout().flush().unwrap();
@@ -305,11 +305,16 @@ async fn main() {
                         .expect("Failed to fetch unenrolled identities");
                 }
 
+                if identities.len() == 0 {
+                    println!("No identities found.");
+                    return;
+                }
+
                 let selected_identities = select_identities(&identities);
 
                 let payload = get_send_email_payload(&client, &config, &tenant_config)
                     .await
-                    .expect("unable to get email payload");
+                    .expect("Unable to get email payload");
 
                 for identity in selected_identities {
                     match send_enrollment_email(
