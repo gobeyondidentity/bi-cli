@@ -1,10 +1,9 @@
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use chrono::Utc;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{self, Write};
 use url::Url;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,6 +18,11 @@ pub struct TenantConfig {
     pub api_base_url: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    iss: String, // The issuer field in the JWT
+}
+
 pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
     let config_path = config.file_paths.tenant_config.clone();
     let data = fs::read_to_string(&config_path)
@@ -27,14 +31,34 @@ pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
     Ok(tenant_config)
 }
 
-pub async fn provision_tenant(config: &Config) -> Result<TenantConfig, BiError> {
-    // Prompt for issuer URL
-    print!("Enter the issuer URL (Found in your Beyond Identity Management API application. In Secure Workforce, this is under API Access. In Secure Customer, it's under Applications): ");
-    io::stdout().flush().map_err(BiError::IoError)?;
-    let mut issuer_url = String::new();
-    io::stdin()
-        .read_line(&mut issuer_url)
-        .map_err(BiError::IoError)?;
+pub async fn provision_tenant(
+    client: &Client,
+    config: &Config,
+    token: &str,
+) -> Result<TenantConfig, BiError> {
+    let mut validation = Validation::new(Algorithm::RS256);
+    validation.insecure_disable_signature_validation();
+    validation.validate_aud = false;
+
+    // Decode the JWT (without signature verification)
+    let decoded_token = match decode::<Claims>(
+        &token,
+        &DecodingKey::from_secret("".as_ref()), // A dummy secret since we are disabling signature verification
+        &validation,
+    ) {
+        Ok(token) => token,
+        Err(err) => {
+            return Err(BiError::StringError(format!(
+                "Failed to decode JWT: {:?}",
+                err
+            )));
+        }
+    };
+
+    let claims = decoded_token.claims;
+
+    // Extract the issuer (iss) from the claims
+    let issuer_url = claims.iss;
 
     // Parse the URL and extract tenant_id, realm_id, application_id
     let parsed_url = Url::parse(&issuer_url).map_err(BiError::InvalidUrl)?;
@@ -62,25 +86,19 @@ pub async fn provision_tenant(config: &Config) -> Result<TenantConfig, BiError> 
         .ok_or(BiError::StringError("Invalid URL host".to_string()))?;
 
     let auth_base_url = format!("https://{}", host);
-    let api_base_url = host.replace("auth", "api");
+    let api_base_url = auth_base_url.replace("auth", "api");
 
-    // Prompt for client_id
-    print!("Enter the client ID (Located under External Protocol in your Beyond Identity Management API application): ");
-    io::stdout().flush().map_err(BiError::IoError)?;
-    let mut client_id = String::new();
-    io::stdin()
-        .read_line(&mut client_id)
-        .map_err(BiError::IoError)?;
-    let client_id = client_id.trim().to_string();
+    let management_api_application =
+        get_management_api_application(client, &api_base_url, &tenant_id, &realm_id, token).await?;
 
-    // Prompt for client_secret
-    print!("Enter the client Secret (Located under External Protocol in your Beyond Identity Management API application): ");
-    io::stdout().flush().map_err(BiError::IoError)?;
-    let mut client_secret = String::new();
-    io::stdin()
-        .read_line(&mut client_secret)
-        .map_err(BiError::IoError)?;
-    let client_secret = client_secret.trim().to_string();
+    let client_id = management_api_application
+        .protocol_config
+        .client_id
+        .expect("Failed to get client id of management API application");
+    let client_secret = management_api_application
+        .protocol_config
+        .client_secret
+        .expect("Failed to get client secret of management API application");
 
     // Create the tenant configuration
     let tenant_config = TenantConfig {
@@ -111,4 +129,87 @@ pub async fn provision_tenant(config: &Config) -> Result<TenantConfig, BiError> 
     println!("Tenant configuration saved to '{}'", config_path);
 
     Ok(tenant_config)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Application {
+    id: String,
+    realm_id: String,
+    tenant_id: String,
+    display_name: String,
+    is_managed: bool,
+    classification: String,
+    protocol_config: ProtocolConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ProtocolConfig {
+    client_id: Option<String>,
+    client_secret: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ApplicationsResponse {
+    applications: Vec<Application>,
+    total_size: u32,
+    next_page_token: Option<String>,
+}
+
+async fn get_management_api_application(
+    client: &Client,
+    api_base_url: &str,
+    tenant_id: &str,
+    realm_id: &str,
+    bearer_token: &str,
+) -> Result<Application, BiError> {
+    let mut page_token: Option<String> = None;
+
+    loop {
+        let mut url = format!(
+            "{}/v1/tenants/{}/realms/{}/applications",
+            api_base_url, tenant_id, realm_id
+        );
+
+        // Append page_token if it exists
+        if let Some(ref token) = page_token {
+            url = format!("{}?page_token={}", url, token);
+        }
+
+        // Send the GET request
+        let response = client.get(&url).bearer_auth(bearer_token).send().await?;
+
+        // Handle non-200 responses
+        if !response.status().is_success() {
+            return Err(BiError::RequestError(
+                response.status(),
+                response
+                    .text()
+                    .await
+                    .unwrap_or_else(|_| "Unknown error".to_string()),
+            ));
+        }
+
+        // Parse the response
+        let response_body: ApplicationsResponse = response.json().await?;
+
+        // Search for the application with classification "management_api"
+        for app in response_body.applications {
+            if app.classification == "management_api" {
+                // Return immediately when the "management_api" application is found
+                return Ok(app);
+            }
+        }
+
+        // Break the loop if there are no more pages
+        if response_body.next_page_token.is_none() {
+            break;
+        }
+
+        // Set the next page token for the next request
+        page_token = response_body.next_page_token;
+    }
+
+    Err(BiError::StringError(
+        "Management API application not found".to_string(),
+    ))
 }

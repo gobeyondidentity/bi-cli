@@ -61,7 +61,7 @@ enum Commands {
 #[derive(Subcommand)]
 enum BeyondIdentityCommands {
     /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
-    Setup,
+    Setup { token: String },
 
     /// Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
     CreateScimApp {
@@ -171,8 +171,9 @@ async fn main() {
                         .expect("Failed to create admin account");
                 println!("Created identity with id={}", identity.id);
             }
-            BeyondIdentityCommands::Setup => {
+            BeyondIdentityCommands::Setup { token } => {
                 let config = Config::new();
+                let client = new_http_client_for_api();
                 match load_tenant(&config).await {
                     Ok(tenant_config) => {
                         println!(
@@ -181,7 +182,7 @@ async fn main() {
                         );
                         tenant_config
                     }
-                    Err(_) => provision_tenant(&config)
+                    Err(_) => provision_tenant(&client, &config, token)
                         .await
                         .expect("Failed to provision existing tenant"),
                 };
