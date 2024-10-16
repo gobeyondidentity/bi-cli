@@ -12,12 +12,13 @@ use beyond_identity::enrollment::{
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
 use beyond_identity::groups::delete_group_memberships;
 use beyond_identity::identities::{delete_identity, Identity};
-use beyond_identity::provision_existing_tenant::provision_existing_tenant;
 use beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
 use beyond_identity::roles::delete_role_memberships;
 use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use beyond_identity::sso_configs::delete_all_sso_configs;
-use beyond_identity::tenant::{create_tenant, load_tenant, open_magic_link};
+use beyond_identity::tenant::{
+    delete_tenant_ui, list_tenants_ui, load_tenant, provision_tenant, set_default_tenant_ui,
+};
 
 use common::http::new_http_client_for_api;
 use okta::fast_migrate::{
@@ -30,7 +31,7 @@ use okta::routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta::scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 
 use clap::{Parser, Subcommand};
-use common::config::Config;
+use common::config::{Config, OktaConfig, OneloginConfig};
 use log::LevelFilter;
 use std::io::{self, Write};
 
@@ -59,22 +60,42 @@ enum Commands {
     Onelogin(OneloginCommands),
 }
 
+/// Enum representing the actions that can be performed in the Setup command.
+#[derive(Subcommand)]
+enum SetupAction {
+    /// Provisions an existing tenant using the given API token.
+    ProvisionTenant { token: String },
+
+    /// Lists all provisioned tenants.
+    ListTenants,
+
+    /// Update which tenant is the default one.
+    SetDefaultTenant,
+
+    /// Delete any provisioned tenants.
+    DeleteTenant,
+}
+
 #[derive(Subcommand)]
 enum BeyondIdentityCommands {
-    /// Creates a new Secure Access tenant. This command is required for all the remaining commands to work as it provides the base configuration. The first time you run this command, it will ask you to open a browser with a magic link to complete the provisioning process. Subsequent runs will show you the existing tenant configuration.
-    CreateTenant,
-
-    /// Provisions configuration for an existing tenant provided a tenant id, realm id, and API token are supplied.
-    ProvisionExistingTenant,
+    /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
+    #[clap(subcommand)]
+    Setup(SetupAction),
 
     /// Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
-    CreateScimApp,
+    CreateScimApp {
+        /// Attribute that controls how and when Okta users are routed to Beyond Identity.
+        okta_registration_sync_attribute: String,
+    },
 
     /// Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
     CreateExternalSSOConnection,
 
     /// Creates an administrator account in the account.
-    CreateAdminAccount,
+    CreateAdminAccount {
+        /// Email address of the admin to be created
+        email: String,
+    },
 
     /// Deletes all identities from a realm in case you want to set them up from scratch.
     /// The identities are unassigned from roles and groups automatically.
@@ -95,17 +116,33 @@ enum BeyondIdentityCommands {
 
 #[derive(Subcommand)]
 enum OktaCommands {
+    /// Setup allows you to provision an Okta tenant to be used for subsequent commands.
+    Setup {
+        domain: String,
+        api_key: String,
+
+        /// Flag to allow force reconfiguration
+        #[arg(long)]
+        force: bool,
+    },
+
     /// Creates a SCIM app in Okta that is connected to the SCIM app created in the previous step. Note that this command will generate the app and assign all groups to the SCIM app. However, there is a manual step you have to complete on your own which unfortunately cannot be automated. When you run this command the first time, we'll provide you with a SCIM base URL and API token that you'll need to copy into the SCIM app in Okta. You will also have to enable provisioning of identities manually in Okta. The good news is that both of these steps are very easy to do.
     CreateScimApp,
 
     /// Creates a custom attribute in Okta on the default user type that will be used to create an IDP routing rule in Okta. This is a boolean value that gets set to "true" whenever a passkey is bound for a specific user.
-    CreateCustomAttribute,
+    CreateCustomAttribute {
+        /// Attribute that controls how and when Okta users are routed to Beyond Identity.
+        okta_registration_sync_attribute: String,
+    },
 
     /// Takes the external SSO connection you created in Beyond Identity and uses it to configure an identity provider in Okta. This is the identity provider that will be used to authenticate Okta users using Beyond Identity.
     CreateIdentityProvider,
 
     /// The final step when setting up Beyond Identity as an MFA in Okta. This will use the custom attribute you created using an earlier command to route users who have provisioned a Beyond Identity passkey to Beyond Identity during authentication.
-    CreateRoutingRule,
+    CreateRoutingRule {
+        /// Attribute that controls how and when Okta users are routed to Beyond Identity.
+        okta_registration_sync_attribute: String,
+    },
 
     /// Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
     FastMigrate,
@@ -113,6 +150,17 @@ enum OktaCommands {
 
 #[derive(Subcommand)]
 enum OneloginCommands {
+    /// Setup allows you to provision a Onelogin tenant to be used for subsequent commands.
+    Setup {
+        domain: String,
+        client_id: String,
+        client_secret: String,
+
+        /// Flag to allow force reconfiguration
+        #[arg(long)]
+        force: bool,
+    },
+
     /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
     FastMigrate,
 }
@@ -141,70 +189,65 @@ async fn main() {
 
     match &cli.command {
         Commands::Api(cmd) => match cmd {
-            BeyondIdentityCommands::CreateTenant => {
-                let config = Config::from_env();
-                let client = new_http_client_for_api();
-                match load_tenant(&config).await {
-                    Ok(tenant_config) => {
-                        println!(
-                            "Tenant: {}",
-                            serde_json::to_string_pretty(&tenant_config).unwrap()
-                        );
-                        tenant_config
-                    }
-                    Err(_) => {
-                        let tenant_config = create_tenant(&client, &config)
-                            .await
-                            .expect("Failed to create tenant");
-                        let magic_link = tenant_config
-                            .magic_link
-                            .as_ref()
-                            .expect("Magic link missing from tenant config");
-                        open_magic_link(magic_link.as_ref());
-                        tenant_config
-                    }
-                };
-            }
-            BeyondIdentityCommands::CreateAdminAccount => {
-                let config = Config::from_env();
+            BeyondIdentityCommands::CreateAdminAccount { email } => {
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
-                let identity = create_admin_account(&client, &config, &tenant_config)
-                    .await
-                    .expect("Failed to create admin account");
+                let identity =
+                    create_admin_account(&client, &config, &tenant_config, email.to_string())
+                        .await
+                        .expect("Failed to create admin account");
                 println!("Created identity with id={}", identity.id);
             }
-            BeyondIdentityCommands::ProvisionExistingTenant => {
-                let config = Config::from_env();
-                match load_tenant(&config).await {
-                    Ok(tenant_config) => {
-                        println!(
-                            "Tenant already exists: {}",
-                            serde_json::to_string_pretty(&tenant_config).unwrap()
-                        );
-                        tenant_config
-                    }
-                    Err(_) => {
-                        
-                        provision_existing_tenant(&config)
-                            .await
-                            .expect("Failed to provision existing tenant")
-                    }
-                };
-            }
-            BeyondIdentityCommands::CreateScimApp => {
-                let config = Config::from_env();
+            BeyondIdentityCommands::Setup(action) => match action {
+                SetupAction::ProvisionTenant { token } => {
+                    let config = Config::new();
+                    let client = new_http_client_for_api();
+                    _ = provision_tenant(&client, &config, token)
+                        .await
+                        .expect("Failed to provision existing tenant");
+                }
+                SetupAction::ListTenants => {
+                    let config = Config::new();
+                    list_tenants_ui(&config)
+                        .await
+                        .expect("Failed to list tenants");
+                }
+                SetupAction::SetDefaultTenant => {
+                    let config = Config::new();
+                    set_default_tenant_ui(&config)
+                        .await
+                        .expect("Failed to set default tenant");
+                }
+                SetupAction::DeleteTenant => {
+                    let config = Config::new();
+                    delete_tenant_ui(&config)
+                        .await
+                        .expect("Failed to delete tenant");
+                }
+            },
+            BeyondIdentityCommands::CreateScimApp {
+                okta_registration_sync_attribute,
+            } => {
+                let config = Config::new();
+                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
                 let bi_scim_app = match load_beyond_identity_scim_app(&config).await {
                     Ok(bi_scim_app) => bi_scim_app,
-                    Err(_) => create_beyond_identity_scim_app(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to create beyond identity scim app"),
+                    Err(_) => create_beyond_identity_scim_app(
+                        &client,
+                        &config,
+                        &okta_config,
+                        &tenant_config,
+                        okta_registration_sync_attribute.clone(),
+                    )
+                    .await
+                    .expect("Failed to create beyond identity scim app"),
                 };
                 println!(
                     "Beyond Identity SCIM App: {}",
@@ -212,7 +255,7 @@ async fn main() {
                 );
             }
             BeyondIdentityCommands::CreateExternalSSOConnection => {
-                let config = Config::from_env();
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -229,7 +272,7 @@ async fn main() {
                 );
             }
             BeyondIdentityCommands::SendEnrollmentEmail => {
-                let config = Config::from_env();
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -294,7 +337,7 @@ async fn main() {
                 }
             }
             BeyondIdentityCommands::DeleteAllSSOConfigs => {
-                let config = Config::from_env();
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -305,7 +348,7 @@ async fn main() {
                     .expect("Failed to delete all SSO Configs");
             }
             BeyondIdentityCommands::DeleteAllIdentities => {
-                let config = Config::from_env();
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -367,7 +410,7 @@ async fn main() {
                 }
             }
             BeyondIdentityCommands::GetToken => {
-                let config = Config::from_env();
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -378,7 +421,7 @@ async fn main() {
                 println!("TOKEN: {}", token);
             }
             BeyondIdentityCommands::ReviewUnenrolled => {
-                let config = Config::from_env();
+                let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -397,7 +440,8 @@ async fn main() {
                         "{} - {}",
                         identity
                             .traits
-                            .primary_email_address.as_deref()
+                            .primary_email_address
+                            .as_deref()
                             .unwrap_or("<no email provided>"),
                         identity.id,
                     );
@@ -405,8 +449,29 @@ async fn main() {
             }
         },
         Commands::Okta(cmd) => match cmd {
+            OktaCommands::Setup {
+                domain,
+                api_key,
+                force,
+            } => {
+                if let Ok(c) = OktaConfig::load_from_file() {
+                    if !force {
+                        println!("Already configured: {:?}", c);
+                        return;
+                    } else {
+                        println!("Forcing reconfiguration...");
+                    }
+                }
+                let okta_config = OktaConfig {
+                    domain: domain.to_string(),
+                    api_key: api_key.to_string(),
+                };
+                OktaConfig::save_to_file(&okta_config)
+                    .expect("Failed to save Okta configuration to file")
+            }
             OktaCommands::CreateScimApp => {
-                let config = Config::from_env();
+                let config = Config::new();
+                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -416,7 +481,7 @@ async fn main() {
                             .expect("Failed to load Beyond Identity SCIM Application. Make sure you create a BI SCIM Application before running this command.");
                 let okta_app_response = match load_scim_app_in_okta(&config).await {
                     Ok(okta_app_response) => okta_app_response,
-                    Err(_) => create_scim_app_in_okta(&client, &config)
+                    Err(_) => create_scim_app_in_okta(&client, &config, &okta_config)
                         .await
                         .expect("Failed to create SCIM app in Okta"),
                 };
@@ -426,18 +491,26 @@ async fn main() {
                 );
                 println!(
                             "Use the following values to configure API provisioning in your Okta Scim App:\nSCIM 2.0 Base Url: {:?}\nOAuth Bearer Token: {:?}",
-                            format!("{}/v1/tenants/{}/realms/{}/scim/v2", config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id),
+                            format!("{}/v1/tenants/{}/realms/{}/scim/v2", tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id),
                             bi_scim_config.oauth_bearer_token
                         );
             }
-            OktaCommands::CreateCustomAttribute => {
-                let config = Config::from_env();
+            OktaCommands::CreateCustomAttribute {
+                okta_registration_sync_attribute,
+            } => {
+                let config = Config::new();
+                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let client = new_http_client_for_api();
                 let okta_user_schema = match load_custom_attribute(&config).await {
                     Ok(okta_user_schema) => okta_user_schema,
-                    Err(_) => create_custom_attribute(&client, &config)
-                        .await
-                        .expect("Failed to create custom attribute in Okta"),
+                    Err(_) => create_custom_attribute(
+                        &client,
+                        &config,
+                        &okta_config,
+                        okta_registration_sync_attribute.clone(),
+                    )
+                    .await
+                    .expect("Failed to create custom attribute in Okta"),
                 };
                 println!(
                     "Okta User Schema: {}",
@@ -445,7 +518,8 @@ async fn main() {
                 );
             }
             OktaCommands::CreateIdentityProvider => {
-                let config = Config::from_env();
+                let config = Config::new();
+                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -458,6 +532,7 @@ async fn main() {
                     Err(_) => create_okta_identity_provider(
                         &client,
                         &config,
+                        &okta_config,
                         &tenant_config,
                         &external_sso,
                     )
@@ -469,8 +544,11 @@ async fn main() {
                     serde_json::to_string_pretty(&okta_idp).unwrap()
                 );
             }
-            OktaCommands::CreateRoutingRule => {
-                let config = Config::from_env();
+            OktaCommands::CreateRoutingRule {
+                okta_registration_sync_attribute,
+            } => {
+                let config = Config::new();
+                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -478,11 +556,16 @@ async fn main() {
                 let okta_idp_config =  load_okta_identity_provider(&config).await.expect("Failed to load Okta Identity Provider. Make sure you create an Okta Identity Provider before running this command.");
                 let okta_routing_rule = match load_okta_routing_rule(&config).await {
                     Ok(okta_routing_rule) => okta_routing_rule,
-                    Err(_) => {
-                        create_okta_routing_rule(&client, &config, &tenant_config, &okta_idp_config)
-                            .await
-                            .expect("Failed to create Okta Routing Rule")
-                    }
+                    Err(_) => create_okta_routing_rule(
+                        &client,
+                        &config,
+                        &okta_config,
+                        &tenant_config,
+                        &okta_idp_config,
+                        okta_registration_sync_attribute.clone(),
+                    )
+                    .await
+                    .expect("Failed to create Okta Routing Rule"),
                 };
                 println!(
                     "Okta Routing Rule: {}",
@@ -490,14 +573,15 @@ async fn main() {
                 );
             }
             OktaCommands::FastMigrate => {
-                let config = Config::from_env();
+                let config = Config::new();
+                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
                 let okta_applications = match load_okta_applications(&config).await {
                     Ok(okta_applications) => okta_applications,
-                    Err(_) => fetch_okta_applications(&client, &config)
+                    Err(_) => fetch_okta_applications(&client, &config, &okta_config)
                         .await
                         .expect("Failed to fetch okta applications"),
                 };
@@ -525,8 +609,31 @@ async fn main() {
             }
         },
         Commands::Onelogin(cmd) => match cmd {
+            OneloginCommands::Setup {
+                domain,
+                client_id,
+                client_secret,
+                force,
+            } => {
+                if let Ok(c) = OneloginConfig::load_from_file() {
+                    if !force {
+                        println!("Already configured: {:?}", c);
+                        return;
+                    } else {
+                        println!("Forcing reconfiguration...");
+                    }
+                }
+                let onelogin_config = OneloginConfig {
+                    domain: domain.to_string(),
+                    client_id: client_id.to_string(),
+                    client_secret: client_secret.to_string(),
+                };
+                OneloginConfig::save_to_file(&onelogin_config)
+                    .expect("Failed to save Onelogin configuration to file")
+            }
             OneloginCommands::FastMigrate => {
-                let config = Config::from_env();
+                let config = Config::new();
+                let onelogin_config = OneloginConfig::new().expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
@@ -534,11 +641,13 @@ async fn main() {
                 let onelogin_applications =
                     match onelogin::fast_migrate::load_onelogin_applications(&config).await {
                         Ok(onelogin_applications) => onelogin_applications,
-                        Err(_) => {
-                            onelogin::fast_migrate::fetch_onelogin_applications(&client, &config)
-                                .await
-                                .expect("Failed to fetch onelogin applications")
-                        }
+                        Err(_) => onelogin::fast_migrate::fetch_onelogin_applications(
+                            &client,
+                            &config,
+                            &onelogin_config,
+                        )
+                        .await
+                        .expect("Failed to fetch onelogin applications"),
                     };
 
                 let selected_applications =

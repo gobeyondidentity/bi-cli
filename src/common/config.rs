@@ -1,11 +1,12 @@
-use dotenv::dotenv;
-use regex::Regex;
-use std::collections::HashMap;
+use crate::common::error::BiError;
+use serde::{Deserialize, Serialize};
 use std::env;
+use std::fs::{self};
+use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct FilePaths {
-    pub tenant_config: String,
+    pub tenants_config: String,
     pub bi_scim_app_config: String,
     pub okta_scim_app_config: String,
     pub external_sso_config: String,
@@ -15,124 +16,135 @@ pub struct FilePaths {
     pub okta_applications: String,
     pub onelogin_applications: String,
     pub token_path: String,
+    okta_config_path: String,
+    onelogin_config_path: String,
 }
 
 impl FilePaths {
     pub fn new() -> Self {
+        let exe_path = env::current_exe().expect("Failed to get executable path");
+        let base_dir = exe_path
+            .parent()
+            .expect("Failed to get executable directory");
+
+        let configs_dir = base_dir.join("configs");
+
+        if !configs_dir.exists() {
+            fs::create_dir_all(&configs_dir).expect("Failed to create configs directory");
+        }
+
+        fn path_to_string(path: PathBuf) -> String {
+            path.to_str()
+                .expect("Failed to convert path to string")
+                .to_string()
+        }
+
         Self {
-            tenant_config: "configs/tenant_config.json".to_string(),
-            bi_scim_app_config: "configs/bi_scim_application.json".to_string(),
-            okta_scim_app_config: "configs/okta_scim_application.json".to_string(),
-            external_sso_config: "configs/external_sso.json".to_string(),
-            okta_identity_provider: "configs/okta_identity_provider.json".to_string(),
-            okta_routing_rule: "configs/okta_routing_rule.json".to_string(),
-            okta_custom_attribute: "configs/okta_custom_attribute.json".to_string(),
-            okta_applications: "configs/okta_applications.json".to_string(),
-            onelogin_applications: "configs/onelogin_applications.json".to_string(),
-            token_path: "configs/token.json".to_string(),
+            tenants_config: path_to_string(configs_dir.join("tenants_config.json")),
+            bi_scim_app_config: path_to_string(configs_dir.join("bi_scim_application.json")),
+            okta_scim_app_config: path_to_string(configs_dir.join("okta_scim_application.json")),
+            external_sso_config: path_to_string(configs_dir.join("external_sso.json")),
+            okta_identity_provider: path_to_string(configs_dir.join("okta_identity_provider.json")),
+            okta_routing_rule: path_to_string(configs_dir.join("okta_routing_rule.json")),
+            okta_custom_attribute: path_to_string(configs_dir.join("okta_custom_attribute.json")),
+            okta_applications: path_to_string(configs_dir.join("okta_applications.json")),
+            onelogin_applications: path_to_string(configs_dir.join("onelogin_applications.json")),
+            token_path: path_to_string(configs_dir.join("token.json")),
+            okta_config_path: path_to_string(configs_dir.join("okta_config.json")),
+            onelogin_config_path: path_to_string(configs_dir.join("onelogin_config.json")),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub okta_api_key: String,
-    pub okta_domain: String,
-    pub okta_registration_sync_attribute: String,
-    pub beyond_identity_api_base_url: String,
-    pub beyond_identity_auth_base_url: String,
-    pub admin_display_name: String,
-    pub admin_primary_email_address: String,
-    pub onelogin_client_id: String,
-    pub onelogin_client_secret: String,
-    pub onelogin_domain: String,
     pub file_paths: FilePaths,
 }
 
 impl Config {
-    pub fn from_env() -> Self {
-        dotenv().ok();
-        validate_env().expect("Environment validation failed");
-
-        Self {
-            okta_api_key: env::var("OKTA_API_KEY").expect("OKTA_API_KEY not set"),
-            okta_domain: env::var("OKTA_DOMAIN").expect("OKTA_DOMAIN not set"),
-            okta_registration_sync_attribute: env::var("OKTA_REGISTRATION_SYNC_ATTRIBUTE")
-                .expect("OKTA_REGISTRATION_SYNC_ATTRIBUTE not set"),
-            beyond_identity_api_base_url: env::var("BEYOND_IDENTITY_API_BASE_URL")
-                .expect("BEYOND_IDENTITY_API_BASE_URL not set"),
-            beyond_identity_auth_base_url: env::var("BEYOND_IDENTITY_AUTH_BASE_URL")
-                .expect("BEYOND_IDENTITY_AUTH_BASE_URL not set"),
-            admin_display_name: env::var("ADMIN_DISPLAY_NAME").expect("ADMIN_DISPLAY_NAME not set"),
-            admin_primary_email_address: env::var("ADMIN_PRIMARY_EMAIL_ADDRESS")
-                .expect("ADMIN_PRIMARY_EMAIL_ADDRESS not set"),
-            onelogin_client_id: env::var("ONE_LOGIN_CLIENT_ID")
-                .expect("ONE_LOGIN_CLIENT_ID not set"),
-            onelogin_client_secret: env::var("ONE_LOGIN_CLIENT_SECRET")
-                .expect("ONE_LOGIN_CLIENT_SECRET not set"),
-            onelogin_domain: env::var("ONE_LOGIN_DOMAIN").expect("ONE_LOGIN_DOMAIN not set"),
+    pub fn new() -> Self {
+        Config {
             file_paths: FilePaths::new(),
         }
     }
 }
 
-fn validate_env() -> Result<(), String> {
-    let env_vars: HashMap<String, String> = env::vars().collect();
-    let email_regex = Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap();
-    let valid_api_urls = ["https://api-us.beyondidentity.run",
-        "https://api-us.beyondidentity.xyz",
-        "https://api-us.beyondidentity.com"];
-    let valid_auth_urls = ["https://auth-us.beyondidentity.run",
-        "https://auth-us.beyondidentity.xyz",
-        "https://auth-us.beyondidentity.com"];
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OktaConfig {
+    pub domain: String,
+    pub api_key: String,
+}
 
-    // Validate OKTA_DOMAIN
-    if let Some(okta_domain) = env_vars.get("OKTA_DOMAIN") {
-        if !okta_domain.starts_with("https://") || okta_domain.ends_with('/') {
-            return Err(format!(
-                "Invalid OKTA_DOMAIN: {}. It must begin with 'https://' and not end with a '/'. Example: 'https://beyondidentity.okta.com'",
-                okta_domain
-            ));
-        }
-    } else {
-        return Err("OKTA_DOMAIN is missing. Please set OKTA_DOMAIN in your .env file. Example: 'OKTA_DOMAIN=https://beyondidentity.okta.com'".to_string());
+impl OktaConfig {
+    pub fn new() -> Result<Self, BiError> {
+        Self::load_from_file()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OneloginConfig {
+    pub domain: String,
+    pub client_id: String,
+    pub client_secret: String,
+}
+
+impl OneloginConfig {
+    pub fn new() -> Result<Self, BiError> {
+        Self::load_from_file()
+    }
+}
+
+impl OktaConfig {
+    pub fn save_to_file(&self) -> Result<(), BiError> {
+        let serialized = serde_json::to_string_pretty(self).map_err(BiError::SerdeError)?;
+        let config_path = FilePaths::new().okta_config_path;
+
+        let config_dir = std::path::Path::new(&config_path)
+            .parent()
+            .ok_or_else(|| BiError::UnableToWriteFile(config_path.clone()))?;
+        fs::create_dir_all(config_dir)
+            .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+
+        fs::write(&config_path, serialized)
+            .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+
+        Ok(())
     }
 
-    // Validate BEYOND_IDENTITY_API_BASE_URL
-    if let Some(api_base_url) = env_vars.get("BEYOND_IDENTITY_API_BASE_URL") {
-        if !valid_api_urls.contains(&api_base_url.as_str()) {
-            return Err(format!(
-                "Invalid BEYOND_IDENTITY_API_BASE_URL: {}. It must be one of the following: 'https://api-us.beyondidentity.run', 'https://api-us.beyondidentity.xyz', 'https://api-us.beyondidentity.com'",
-                api_base_url
-            ));
-        }
-    } else {
-        return Err("BEYOND_IDENTITY_API_BASE_URL is missing. Please set BEYOND_IDENTITY_API_BASE_URL in your .env file. Example: 'BEYOND_IDENTITY_API_BASE_URL=https://api-us.beyondidentity.run'".to_string());
+    pub fn load_from_file() -> Result<Self, BiError> {
+        let file_paths = FilePaths::new();
+        let config_path = &file_paths.okta_config_path;
+        let data = fs::read_to_string(&config_path)
+            .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+        let okta_config: OktaConfig = serde_json::from_str(&data).map_err(BiError::SerdeError)?;
+        Ok(okta_config)
+    }
+}
+
+impl OneloginConfig {
+    pub fn save_to_file(&self) -> Result<(), BiError> {
+        let serialized = serde_json::to_string_pretty(self).map_err(BiError::SerdeError)?;
+        let config_path = FilePaths::new().onelogin_config_path;
+
+        let config_dir = std::path::Path::new(&config_path)
+            .parent()
+            .ok_or_else(|| BiError::UnableToWriteFile(config_path.clone()))?;
+        fs::create_dir_all(config_dir)
+            .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+
+        fs::write(&config_path, serialized)
+            .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+
+        Ok(())
     }
 
-    // Validate BEYOND_IDENTITY_AUTH_BASE_URL
-    if let Some(auth_base_url) = env_vars.get("BEYOND_IDENTITY_AUTH_BASE_URL") {
-        if !valid_auth_urls.contains(&auth_base_url.as_str()) {
-            return Err(format!(
-                "Invalid BEYOND_IDENTITY_AUTH_BASE_URL: {}. It must be one of the following: 'https://auth-us.beyondidentity.run', 'https://auth-us.beyondidentity.xyz', 'https://auth-us.beyondidentity.com'",
-                auth_base_url
-            ));
-        }
-    } else {
-        return Err("BEYOND_IDENTITY_AUTH_BASE_URL is missing. Please set BEYOND_IDENTITY_AUTH_BASE_URL in your .env file. Example: 'BEYOND_IDENTITY_AUTH_BASE_URL=https://auth-us.beyondidentity.run'".to_string());
+    pub fn load_from_file() -> Result<Self, BiError> {
+        let file_paths = FilePaths::new();
+        let config_path = &file_paths.onelogin_config_path;
+        let data = fs::read_to_string(&config_path)
+            .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
+        let onelogin_config: OneloginConfig =
+            serde_json::from_str(&data).map_err(BiError::SerdeError)?;
+        Ok(onelogin_config)
     }
-
-    // Validate ADMIN_PRIMARY_EMAIL_ADDRESS
-    if let Some(admin_email) = env_vars.get("ADMIN_PRIMARY_EMAIL_ADDRESS") {
-        if !email_regex.is_match(admin_email) {
-            return Err(format!(
-                "Invalid ADMIN_PRIMARY_EMAIL_ADDRESS: {}. It must be a valid email address. Example: 'admin@example.com'",
-                admin_email
-            ));
-        }
-    } else {
-        return Err("ADMIN_PRIMARY_EMAIL_ADDRESS is missing. Please set ADMIN_PRIMARY_EMAIL_ADDRESS in your .env file. Example: 'ADMIN_PRIMARY_EMAIL_ADDRESS=admin@example.com'".to_string());
-    }
-
-    Ok(())
 }

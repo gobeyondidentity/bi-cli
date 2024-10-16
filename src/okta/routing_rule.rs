@@ -1,7 +1,7 @@
-use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
 use crate::okta::identity_provider::OktaIdpResponse;
+use crate::{beyond_identity::tenant::TenantConfig, common::config::OktaConfig};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -67,14 +67,16 @@ pub struct OktaRoutingRuleIdpProvider {
 pub async fn create_okta_routing_rule(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
     tenant_config: &TenantConfig,
     okta_idp_config: &OktaIdpResponse,
+    okta_registration_sync_attribute: String,
 ) -> Result<OktaRoutingRule, BiError> {
-    let okta_domain = config.okta_domain.clone();
-    let okta_api_key = config.okta_api_key.clone();
-    let attribute_name = config.okta_registration_sync_attribute.clone();
+    let okta_domain = okta_config.domain.clone();
+    let okta_api_key = okta_config.api_key.clone();
+    let attribute_name = okta_registration_sync_attribute.clone();
     let attribute_value = "true";
-    let okta_policy = get_first_idp_discovery_policy(client, config).await?;
+    let okta_policy = get_first_idp_discovery_policy(client, okta_config).await?;
 
     let url = format!("{}/api/v1/policies/{}/rules", okta_domain, okta_policy.id);
 
@@ -154,10 +156,10 @@ pub struct OktaPolicyResponse {
 
 async fn get_first_idp_discovery_policy(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
 ) -> Result<OktaPolicyResponse, BiError> {
-    let okta_domain = config.okta_domain.clone();
-    let okta_api_key = config.okta_api_key.clone();
+    let okta_domain = okta_config.domain.clone();
+    let okta_api_key = okta_config.api_key.clone();
 
     let url = format!("{}/api/v1/policies?type=IDP_DISCOVERY", okta_domain);
 

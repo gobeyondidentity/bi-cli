@@ -1,7 +1,9 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
+use crate::{
+    beyond_identity::api_token::get_beyond_identity_api_token, common::config::OktaConfig,
+};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -87,15 +89,17 @@ pub struct OktaRegistrationResponse {
 async fn create_okta_registration(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
     tenant_config: &TenantConfig,
+    okta_registration_sync_attribute: String,
 ) -> Result<OktaRegistrationResponse, BiError> {
     // Only one Okta registration can exist at a time
     delete_okta_registration(client, config, tenant_config).await?;
 
-    let domain = config.okta_domain.clone();
-    let okta_token = config.okta_api_key.clone();
-    let attribute_name = config.okta_registration_sync_attribute.clone();
-    let beyond_identity_api_base_url = config.beyond_identity_api_base_url.clone();
+    let domain = okta_config.domain.clone();
+    let okta_token = okta_config.api_key.clone();
+    let attribute_name = okta_registration_sync_attribute.clone();
+    let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
     let beyond_identity_api_token =
         get_beyond_identity_api_token(client, config, tenant_config).await?;
     let tenant_id = &tenant_config.tenant_id;
@@ -147,7 +151,7 @@ async fn delete_okta_registration(
     config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
-    let beyond_identity_api_base_url = config.beyond_identity_api_base_url.clone();
+    let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
     let beyond_identity_api_token =
         get_beyond_identity_api_token(client, config, tenant_config).await?;
     let tenant_id = &tenant_config.tenant_id;
@@ -206,7 +210,7 @@ async fn create_scim_app(
     config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<BeyondIdentityAppResponse, BiError> {
-    let beyond_identity_api_base_url = config.beyond_identity_api_base_url.clone();
+    let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
     let beyond_identity_api_token =
         get_beyond_identity_api_token(client, config, tenant_config).await?;
     let tenant_id = tenant_config.tenant_id.clone();
@@ -284,12 +288,12 @@ pub struct ApiTokenResponse {
 
 pub async fn generate_scim_app_token(
     client: &Client,
-    config: &Config,
+    tenant_config: &TenantConfig,
     scim_response: &BeyondIdentityAppResponse,
 ) -> Result<String, BiError> {
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}/token",
-        config.beyond_identity_auth_base_url,
+        tenant_config.auth_base_url,
         scim_response.tenant_id,
         scim_response.realm_id,
         scim_response.id
@@ -338,19 +342,27 @@ pub async fn load_beyond_identity_scim_app(config: &Config) -> Result<BiScimConf
     let config_path = config.file_paths.bi_scim_app_config.clone();
     let data = fs::read_to_string(&config_path)
         .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
-    let bi_scim_config: BiScimConfig =
-        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
+    let bi_scim_config: BiScimConfig = serde_json::from_str(&data).map_err(BiError::SerdeError)?;
     Ok(bi_scim_config)
 }
 
 pub async fn create_beyond_identity_scim_app(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
     tenant_config: &TenantConfig,
+    okta_registration_sync_attribute: String,
 ) -> Result<BiScimConfig, BiError> {
-    create_okta_registration(client, config, tenant_config).await?;
+    create_okta_registration(
+        client,
+        config,
+        okta_config,
+        tenant_config,
+        okta_registration_sync_attribute,
+    )
+    .await?;
     let response = create_scim_app(client, config, tenant_config).await?;
-    let oauth_bearer_token = generate_scim_app_token(client, config, &response).await?;
+    let oauth_bearer_token = generate_scim_app_token(client, tenant_config, &response).await?;
     let bi_scim_config = BiScimConfig {
         scim_application_config: response.clone(),
         oauth_bearer_token: oauth_bearer_token.clone(),

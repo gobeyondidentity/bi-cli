@@ -24,10 +24,7 @@ pub async fn delete_group_memberships(
     for group in groups {
         let url = format!(
             "{}/v1/tenants/{}/realms/{}/groups/{}:deleteMembers",
-            config.beyond_identity_api_base_url,
-            tenant_config.tenant_id,
-            tenant_config.realm_id,
-            group.id,
+            tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, group.id,
         );
 
         let response = client
@@ -66,10 +63,7 @@ pub async fn fetch_group_memberships(
     let mut groups = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}:listGroups",
-        config.beyond_identity_api_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        identity_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity_id
     );
 
     loop {
@@ -105,7 +99,7 @@ pub async fn fetch_group_memberships(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}:listGroups?page_size=200&page_token={}",
-                config.beyond_identity_api_base_url,
+                tenant_config.api_base_url,
                 tenant_config.tenant_id,
                 tenant_config.realm_id,
                 identity_id,

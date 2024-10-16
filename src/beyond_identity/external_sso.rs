@@ -36,7 +36,7 @@ async fn create_authenticator_config(
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/authenticator-configs",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
     let payload = json!({
@@ -119,7 +119,7 @@ async fn create_application(
 ) -> Result<ExternalSSO, BiError> {
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/applications",
-        config.beyond_identity_api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
     let payload = json!({
@@ -190,7 +190,7 @@ pub async fn update_application_redirect_uri(
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}",
-        config.beyond_identity_api_base_url, tenant_id, realm_id, application_id
+        tenant_config.api_base_url, tenant_id, realm_id, application_id
     );
 
     let payload = json!({

@@ -1,6 +1,6 @@
 use crate::beyond_identity::external_sso::{update_application_redirect_uri, ExternalSSO};
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::common::config::Config;
+use crate::common::config::{Config, OktaConfig};
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -147,12 +147,12 @@ pub struct IdpLinkHints {
 
 async fn create_idp(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
     tenant_config: &TenantConfig,
     external_sso_config: &ExternalSSO,
 ) -> Result<OktaIdpResponse, BiError> {
-    let okta_domain = config.okta_domain.clone();
-    let okta_api_key = config.okta_api_key.clone();
+    let okta_domain = okta_config.domain.clone();
+    let okta_api_key = okta_config.api_key.clone();
 
     let url = format!("{}/api/v1/idps", okta_domain);
 
@@ -160,28 +160,28 @@ async fn create_idp(
     let client_secret = external_sso_config.protocol_config.client_secret.clone();
     let issuer = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}",
-        config.beyond_identity_auth_base_url,
+        tenant_config.auth_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         external_sso_config.id
     );
     let authorization_endpoint = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}/authorize",
-        config.beyond_identity_auth_base_url,
+        tenant_config.auth_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         external_sso_config.id
     );
     let token_endpoint = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}/token",
-        config.beyond_identity_auth_base_url,
+        tenant_config.auth_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         external_sso_config.id
     );
     let jwks_endpoint = format!(
         "{}/v1/tenants/{}/realms/{}/applications/{}/.well-known/jwks.json",
-        config.beyond_identity_auth_base_url,
+        tenant_config.auth_base_url,
         tenant_config.tenant_id,
         tenant_config.realm_id,
         external_sso_config.id
@@ -286,11 +286,12 @@ pub async fn load_okta_identity_provider(config: &Config) -> Result<OktaIdpRespo
 pub async fn create_okta_identity_provider(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
     tenant_config: &TenantConfig,
     external_sso_config: &ExternalSSO,
 ) -> Result<OktaIdpResponse, BiError> {
     let config_path = config.file_paths.okta_identity_provider.clone();
-    let response = create_idp(client, config, tenant_config, external_sso_config).await?;
+    let response = create_idp(client, okta_config, tenant_config, external_sso_config).await?;
     update_application_redirect_uri(
         client,
         config,

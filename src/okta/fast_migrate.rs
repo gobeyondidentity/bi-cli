@@ -2,6 +2,7 @@ use crate::beyond_identity::identities;
 use crate::beyond_identity::sso_configs;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
+use crate::common::config::OktaConfig;
 use crate::common::error::BiError;
 use rand::Rng;
 use reqwest_middleware::ClientWithMiddleware as Client;
@@ -86,14 +87,14 @@ struct OktaUserProfile {
 
 async fn fetch_all_okta_users(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
 ) -> Result<HashMap<String, OktaUser>, BiError> {
     let mut users_map = HashMap::new();
-    let mut url = format!("{}/api/v1/users?limit=200", config.okta_domain);
+    let mut url = format!("{}/api/v1/users?limit=200", okta_config.domain);
     loop {
         let response = client
             .get(&url)
-            .header("Authorization", format!("SSWS {}", config.okta_api_key))
+            .header("Authorization", format!("SSWS {}", okta_config.api_key))
             .send()
             .await?;
 
@@ -126,19 +127,20 @@ async fn fetch_all_okta_users(
 pub async fn fetch_okta_applications(
     client: &Client,
     config: &Config,
+    okta_config: &OktaConfig,
 ) -> Result<Vec<OktaApplication>, BiError> {
     let mut apps = Vec::new();
     let mut url = format!(
         "{}/api/v1/apps?limit=200&filter=status eq \"ACTIVE\"",
-        config.okta_domain
+        okta_config.domain
     );
 
-    let users_map = fetch_all_okta_users(client, config).await?;
+    let users_map = fetch_all_okta_users(client, okta_config).await?;
 
     loop {
         let response = client
             .get(&url)
-            .header("Authorization", format!("SSWS {}", config.okta_api_key))
+            .header("Authorization", format!("SSWS {}", okta_config.api_key))
             .send()
             .await?;
 
@@ -156,7 +158,7 @@ pub async fn fetch_okta_applications(
 
         for app in &mut page_apps {
             log::info!("Fetching assigned users for app: {:?}", app.label);
-            let users = get_users_assigned_to_app(client, config, &app.id, &users_map).await?;
+            let users = get_users_assigned_to_app(client, okta_config, &app.id, &users_map).await?;
             app.embedded = Some(OktaEmbeddedUsers { users });
             let sleep_duration = rand::thread_rng().gen_range(2..=4);
             sleep(Duration::from_secs(sleep_duration)).await;
@@ -210,20 +212,20 @@ pub async fn load_okta_applications(config: &Config) -> Result<Vec<OktaApplicati
 
 async fn get_users_assigned_to_app(
     client: &Client,
-    config: &Config,
+    okta_config: &OktaConfig,
     app_id: &str,
     users_map: &HashMap<String, OktaUser>,
 ) -> Result<Vec<OktaUser>, BiError> {
     let mut all_users = Vec::new();
     let mut url = format!(
         "{}/api/v1/apps/{}/users?limit=450",
-        config.okta_domain, app_id
+        okta_config.domain, app_id
     );
 
     loop {
         let response = client
             .get(&url)
-            .header("Authorization", format!("SSWS {}", config.okta_api_key))
+            .header("Authorization", format!("SSWS {}", okta_config.api_key))
             .send()
             .await?;
 
