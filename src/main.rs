@@ -36,8 +36,12 @@ use log::LevelFilter;
 use std::io::{self, Write};
 
 #[derive(Parser)]
-#[clap(name = "Provision SSO Tenant")]
-#[clap(about = "A CLI tool for setting up an SSO ready Secure Access Tenant", long_about = None)]
+#[clap(
+    name = "bi-cli",
+    about = "A CLI tool for setting up an SSO ready Secure Access Tenant",
+    version = env!("CARGO_PKG_VERSION"), // Dynamically pulls the version from Cargo.toml
+    long_about = None
+)]
 struct Cli {
     #[clap(subcommand)]
     command: Commands,
