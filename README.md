@@ -64,7 +64,13 @@ For Windows users, follow these steps:
 - Go to the Releases page.
 - Download bi-vx.x.x-win-amd64.exe.
 
-2. Add to PATH (Optional but Recommended):
+2. Run bi:
+
+- Open Command Prompt or PowerShell.
+- Change directory to where the executable is located.
+- Type .\bi-vx.x.x-win-amd64.exe to verify the installation.
+
+3. Add to PATH (Optional):
 
 - Move the downloaded .exe file to a preferred directory, e.g., C:\Program Files\bi.
 - Add this directory to your system's PATH:
@@ -75,10 +81,7 @@ For Windows users, follow these steps:
   - Click New and add the path to your bi executable.
   - Click OK to close all dialogs.
 
-3. Run bi:
 
-- Open Command Prompt or PowerShell.
-- Type bi to verify the installation.
 
 ## Usage
 
