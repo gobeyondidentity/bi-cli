@@ -4,9 +4,22 @@ use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{self, Write};
 use url::Url;
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+struct TenantKey {
+    tenant_id: String,
+    realm_id: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
+struct Tenants {
+    default_tenant_key: Option<TenantKey>,
+    tenants: Vec<TenantConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TenantConfig {
     pub tenant_id: String,
     pub realm_id: String,
@@ -23,12 +36,91 @@ struct Claims {
     iss: String, // The issuer field in the JWT
 }
 
+async fn load_tenants(config: &Config) -> Result<Tenants, BiError> {
+    let config_path = config.file_paths.tenants_config.clone();
+    let data = fs::read_to_string(&config_path).map_err(|_| {
+        BiError::ConfigFileNotFound(format!(
+            "Try provisioning a tenant first: {:?}",
+            config_path.clone()
+        ))
+    })?;
+    let tenants: Tenants = serde_json::from_str(&data).map_err(BiError::SerdeError)?;
+    Ok(tenants)
+}
+
+async fn set_default_tenant(
+    config: &Config,
+    tenant_id: &str,
+    realm_id: &str,
+) -> Result<(), BiError> {
+    let mut tenants = load_tenants(config).await?;
+
+    if tenants
+        .tenants
+        .iter()
+        .any(|t| t.tenant_id == tenant_id && t.realm_id == realm_id)
+    {
+        tenants.default_tenant_key = Some(TenantKey {
+            tenant_id: tenant_id.to_string(),
+            realm_id: realm_id.to_string(),
+        });
+
+        // Serialize and save back
+        let serialized = serde_json::to_string_pretty(&tenants).map_err(BiError::SerdeError)?;
+        let config_path = config.file_paths.tenants_config.clone();
+
+        fs::write(&config_path, serialized)
+            .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+
+        Ok(())
+    } else {
+        Err(BiError::StringError("Tenant not found".to_string()))
+    }
+}
+
+async fn delete_tenant(config: &Config, tenant_id: &str, realm_id: &str) -> Result<(), BiError> {
+    let mut tenants = load_tenants(config).await?;
+
+    let original_length = tenants.tenants.len();
+    tenants
+        .tenants
+        .retain(|t| !(t.tenant_id == tenant_id && t.realm_id == realm_id));
+
+    if tenants.tenants.len() == original_length {
+        return Err(BiError::StringError("Tenant not found".to_string()));
+    }
+
+    // If the deleted tenant was the default, update default_tenant_key
+    if let Some(default_key) = &tenants.default_tenant_key {
+        if default_key.tenant_id == tenant_id && default_key.realm_id == realm_id {
+            tenants.default_tenant_key = tenants.tenants.first().map(|t| TenantKey {
+                tenant_id: t.tenant_id.clone(),
+                realm_id: t.realm_id.clone(),
+            });
+        }
+    }
+
+    // Serialize and save back
+    let serialized = serde_json::to_string_pretty(&tenants).map_err(BiError::SerdeError)?;
+    let config_path = config.file_paths.tenants_config.clone();
+
+    fs::write(&config_path, serialized)
+        .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+
+    Ok(())
+}
+
 pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
-    let config_path = config.file_paths.tenant_config.clone();
-    let data = fs::read_to_string(&config_path)
-        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
-    let tenant_config: TenantConfig = serde_json::from_str(&data).map_err(BiError::SerdeError)?;
-    Ok(tenant_config)
+    let tenants = load_tenants(config).await?;
+    if let Some(default_key) = tenants.default_tenant_key {
+        tenants
+            .tenants
+            .into_iter()
+            .find(|t| t.tenant_id == default_key.tenant_id && t.realm_id == default_key.realm_id)
+            .ok_or_else(|| BiError::StringError("Default tenant not found".to_string()))
+    } else {
+        Err(BiError::StringError("No default tenant set".to_string()))
+    }
 }
 
 pub async fn provision_tenant(
@@ -102,8 +194,8 @@ pub async fn provision_tenant(
 
     // Create the tenant configuration
     let tenant_config = TenantConfig {
-        tenant_id,
-        realm_id,
+        tenant_id: tenant_id.clone(),
+        realm_id: realm_id.clone(),
         application_id,
         client_id,
         client_secret,
@@ -112,17 +204,39 @@ pub async fn provision_tenant(
         auth_base_url,
     };
 
-    // Serialize the tenant configuration to JSON
-    let serialized = serde_json::to_string_pretty(&tenant_config).map_err(BiError::SerdeError)?;
+    // Load existing tenants
+    let mut tenants = match load_tenants(config).await {
+        Ok(tenants) => tenants,
+        Err(_) => Tenants {
+            default_tenant_key: None,
+            tenants: Vec::new(),
+        },
+    };
 
-    // Ensure the configuration directory exists
-    let config_path = config.file_paths.tenant_config.clone();
-    let config_dir = std::path::Path::new(&config_path)
-        .parent()
-        .ok_or_else(|| BiError::UnableToWriteFile(config_path.clone()))?;
-    fs::create_dir_all(config_dir).map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
+    // Ensure tenant_key is unique
+    if tenants
+        .tenants
+        .iter()
+        .any(|t| t.tenant_id == tenant_id && t.realm_id == realm_id)
+    {
+        return Err(BiError::StringError("Tenant already exists".to_string()));
+    }
 
-    // Write the JSON payload to the specified tenant_config path
+    // Add the new tenant to the list
+    tenants.tenants.push(tenant_config.clone());
+
+    // Set default tenant if none
+    if tenants.default_tenant_key.is_none() {
+        tenants.default_tenant_key = Some(TenantKey {
+            tenant_id,
+            realm_id,
+        });
+    }
+
+    // Serialize the tenants and save back
+    let serialized = serde_json::to_string_pretty(&tenants).map_err(BiError::SerdeError)?;
+    let config_path = config.file_paths.tenants_config.clone();
+
     fs::write(&config_path, serialized)
         .map_err(|_| BiError::UnableToWriteFile(config_path.clone()))?;
 
@@ -212,4 +326,113 @@ async fn get_management_api_application(
     Err(BiError::StringError(
         "Management API application not found".to_string(),
     ))
+}
+
+pub async fn list_tenants_ui(config: &Config) -> Result<(), BiError> {
+    // List Tenants
+    let tenants = load_tenants(config).await?;
+    if tenants.tenants.is_empty() {
+        println!("No tenants found.");
+    } else {
+        println!("List of Tenants:");
+        for (index, tenant) in tenants.tenants.iter().enumerate() {
+            let default_marker = if Some(TenantKey {
+                tenant_id: tenant.tenant_id.clone(),
+                realm_id: tenant.realm_id.clone(),
+            }) == tenants.default_tenant_key
+            {
+                "(Default)"
+            } else {
+                ""
+            };
+            println!(
+                "{}: Tenant ID: {}, Realm ID: {} {}",
+                index + 1,
+                tenant.tenant_id,
+                tenant.realm_id,
+                default_marker
+            );
+        }
+    }
+    Ok(())
+}
+
+pub async fn delete_tenant_ui(config: &Config) -> Result<(), BiError> {
+    let tenants = load_tenants(config).await?;
+    if tenants.tenants.is_empty() {
+        println!("No tenants to delete.");
+        return Ok(());
+    }
+
+    println!("Select a tenant to delete:");
+    for (index, tenant) in tenants.tenants.iter().enumerate() {
+        println!(
+            "{}: Tenant ID: {}, Realm ID: {}",
+            index + 1,
+            tenant.tenant_id,
+            tenant.realm_id
+        );
+    }
+
+    print!("Enter the number of the tenant to delete: ");
+    io::stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let input = input.trim().parse::<usize>();
+
+    match input {
+        Ok(num) if num > 0 && num <= tenants.tenants.len() => {
+            let tenant = &tenants.tenants[num - 1];
+            match delete_tenant(config, &tenant.tenant_id, &tenant.realm_id).await {
+                Ok(_) => println!(
+                    "Tenant with Tenant ID: {}, Realm ID: {} deleted.",
+                    tenant.tenant_id, tenant.realm_id
+                ),
+                Err(e) => println!("Error deleting tenant: {}", e),
+            }
+        }
+        _ => println!("Invalid selection."),
+    }
+
+    Ok(())
+}
+
+pub async fn set_default_tenant_ui(config: &Config) -> Result<(), BiError> {
+    let tenants = load_tenants(config).await?;
+    if tenants.tenants.is_empty() {
+        println!("No tenants available to set as default.");
+        return Ok(());
+    }
+
+    println!("Select a tenant to set as default:");
+    for (index, tenant) in tenants.tenants.iter().enumerate() {
+        println!(
+            "{}: Tenant ID: {}, Realm ID: {}",
+            index + 1,
+            tenant.tenant_id,
+            tenant.realm_id
+        );
+    }
+
+    print!("Enter the number of the tenant to set as default: ");
+    io::stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let input = input.trim().parse::<usize>();
+
+    match input {
+        Ok(num) if num > 0 && num <= tenants.tenants.len() => {
+            let tenant = &tenants.tenants[num - 1];
+            match set_default_tenant(config, &tenant.tenant_id, &tenant.realm_id).await {
+                Ok(_) => println!(
+                    "Tenant with Tenant ID: {}, Realm ID: {} set as default.",
+                    tenant.tenant_id, tenant.realm_id
+                ),
+                Err(e) => println!("Error setting default tenant: {}", e),
+            }
+        }
+        _ => println!("Invalid selection."),
+    }
+
+    Ok(())
 }

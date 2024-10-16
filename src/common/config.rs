@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct FilePaths {
-    pub tenant_config: String,
+    pub tenants_config: String,
     pub bi_scim_app_config: String,
     pub okta_scim_app_config: String,
     pub external_sso_config: String,
@@ -40,7 +40,7 @@ impl FilePaths {
         }
 
         Self {
-            tenant_config: path_to_string(configs_dir.join("tenant_config.json")),
+            tenants_config: path_to_string(configs_dir.join("tenants_config.json")),
             bi_scim_app_config: path_to_string(configs_dir.join("bi_scim_application.json")),
             okta_scim_app_config: path_to_string(configs_dir.join("okta_scim_application.json")),
             external_sso_config: path_to_string(configs_dir.join("external_sso.json")),

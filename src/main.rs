@@ -16,7 +16,9 @@ use beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
 use beyond_identity::roles::delete_role_memberships;
 use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use beyond_identity::sso_configs::delete_all_sso_configs;
-use beyond_identity::tenant::{load_tenant, provision_tenant};
+use beyond_identity::tenant::{
+    delete_tenant_ui, list_tenants_ui, load_tenant, provision_tenant, set_default_tenant_ui,
+};
 
 use common::http::new_http_client_for_api;
 use okta::fast_migrate::{
@@ -58,10 +60,27 @@ enum Commands {
     Onelogin(OneloginCommands),
 }
 
+/// Enum representing the actions that can be performed in the Setup command.
+#[derive(Subcommand)]
+enum SetupAction {
+    /// Provisions an existing tenant using the given API token.
+    ProvisionTenant { token: String },
+
+    /// Lists all provisioned tenants.
+    ListTenants,
+
+    /// Update which tenant is the default one.
+    SetDefaultTenant,
+
+    /// Delete any provisioned tenants.
+    DeleteTenant,
+}
+
 #[derive(Subcommand)]
 enum BeyondIdentityCommands {
     /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
-    Setup { token: String },
+    #[clap(subcommand)]
+    Setup(SetupAction),
 
     /// Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
     CreateScimApp {
@@ -171,22 +190,33 @@ async fn main() {
                         .expect("Failed to create admin account");
                 println!("Created identity with id={}", identity.id);
             }
-            BeyondIdentityCommands::Setup { token } => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                match load_tenant(&config).await {
-                    Ok(tenant_config) => {
-                        println!(
-                            "Tenant already exists: {}",
-                            serde_json::to_string_pretty(&tenant_config).unwrap()
-                        );
-                        tenant_config
-                    }
-                    Err(_) => provision_tenant(&client, &config, token)
+            BeyondIdentityCommands::Setup(action) => match action {
+                SetupAction::ProvisionTenant { token } => {
+                    let config = Config::new();
+                    let client = new_http_client_for_api();
+                    _ = provision_tenant(&client, &config, token)
                         .await
-                        .expect("Failed to provision existing tenant"),
-                };
-            }
+                        .expect("Failed to provision existing tenant");
+                }
+                SetupAction::ListTenants => {
+                    let config = Config::new();
+                    list_tenants_ui(&config)
+                        .await
+                        .expect("Failed to list tenants");
+                }
+                SetupAction::SetDefaultTenant => {
+                    let config = Config::new();
+                    set_default_tenant_ui(&config)
+                        .await
+                        .expect("Failed to set default tenant");
+                }
+                SetupAction::DeleteTenant => {
+                    let config = Config::new();
+                    delete_tenant_ui(&config)
+                        .await
+                        .expect("Failed to delete tenant");
+                }
+            },
             BeyondIdentityCommands::CreateScimApp {
                 okta_registration_sync_attribute,
             } => {
