@@ -11,7 +11,10 @@ use beyond_identity::enrollment::{
 };
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
 use beyond_identity::groups::delete_group_memberships;
-use beyond_identity::identities::{delete_identity, Identity};
+use beyond_identity::identities::{
+    delete_all_identities, delete_identity, delete_norole_identities, delete_unenrolled_identities,
+    Identity,
+};
 use beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
 use beyond_identity::roles::delete_role_memberships;
 use beyond_identity::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
@@ -30,7 +33,7 @@ use okta::registration_attribute::{create_custom_attribute, load_custom_attribut
 use okta::routing_rule::{create_okta_routing_rule, load_okta_routing_rule};
 use okta::scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 
-use clap::{Parser, Subcommand};
+use clap::{ArgGroup, Parser, Subcommand};
 use common::config::{Config, OktaConfig, OneloginConfig};
 use log::LevelFilter;
 use std::io::{self, Write};
@@ -103,7 +106,21 @@ enum BeyondIdentityCommands {
 
     /// Deletes all identities from a realm in case you want to set them up from scratch.
     /// The identities are unassigned from roles and groups automatically.
-    DeleteAllIdentities,
+    #[command(group = ArgGroup::new("delete_option").required(true).multiple(false))]
+    DeleteAllIdentities {
+        #[arg(long, group = "delete_option")]
+        all: bool,
+
+        #[arg(long, group = "delete_option")]
+        norole: bool,
+
+        #[arg(long, group = "delete_option")]
+        unenrolled: bool,
+
+        /// Skip validation when deleting identities.
+        #[arg(long)]
+        force: bool,
+    },
 
     /// Get bearer token
     GetToken,
@@ -356,36 +373,53 @@ async fn main() {
                     .await
                     .expect("Failed to delete all SSO Configs");
             }
-            BeyondIdentityCommands::DeleteAllIdentities => {
+            BeyondIdentityCommands::DeleteAllIdentities {
+                all,
+                norole,
+                unenrolled,
+                force,
+            } => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
 
-                println!("Select identities to review before deleting ('all' for all identities, 'unenrolled' for identities who have not completed the enrollment email process, 'norole' for identities without roles):");
-
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).unwrap();
-                let input = input.trim();
+                if *force {
+                    if *all {
+                        delete_all_identities(&client, &config, &tenant_config)
+                            .await
+                            .expect("Failed to delete all identities");
+                    } else if *unenrolled {
+                        delete_unenrolled_identities(&client, &config, &tenant_config)
+                            .await
+                            .expect("Failed to delete unenrolled identities");
+                    } else if *norole {
+                        delete_norole_identities(&client, &config, &tenant_config)
+                            .await
+                            .expect("Failed to delete norole identities");
+                    }
+                    return;
+                }
 
                 let mut identities = vec![];
-                if input == "all" {
+                if *all {
                     identities = get_all_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch all identities");
-                }
-
-                if input == "unenrolled" {
+                } else if *unenrolled {
                     identities = get_unenrolled_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
-                }
-
-                if input == "norole" {
+                } else if *norole {
                     identities = get_identities_without_role(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
+                }
+
+                if identities.len() == 0 {
+                    println!("No identities found.");
+                    return;
                 }
 
                 let selected_identities = select_identities(&identities);
