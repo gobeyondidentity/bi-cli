@@ -63,7 +63,7 @@ pub async fn delete_role_memberships(
             return Err(BiError::RequestError(status, error_text));
         }
 
-        println!("Unassigned {} from {}", identity_id, role.id);
+        println!("Unassigned identity {} from role {}", identity_id, role.id);
     }
     Ok(())
 }

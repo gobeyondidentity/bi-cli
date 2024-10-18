@@ -172,7 +172,7 @@ pub async fn delete_all_identities(
                 .await
                 .expect("Failed to delete identity");
 
-            println!("Deleted Identity: {}", identity.id);
+            println!("Deleted identity {}", identity.id);
         }
 
         if let Some(next_page_token) = response_json
@@ -259,7 +259,7 @@ pub async fn delete_unenrolled_identities(
                     .await
                     .expect("Failed to delete identity");
 
-                println!("Deleted Identity: {}", identity.id);
+                println!("Deleted identity {}", identity.id);
             }
         }
 
@@ -350,7 +350,7 @@ pub async fn delete_norole_identities(
                     .await
                     .expect("Failed to delete identity");
 
-                println!("Deleted Identity: {}", identity.id);
+                println!("Deleted identity {}", identity.id);
             }
         }
 
