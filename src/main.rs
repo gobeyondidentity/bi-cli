@@ -36,7 +36,6 @@ use okta::scim::{create_scim_app_in_okta, load_scim_app_in_okta};
 use clap::{ArgGroup, Parser, Subcommand};
 use common::config::{Config, OktaConfig, OneloginConfig};
 use log::LevelFilter;
-use std::io::{self, Write};
 
 #[derive(Parser)]
 #[clap(
@@ -126,7 +125,14 @@ enum BeyondIdentityCommands {
     GetToken,
 
     /// Helps you send enrollment emails to one or more (or all) users in Beyond Identity.
-    SendEnrollmentEmail,
+    #[command(group = ArgGroup::new("delete_option").required(true).multiple(false))]
+    SendEnrollmentEmail {
+        #[arg(long, group = "delete_option")]
+        all: bool,
+
+        #[arg(long, group = "delete_option")]
+        unenrolled: bool,
+    },
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
     DeleteAllSSOConfigs,
@@ -292,31 +298,22 @@ async fn main() {
                     serde_json::to_string_pretty(&external_sso).unwrap()
                 );
             }
-            BeyondIdentityCommands::SendEnrollmentEmail => {
+            BeyondIdentityCommands::SendEnrollmentEmail { all, unenrolled } => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
 
-                println!("Select identities to review before sending enrollment email ('all' for all identities, 'unenrolled' for identities who have not completed the enrollment email process):");
-
-                print!("Your selection: ");
-                io::stdout().flush().unwrap();
-
-                let mut input = String::new();
-                io::stdin().read_line(&mut input).unwrap();
-                let input = input.trim();
-
                 let mut identities: Vec<Identity> = Vec::new();
 
-                if input == "all" {
+                if *all {
                     identities = get_all_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch all identities");
                 }
 
-                if input == "unenrolled" {
+                if *unenrolled {
                     identities = get_unenrolled_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
@@ -390,11 +387,15 @@ async fn main() {
                         delete_all_identities(&client, &config, &tenant_config)
                             .await
                             .expect("Failed to delete all identities");
-                    } else if *unenrolled {
+                    }
+
+                    if *unenrolled {
                         delete_unenrolled_identities(&client, &config, &tenant_config)
                             .await
                             .expect("Failed to delete unenrolled identities");
-                    } else if *norole {
+                    }
+
+                    if *norole {
                         delete_norole_identities(&client, &config, &tenant_config)
                             .await
                             .expect("Failed to delete norole identities");
@@ -403,15 +404,20 @@ async fn main() {
                 }
 
                 let mut identities = vec![];
+
                 if *all {
                     identities = get_all_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch all identities");
-                } else if *unenrolled {
+                }
+
+                if *unenrolled {
                     identities = get_unenrolled_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
-                } else if *norole {
+                }
+
+                if *norole {
                     identities = get_identities_without_role(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
@@ -450,6 +456,7 @@ async fn main() {
                     delete_identity(&client, &config, &tenant_config, &identity.id)
                         .await
                         .expect("Failed to delete identity");
+                    println!("Deleted identity {}", identity.id);
                 }
             }
             BeyondIdentityCommands::GetToken => {

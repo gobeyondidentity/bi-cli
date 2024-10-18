@@ -49,7 +49,7 @@ pub async fn delete_group_memberships(
             return Err(BiError::RequestError(status, error_text));
         }
 
-        println!("Deleted identity {} from group {}", identity_id, group.id);
+        println!("Unassigned identity {} from group {}", identity_id, group.id);
     }
     Ok(())
 }
