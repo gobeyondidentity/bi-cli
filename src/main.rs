@@ -4,6 +4,7 @@ mod okta;
 mod onelogin;
 
 use beyond_identity::admin::{create_admin_account, get_identities_without_role};
+use beyond_identity::api::identities;
 use beyond_identity::api_token::get_beyond_identity_api_token;
 use beyond_identity::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
@@ -55,9 +56,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Commands related to Beyond Identity
+    /// Commands related to Beyond Identity API
     #[clap(subcommand)]
-    Api(BeyondIdentityCommands),
+    Api(BeyondIdentityApiCommands),
+
+    /// Commands related to Beyond Identity API helper functions
+    #[clap(subcommand)]
+    Helper(BeyondIdentityHelperCommands),
 
     /// Commands related to Okta
     #[clap(subcommand)]
@@ -66,6 +71,13 @@ enum Commands {
     /// Commands related to OneLogin
     #[clap(subcommand)]
     Onelogin(OneloginCommands),
+}
+
+#[derive(Subcommand)]
+enum BeyondIdentityApiCommands {
+    /// Direct API calls for identities
+    #[clap(subcommand)]
+    Identities(identities::types::IdentityCommands),
 }
 
 /// Enum representing the actions that can be performed in the Setup command.
@@ -85,7 +97,7 @@ enum SetupAction {
 }
 
 #[derive(Subcommand)]
-enum BeyondIdentityCommands {
+enum BeyondIdentityHelperCommands {
     /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
     #[clap(subcommand)]
     Setup(SetupAction),
@@ -199,8 +211,6 @@ enum OneloginCommands {
 
 #[tokio::main]
 async fn main() {
-    println!("\x1b[31mWARNING: This tool is in alpha. Expect breaking changes.\x1b[0m\n");
-
     let cli = Cli::parse();
 
     let log_level = match cli.log_level.as_deref() {
@@ -220,8 +230,26 @@ async fn main() {
     env_logger::Builder::new().filter(None, log_level).init();
 
     match &cli.command {
-        Commands::Api(cmd) => match cmd {
-            BeyondIdentityCommands::CreateAdminAccount { email } => {
+        Commands::Api(cmd) => {
+            let config = Config::new();
+            let client = new_http_client_for_api();
+            let tenant_config = load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            );
+            match cmd {
+                BeyondIdentityApiCommands::Identities(cmd) => match cmd {
+                    identities::types::IdentityCommands::Create(cmd) => {
+                        cmd.clone()
+                            .execute(&client, &config, &tenant_config)
+                            .await
+                            .map(|i| println!("{}", serde_json::to_string_pretty(&i).unwrap()))
+                            .expect("Identity creation failed");
+                    }
+                },
+            }
+        }
+        Commands::Helper(cmd) => match cmd {
+            BeyondIdentityHelperCommands::CreateAdminAccount { email } => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
@@ -233,7 +261,7 @@ async fn main() {
                         .expect("Failed to create admin account");
                 println!("Created identity with id={}", identity.id);
             }
-            BeyondIdentityCommands::Setup(action) => match action {
+            BeyondIdentityHelperCommands::Setup(action) => match action {
                 SetupAction::ProvisionTenant { token } => {
                     let config = Config::new();
                     let client = new_http_client_for_api();
@@ -260,7 +288,7 @@ async fn main() {
                         .expect("Failed to delete tenant");
                 }
             },
-            BeyondIdentityCommands::CreateScimApp {
+            BeyondIdentityHelperCommands::CreateScimApp {
                 okta_registration_sync_attribute,
             } => {
                 let config = Config::new();
@@ -286,7 +314,7 @@ async fn main() {
                     serde_json::to_string_pretty(&bi_scim_app).unwrap()
                 );
             }
-            BeyondIdentityCommands::CreateExternalSSOConnection => {
+            BeyondIdentityHelperCommands::CreateExternalSSOConnection => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
@@ -379,7 +407,7 @@ async fn main() {
                     }
                 }
             }
-            BeyondIdentityCommands::DeleteAllSSOConfigs => {
+            BeyondIdentityHelperCommands::DeleteAllSSOConfigs => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
@@ -390,7 +418,7 @@ async fn main() {
                     .await
                     .expect("Failed to delete all SSO Configs");
             }
-            BeyondIdentityCommands::DeleteAllIdentities {
+            BeyondIdentityHelperCommands::DeleteAllIdentities {
                 all,
                 norole,
                 unenrolled,
@@ -479,7 +507,7 @@ async fn main() {
                     println!("Deleted identity {}", identity.id);
                 }
             }
-            BeyondIdentityCommands::GetToken => {
+            BeyondIdentityHelperCommands::GetToken => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
@@ -490,7 +518,7 @@ async fn main() {
                     .expect("missing");
                 println!("TOKEN: {}", token);
             }
-            BeyondIdentityCommands::ReviewUnenrolled => {
+            BeyondIdentityHelperCommands::ReviewUnenrolled => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(

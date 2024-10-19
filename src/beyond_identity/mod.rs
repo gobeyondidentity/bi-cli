@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod api;
 pub mod api_token;
 pub mod enrollment;
 pub mod external_sso;
