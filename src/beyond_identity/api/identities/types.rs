@@ -1,4 +1,6 @@
-use super::{create::Create, delete::Delete, get::Get, list::List, patch::Patch};
+use super::{
+    create::Create, delete::Delete, get::Get, list::List, list_groups::ListGroups, patch::Patch,
+};
 use crate::{
     beyond_identity::{api::utils::command::execute_and_serialize, tenant::TenantConfig},
     common::{config::Config, error::BiError},
@@ -141,6 +143,7 @@ pub enum IdentityCommands {
     Get(Get),
     Patch(Patch),
     Delete(Delete),
+    ListGroups(ListGroups),
 }
 
 impl IdentityCommands {
@@ -164,6 +167,9 @@ impl IdentityCommands {
                 execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
             }
             IdentityCommands::Delete(cmd) => {
+                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+            }
+            IdentityCommands::ListGroups(cmd) => {
                 execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
             }
         }
