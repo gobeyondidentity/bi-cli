@@ -19,6 +19,16 @@ where
     T: Serialize,
     U: DeserializeOwned,
 {
+    log::debug!(
+        "Sending request: method = {:?}, url = {}, body = {:?}",
+        method,
+        url,
+        body.map(
+            |b| serde_json::to_string(b).unwrap_or_else(|_| "<serialization error>".to_string())
+        )
+        .unwrap_or_else(|| "None".to_string())
+    );
+
     let mut request_builder = client.request(method, url).header(
         "Authorization",
         format!(
@@ -33,12 +43,19 @@ where
 
     let response = request_builder.send().await?;
     let status = response.status();
+    let response_text = response.text().await?;
+
+    log::debug!(
+        "Received response: status = {}, text = {}",
+        status,
+        response_text
+    );
+
     if !status.is_success() {
-        let error_text = response.text().await?;
-        return Err(BiError::RequestError(status, error_text));
+        return Err(BiError::RequestError(status, response_text));
     }
 
-    let response_body: U = response.json().await?;
+    let response_body: U = serde_json::from_str(&response_text)?;
     Ok(response_body)
 }
 
@@ -48,8 +65,8 @@ pub async fn send_request_paginated<T, U>(
     tenant_config: &TenantConfig,
     method: Method,
     url: &str,
-    page_size: Option<u32>,
     body: Option<&T>,
+    items_key: &str,
 ) -> Result<Vec<U>, BiError>
 where
     T: Serialize,
@@ -63,10 +80,8 @@ where
         let mut full_url = url.to_string();
         let mut query_params = vec![];
 
-        // Add page size if provided
-        if let Some(size) = page_size {
-            query_params.push(format!("page_size={}", size));
-        }
+        // Default to maximum page size (this is likely higher than what the server accepts)
+        query_params.push(format!("page_size={}", 500));
 
         // Add next_page_token if available
         if let Some(ref token) = next_page_token {
@@ -83,6 +98,15 @@ where
             }
         }
 
+        log::debug!(
+            "Sending paginated request: method = {:?}, url = {}, body = {:?}",
+            method,
+            full_url,
+            body.map(|b| serde_json::to_string(b)
+                .unwrap_or_else(|_| "<serialization error>".to_string()))
+                .unwrap_or_else(|| "None".to_string())
+        );
+
         let mut request_builder = client.request(method.clone(), &full_url).header(
             "Authorization",
             format!(
@@ -97,14 +121,21 @@ where
 
         let response = request_builder.send().await?;
         let status = response.status();
+        let response_text = response.text().await?;
+
+        log::debug!(
+            "Received paginated response: status = {}, text = {}",
+            status,
+            response_text
+        );
+
         if !status.is_success() {
-            let error_text = response.text().await?;
-            return Err(BiError::RequestError(status, error_text));
+            return Err(BiError::RequestError(status, response_text));
         }
 
         // Deserialize the response
-        let response_json: serde_json::Value = response.json().await?;
-        if let Some(items) = response_json.get("items") {
+        let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
+        if let Some(items) = response_json.get(items_key) {
             let mut page_results: Vec<U> = serde_json::from_value(items.clone())?;
             final_results.append(&mut page_results);
         }

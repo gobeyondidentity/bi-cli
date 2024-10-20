@@ -237,15 +237,11 @@ async fn main() {
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
             match cmd {
-                BeyondIdentityApiCommands::Identities(cmd) => match cmd {
-                    identities::types::IdentityCommands::Create(cmd) => {
-                        cmd.clone()
-                            .execute(&client, &config, &tenant_config)
-                            .await
-                            .map(|i| println!("{}", serde_json::to_string_pretty(&i).unwrap()))
-                            .expect("Identity creation failed");
-                    }
-                },
+                BeyondIdentityApiCommands::Identities(cmd) => {
+                    cmd.execute(&client, &config, &tenant_config)
+                        .await
+                        .expect("Failed to execute identity command");
+                }
             }
         }
         Commands::Helper(cmd) => match cmd {

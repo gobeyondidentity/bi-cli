@@ -1,7 +1,6 @@
-use super::types::{Identity, IdentityDetails, Traits};
-use crate::beyond_identity::api::utils::request::send_request;
+use super::types::{Identity, PatchIdentityDetails};
 use crate::{
-    beyond_identity::tenant::TenantConfig,
+    beyond_identity::{api::utils::request::send_request, tenant::TenantConfig},
     common::{config::Config, error::BiError},
 };
 use clap::Args;
@@ -14,36 +13,34 @@ use serde::Serialize;
 // ===============================
 
 #[derive(Clone, Debug, Serialize)]
-struct CreateIdentityRequest {
-    identity: IdentityRequest,
-}
-
-#[derive(Clone, Debug, Serialize)]
-struct IdentityRequest {
-    display_name: String,
-    traits: Traits,
+struct PatchIdentityRequest {
+    identity: PatchIdentityDetails,
 }
 
 // ===============================
 // API Function
 // ===============================
 
-async fn create_identity(
+async fn patch_identity(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-    identity_request: &CreateIdentityRequest,
+    identity_id: &str,
+    patch_request: &PatchIdentityRequest,
 ) -> Result<Identity, BiError> {
     send_request(
         client,
         config,
         tenant_config,
-        Method::POST,
+        Method::PATCH,
         &format!(
-            "{}/v1/tenants/{}/realms/{}/identities",
-            tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+            "{}/v1/tenants/{}/realms/{}/identities/{}",
+            tenant_config.api_base_url,
+            tenant_config.tenant_id,
+            tenant_config.realm_id,
+            identity_id
         ),
-        Some(identity_request),
+        Some(patch_request),
     )
     .await
     .map(|details| Identity { identity: details })
@@ -54,25 +51,37 @@ async fn create_identity(
 // ===============================
 
 #[derive(Args, Debug, Clone)]
-pub struct Create {
+pub struct Patch {
+    /// The ID of the identity to patch
+    #[clap(long)]
+    pub identity_id: String,
+
     #[clap(flatten)]
-    pub identity_details: IdentityDetails,
+    pub identity_details: PatchIdentityDetails,
 }
 
-impl Create {
+impl Patch {
     pub async fn execute(
         self,
         client: &Client,
         config: &Config,
         tenant_config: &TenantConfig,
     ) -> Result<Identity, BiError> {
-        let create_request = CreateIdentityRequest {
-            identity: IdentityRequest {
+        let patch_request = PatchIdentityRequest {
+            identity: PatchIdentityDetails {
                 display_name: self.identity_details.display_name,
+                status: self.identity_details.status,
                 traits: self.identity_details.traits,
             },
         };
 
-        create_identity(client, config, tenant_config, &create_request).await
+        patch_identity(
+            client,
+            config,
+            tenant_config,
+            &self.identity_id,
+            &patch_request,
+        )
+        .await
     }
 }
