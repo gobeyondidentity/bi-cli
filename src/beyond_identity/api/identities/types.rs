@@ -1,9 +1,6 @@
 use super::{create::Create, delete::Delete, get::Get, list::List, patch::Patch};
 use crate::{
-    beyond_identity::{
-        api::utils::{command::execute_and_serialize, filter::FilterField},
-        tenant::TenantConfig,
-    },
+    beyond_identity::{api::utils::command::execute_and_serialize, tenant::TenantConfig},
     common::{config::Config, error::BiError},
 };
 use clap::{Args, Subcommand, ValueEnum};
@@ -132,8 +129,6 @@ pub enum IdentityFilterField {
     #[strum(serialize = "traits.primary_email_address")]
     PrimaryEmailAddress,
 }
-
-impl FilterField for IdentityFilterField {}
 
 // ====================================
 // Commands for Managing Identities

@@ -18,7 +18,7 @@ async fn list_identities(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
-    filter: Option<Filter<IdentityFilterField>>,
+    filter: Option<Filter>,
 ) -> Result<Identities, BiError> {
     let base_url = format!(
         "{}/v1/tenants/{}/realms/{}/identities",
@@ -26,7 +26,7 @@ async fn list_identities(
     );
 
     let url = match filter {
-        Some(f) => format!("{}?filter={}", base_url, f.to_string()),
+        Some(f) => format!("{}?filter={}", base_url, f.encoded),
         None => base_url,
     };
 
@@ -58,19 +58,18 @@ pub struct List {
 }
 
 impl List {
-    fn parse_filter(&self) -> Result<Option<Filter<IdentityFilterField>>, BiError> {
-        Filter::parse_with_field_parser(self.filter.as_deref(), |field_str| {
-            IdentityFilterField::from_str(field_str).ok()
-        })
-    }
-
     pub async fn execute(
         self,
         client: &Client,
         config: &Config,
         tenant_config: &TenantConfig,
     ) -> Result<Identities, BiError> {
-        let filter = self.parse_filter()?;
-        list_identities(client, config, tenant_config, filter).await
+        list_identities(
+            client,
+            config,
+            tenant_config,
+            Filter::parse_with_fields(self.filter, IdentityFilterField::from_str)?,
+        )
+        .await
     }
 }
