@@ -2,32 +2,35 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Group Structures and Types
+// Role Structures and Types
 // ====================================
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Groups {
-    pub groups: Vec<GroupDetails>,
+pub struct Roles {
+    pub roles: Vec<RoleDetails>,
     pub total_size: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Group {
-    pub group: GroupDetails,
+pub struct Role {
+    pub role: RoleDetails,
 }
 
 #[derive(Args, Clone, Debug, Serialize, Deserialize)]
-pub struct GroupDetails {
+pub struct RoleDetails {
     #[clap(skip)]
     pub id: String,
+    /// (required) A unique identifier for a resource server.
+    #[clap(long)]
+    pub resource_server_id: String,
     #[clap(skip)]
     pub realm_id: String,
     #[clap(skip)]
     pub tenant_id: String,
-    /// (required) The display name of the group.
+    /// (required) The display name of the role.
     #[clap(long)]
     pub display_name: String,
-    /// (required) A free-form text field to describe a group.
+    /// (required) A free-form text field to describe a role.
     #[clap(long)]
     pub description: String,
     #[clap(skip)]
