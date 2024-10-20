@@ -238,9 +238,11 @@ async fn main() {
             );
             match cmd {
                 BeyondIdentityApiCommands::Identities(cmd) => {
-                    cmd.execute(&client, &config, &tenant_config)
+                    let result = cmd
+                        .execute(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to execute identity command");
+                    println!("{}", result);
                 }
             }
         }

@@ -54,7 +54,7 @@ async fn patch_identity(
 pub struct Patch {
     /// The ID of the identity to patch
     #[clap(long)]
-    pub identity_id: String,
+    pub id: String,
 
     #[clap(flatten)]
     pub identity_details: PatchIdentityDetails,
@@ -75,13 +75,6 @@ impl Patch {
             },
         };
 
-        patch_identity(
-            client,
-            config,
-            tenant_config,
-            &self.identity_id,
-            &patch_request,
-        )
-        .await
+        patch_identity(client, config, tenant_config, &self.id, &patch_request).await
     }
 }

@@ -1,6 +1,9 @@
-use super::{create::Create, get::Get, list::List, patch::Patch};
+use super::{create::Create, delete::Delete, get::Get, list::List, patch::Patch};
 use crate::{
-    beyond_identity::{api::utils::filter::FilterField, tenant::TenantConfig},
+    beyond_identity::{
+        api::utils::{command::execute_and_serialize, filter::FilterField},
+        tenant::TenantConfig,
+    },
     common::{config::Config, error::BiError},
 };
 use clap::{Args, Subcommand, ValueEnum};
@@ -15,6 +18,7 @@ use strum_macros::{Display, EnumString};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Identities {
     pub identities: Vec<IdentityDetails>,
+    pub total_size: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -141,6 +145,7 @@ pub enum IdentityCommands {
     List(List),
     Get(Get),
     Patch(Patch),
+    Delete(Delete),
 }
 
 impl IdentityCommands {
@@ -149,35 +154,23 @@ impl IdentityCommands {
         client: &Client,
         config: &Config,
         tenant_config: &TenantConfig,
-    ) -> Result<(), BiError> {
-        let res = match self {
+    ) -> Result<String, BiError> {
+        match self {
             IdentityCommands::Create(cmd) => {
-                cmd.clone()
-                    .execute(client, config, tenant_config)
-                    .await
-                    .and_then(|res| serde_json::to_value(res).map_err(BiError::from))?;
+                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
             }
             IdentityCommands::List(cmd) => {
-                cmd.clone()
-                    .execute(client, config, tenant_config)
-                    .await
-                    .and_then(|res| serde_json::to_value(res).map_err(BiError::from))?;
+                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
             }
             IdentityCommands::Get(cmd) => {
-                cmd.clone()
-                    .execute(client, config, tenant_config)
-                    .await
-                    .and_then(|res| serde_json::to_value(res).map_err(BiError::from))?;
+                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
             }
             IdentityCommands::Patch(cmd) => {
-                cmd.clone()
-                    .execute(client, config, tenant_config)
-                    .await
-                    .and_then(|res| serde_json::to_value(res).map_err(BiError::from))?;
+                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
             }
-        };
-
-        println!("{}", serde_json::to_string_pretty(&res)?);
-        Ok(())
+            IdentityCommands::Delete(cmd) => {
+                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+            }
+        }
     }
 }

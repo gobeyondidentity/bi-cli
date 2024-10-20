@@ -41,7 +41,10 @@ async fn list_identities(
     )
     .await?;
 
-    Ok(Identities { identities })
+    Ok(Identities {
+        identities: identities.clone(),
+        total_size: identities.len(),
+    })
 }
 
 // ===============================
