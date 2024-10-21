@@ -6,6 +6,8 @@ use crate::{
     common::{config::Config, error::BiError},
 };
 use clap::Args;
+use convert_case::{Case, Casing};
+use function_name::named;
 use http::Method;
 use reqwest_middleware::ClientWithMiddleware as Client;
 
@@ -15,6 +17,7 @@ use super::types::IdentitiesFieldName;
 // API Function
 // ===============================
 
+#[named]
 async fn list_groups(
     client: &Client,
     config: &Config,
@@ -26,7 +29,7 @@ async fn list_groups(
         .add_tenant()
         .add_realm()
         .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
-        .add_custom_method("listGroups")
+        .add_custom_method(&function_name!().to_case(Case::Camel))
         .to_string()?;
 
     let groups: Vec<GroupDetails> = send_request_paginated(

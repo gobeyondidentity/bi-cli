@@ -1,3 +1,4 @@
+use crate::beyond_identity::api::utils::url::URLBuilder;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
@@ -50,13 +51,12 @@ pub async fn get_beyond_identity_api_token(
     log::debug!("No valid token found. Fetching a new one.");
 
     // If no valid token, fetch a new one
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/applications/{}/token",
-        tenant_config.auth_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        tenant_config.application_id
-    );
+    let url = URLBuilder::build(tenant_config)
+        .auth()
+        .add_tenant()
+        .add_realm()
+        .add_path(vec!["applications", &tenant_config.application_id, "token"])
+        .to_string()?;
 
     let response = client
         .post(&url)
@@ -100,8 +100,7 @@ pub async fn get_beyond_identity_api_token(
         realm_id: tenant_config.realm_id.clone(),
         application_id: tenant_config.application_id.clone(),
     };
-    let serialized =
-        serde_json::to_string(&stored_token).map_err(BiError::SerdeError)?;
+    let serialized = serde_json::to_string(&stored_token).map_err(BiError::SerdeError)?;
     fs::write(token_file_path.clone(), serialized)
         .map_err(|_| BiError::UnableToWriteFile(token_file_path))?;
 

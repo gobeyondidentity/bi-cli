@@ -42,7 +42,7 @@ impl URLBuilder {
 
     /// Adds the tenant ID to the URL path.
     pub fn add_tenant(mut self) -> Self {
-        let tenant_id = self.tenant_id.clone(); // Clone the tenant ID to avoid borrow issues
+        let tenant_id = self.tenant_id.clone();
         self.url_mut()
             .path_segments_mut()
             .expect("Cannot be base")

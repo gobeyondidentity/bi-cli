@@ -1,3 +1,4 @@
+use super::types::IdentitiesFieldName;
 use crate::beyond_identity::api::roles::types::{
     RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
 };
@@ -8,15 +9,16 @@ use crate::{
     common::{config::Config, error::BiError},
 };
 use clap::Args;
+use convert_case::{Case, Casing};
+use function_name::named;
 use http::Method;
 use reqwest_middleware::ClientWithMiddleware as Client;
-
-use super::types::IdentitiesFieldName;
 
 // ===============================
 // API Function
 // ===============================
 
+#[named]
 async fn list_roles(
     client: &Client,
     config: &Config,
@@ -29,7 +31,7 @@ async fn list_roles(
         .add_tenant()
         .add_realm()
         .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
-        .add_custom_method("listRoles")
+        .add_custom_method(&function_name!().to_case(Case::Camel))
         .add_query_param(
             &RoleDetailsFieldName::ResourceServerId.name(),
             Some(resource_server_id),
