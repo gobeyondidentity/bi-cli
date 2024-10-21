@@ -1,4 +1,4 @@
-use super::types::{Identities, IdentityDetails, IdentityFilterField};
+use super::types::{Identities, IdentitiesFieldName, IdentityDetails, IdentityFilterField};
 use crate::beyond_identity::api::utils::filter::Filter;
 use crate::{
     beyond_identity::api::utils::request::send_request_paginated,
@@ -37,7 +37,7 @@ async fn list_identities(
         Method::GET,
         &url,
         None::<&()>,
-        "identities",
+        IdentitiesFieldName::Identities.name(),
     )
     .await?;
 

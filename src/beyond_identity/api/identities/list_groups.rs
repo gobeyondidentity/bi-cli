@@ -1,4 +1,4 @@
-use crate::beyond_identity::api::groups::types::{GroupDetails, Groups};
+use crate::beyond_identity::api::groups::types::{GroupDetails, Groups, GroupsFieldName};
 use crate::{
     beyond_identity::api::utils::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
@@ -30,7 +30,7 @@ async fn list_groups(
         Method::GET,
         &url,
         None::<&()>,
-        "groups",
+        GroupsFieldName::Groups.name(),
     )
     .await?;
 

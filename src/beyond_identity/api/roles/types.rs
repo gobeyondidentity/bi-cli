@@ -1,11 +1,12 @@
 use clap::Args;
+use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
 // Role Structures and Types
 // ====================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct Roles {
     pub roles: Vec<RoleDetails>,
     pub total_size: usize,

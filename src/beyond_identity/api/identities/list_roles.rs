@@ -1,4 +1,4 @@
-use crate::beyond_identity::api::roles::types::{RoleDetails, Roles};
+use crate::beyond_identity::api::roles::types::{RoleDetails, Roles, RolesFieldName};
 use crate::{
     beyond_identity::api::utils::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
@@ -35,7 +35,7 @@ async fn list_roles(
         Method::GET,
         &url,
         None::<&()>,
-        "roles",
+        RolesFieldName::Roles.name(),
     )
     .await?;
 

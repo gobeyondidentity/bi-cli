@@ -1,11 +1,12 @@
 use clap::Args;
+use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
 // Group Structures and Types
 // ====================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct Groups {
     pub groups: Vec<GroupDetails>,
     pub total_size: usize,

@@ -7,6 +7,7 @@ use crate::{
     common::{config::Config, error::BiError},
 };
 use clap::{Args, Subcommand, ValueEnum};
+use field_types::FieldName;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -15,7 +16,7 @@ use strum_macros::{Display, EnumString};
 // Identity Structures and Types
 // ====================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct Identities {
     pub identities: Vec<IdentityDetails>,
     pub total_size: usize,
