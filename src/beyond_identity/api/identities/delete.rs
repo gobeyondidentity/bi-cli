@@ -1,4 +1,5 @@
 use crate::beyond_identity::api::utils::request::send_request;
+use crate::beyond_identity::api::utils::url::URLBuilder;
 use crate::{
     beyond_identity::tenant::TenantConfig,
     common::{config::Config, error::BiError},
@@ -6,6 +7,8 @@ use crate::{
 use clap::Args;
 use http::Method;
 use reqwest_middleware::ClientWithMiddleware as Client;
+
+use super::types::IdentitiesFieldName;
 
 // ===============================
 // API Function
@@ -22,13 +25,12 @@ async fn delete_identity(
         config,
         tenant_config,
         Method::DELETE,
-        &format!(
-            "{}/v1/tenants/{}/realms/{}/identities/{}",
-            tenant_config.api_base_url,
-            tenant_config.tenant_id,
-            tenant_config.realm_id,
-            identity_id
-        ),
+        &URLBuilder::build(tenant_config)
+            .api()
+            .add_tenant()
+            .add_realm()
+            .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+            .to_string()?,
         None::<&()>,
     )
     .await

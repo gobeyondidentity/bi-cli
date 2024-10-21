@@ -17,7 +17,7 @@ pub struct Role {
     pub role: RoleDetails,
 }
 
-#[derive(Args, Clone, Debug, Serialize, Deserialize)]
+#[derive(Args, Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct RoleDetails {
     #[clap(skip)]
     pub id: String,

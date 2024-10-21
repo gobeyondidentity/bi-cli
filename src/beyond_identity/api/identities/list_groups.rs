@@ -1,4 +1,5 @@
 use crate::beyond_identity::api::groups::types::{GroupDetails, Groups, GroupsFieldName};
+use crate::beyond_identity::api::utils::url::URLBuilder;
 use crate::{
     beyond_identity::api::utils::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
@@ -7,6 +8,8 @@ use crate::{
 use clap::Args;
 use http::Method;
 use reqwest_middleware::ClientWithMiddleware as Client;
+
+use super::types::IdentitiesFieldName;
 
 // ===============================
 // API Function
@@ -18,10 +21,13 @@ async fn list_groups(
     tenant_config: &TenantConfig,
     identity_id: &str,
 ) -> Result<Groups, BiError> {
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities/{}:listGroups",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity_id
-    );
+    let url = URLBuilder::build(tenant_config)
+        .api()
+        .add_tenant()
+        .add_realm()
+        .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+        .add_custom_method("listGroups")
+        .to_string()?;
 
     let groups: Vec<GroupDetails> = send_request_paginated(
         client,

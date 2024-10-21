@@ -1,6 +1,9 @@
-use super::types::{Identity, PatchIdentityDetails};
+use super::types::{IdentitiesFieldName, Identity, PatchIdentityDetails};
 use crate::{
-    beyond_identity::{api::utils::request::send_request, tenant::TenantConfig},
+    beyond_identity::{
+        api::utils::{request::send_request, url::URLBuilder},
+        tenant::TenantConfig,
+    },
     common::{config::Config, error::BiError},
 };
 use clap::Args;
@@ -33,13 +36,12 @@ async fn patch_identity(
         config,
         tenant_config,
         Method::PATCH,
-        &format!(
-            "{}/v1/tenants/{}/realms/{}/identities/{}",
-            tenant_config.api_base_url,
-            tenant_config.tenant_id,
-            tenant_config.realm_id,
-            identity_id
-        ),
+        &URLBuilder::build(tenant_config)
+            .api()
+            .add_tenant()
+            .add_realm()
+            .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+            .to_string()?,
         Some(patch_request),
     )
     .await

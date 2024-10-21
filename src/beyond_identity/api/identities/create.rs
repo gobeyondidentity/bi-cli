@@ -1,5 +1,6 @@
-use super::types::{Identity, IdentityDetails, Traits};
+use super::types::{IdentitiesFieldName, Identity, IdentityDetails, Traits};
 use crate::beyond_identity::api::utils::request::send_request;
+use crate::beyond_identity::api::utils::url::URLBuilder;
 use crate::{
     beyond_identity::tenant::TenantConfig,
     common::{config::Config, error::BiError},
@@ -39,10 +40,12 @@ async fn create_identity(
         config,
         tenant_config,
         Method::POST,
-        &format!(
-            "{}/v1/tenants/{}/realms/{}/identities",
-            tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
-        ),
+        &URLBuilder::build(tenant_config)
+            .api()
+            .add_tenant()
+            .add_realm()
+            .add_path(vec![IdentitiesFieldName::Identities.name()])
+            .to_string()?,
         Some(identity_request),
     )
     .await

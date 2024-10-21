@@ -1,4 +1,7 @@
-use crate::beyond_identity::api::roles::types::{RoleDetails, Roles, RolesFieldName};
+use crate::beyond_identity::api::roles::types::{
+    RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
+};
+use crate::beyond_identity::api::utils::url::URLBuilder;
 use crate::{
     beyond_identity::api::utils::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
@@ -7,6 +10,8 @@ use crate::{
 use clap::Args;
 use http::Method;
 use reqwest_middleware::ClientWithMiddleware as Client;
+
+use super::types::IdentitiesFieldName;
 
 // ===============================
 // API Function
@@ -19,14 +24,17 @@ async fn list_roles(
     identity_id: &str,
     resource_server_id: &str,
 ) -> Result<Roles, BiError> {
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities/{}:listRoles?resource_server_id={}",
-        tenant_config.api_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        identity_id,
-        resource_server_id
-    );
+    let url = URLBuilder::build(tenant_config)
+        .api()
+        .add_tenant()
+        .add_realm()
+        .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+        .add_custom_method("listRoles")
+        .add_query_param(
+            &RoleDetailsFieldName::ResourceServerId.name(),
+            Some(resource_server_id),
+        )
+        .to_string()?;
 
     let roles: Vec<RoleDetails> = send_request_paginated(
         client,

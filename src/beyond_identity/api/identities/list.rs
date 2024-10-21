@@ -1,5 +1,6 @@
 use super::types::{Identities, IdentitiesFieldName, IdentityDetails, IdentityFilterField};
-use crate::beyond_identity::api::utils::filter::Filter;
+use crate::beyond_identity::api::utils::filter::{Filter, FilterFieldName};
+use crate::beyond_identity::api::utils::url::URLBuilder;
 use crate::{
     beyond_identity::api::utils::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
@@ -20,15 +21,16 @@ async fn list_identities(
     tenant_config: &TenantConfig,
     filter: Option<Filter>,
 ) -> Result<Identities, BiError> {
-    let base_url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
-    );
-
-    let url = match filter {
-        Some(f) => format!("{}?filter={}", base_url, f.encoded),
-        None => base_url,
-    };
+    let url = URLBuilder::build(tenant_config)
+        .api()
+        .add_tenant()
+        .add_realm()
+        .add_path(vec![IdentitiesFieldName::Identities.name()])
+        .add_query_param(
+            &FilterFieldName::Filter.name(),
+            filter.as_ref().map(|f| f.filter.as_ref()),
+        )
+        .to_string()?;
 
     let identities: Vec<IdentityDetails> = send_request_paginated(
         client,
@@ -68,7 +70,7 @@ impl List {
             client,
             config,
             tenant_config,
-            Filter::parse_with_fields(self.filter, IdentityFilterField::from_str)?,
+            Filter::new(self.filter, IdentityFilterField::from_str)?,
         )
         .await
     }

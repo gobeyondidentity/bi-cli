@@ -1,9 +1,9 @@
 use crate::common::error::BiError;
+use field_types::FieldName;
 use std::fmt;
 use std::str::FromStr;
 use strum_macros::Display;
 use strum_macros::EnumString;
-use urlencoding::encode;
 
 #[derive(Debug, Clone, EnumString, Display)]
 #[strum(serialize_all = "lowercase")]
@@ -11,18 +11,13 @@ pub enum FilterOperation {
     Eq,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, FieldName)]
 pub struct Filter {
-    pub encoded: String,
+    pub filter: String,
 }
 
 impl Filter {
-    pub fn new(field: &str, operation: FilterOperation, value: &str) -> Self {
-        let encoded = encode(&format!("{} {} \"{}\"", field, operation, value)).to_string();
-        Self { encoded }
-    }
-
-    pub fn parse_with_fields<F>(
+    pub fn new<F>(
         raw_filter: Option<String>,
         field_parser: fn(&str) -> Result<F, F::Err>,
     ) -> Result<Option<Self>, BiError>
@@ -48,6 +43,8 @@ impl Filter {
             .map_err(|_| BiError::InvalidFilter(format!("Invalid operation: {}", parts[1])))?;
         let value = parts[2];
 
-        Ok(Some(Filter::new(&field.to_string(), operation, value)))
+        let filter = format!("{} {} \"{}\"", &field.to_string(), operation, value).to_string();
+
+        Ok(Some(Filter { filter }))
     }
 }
