@@ -1,4 +1,5 @@
 use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
@@ -49,7 +50,10 @@ pub async fn delete_group_memberships(
             return Err(BiError::RequestError(status, error_text));
         }
 
-        println!("Unassigned identity {} from group {}", identity_id, group.id);
+        println!(
+            "Unassigned identity {} from group {}",
+            identity_id, group.id
+        );
     }
     Ok(())
 }
@@ -111,4 +115,129 @@ pub async fn fetch_group_memberships(
     }
 
     Ok(groups)
+}
+
+pub async fn fetch_all_groups(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+) -> Result<Vec<Group>, BiError> {
+    let mut groups = Vec::new();
+    let mut url = format!(
+        "{}/v1/tenants/{}/realms/{}/groups",
+        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+    );
+
+    loop {
+        let response = client
+            .get(&url)
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                ),
+            )
+            .send()
+            .await?;
+
+        let status = response.status();
+        log::debug!("{} response status: {}", url, status);
+        if !status.is_success() {
+            let error_text = response.text().await?;
+            return Err(BiError::RequestError(status, error_text));
+        }
+
+        let response_text = response.text().await?;
+        log::debug!("{} response text: {}", url, response_text);
+        let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
+        let page_groups: Vec<Group> = serde_json::from_value(response_json["groups"].clone())?;
+
+        groups.extend(page_groups);
+
+        if let Some(next_page_token) = response_json
+            .get("next_page_token")
+            .and_then(|token| token.as_str())
+        {
+            url = format!(
+                "{}/v1/tenants/{}/realms/{}/groups?page_size=200&page_token={}",
+                tenant_config.api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                next_page_token
+            );
+        } else {
+            break;
+        }
+    }
+
+    Ok(groups)
+}
+
+pub async fn get_identities_from_group(
+    client: &Client,
+    config: &Config,
+    tenant_config: &TenantConfig,
+    group_id: &str,
+) -> Result<Vec<Identity>, BiError> {
+    let mut identities = Vec::new();
+    let mut next_page_token: Option<String> = None;
+    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+
+    loop {
+        let url = match &next_page_token {
+            Some(token) => format!(
+                "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers?page_token={}",
+                tenant_config.api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                group_id,
+                token
+            ),
+            None => format!(
+                "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers",
+                tenant_config.api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                group_id
+            ),
+        };
+
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", bi_api_token))
+            .send()
+            .await?;
+
+        let status = response.status();
+        let response_text = response.text().await?;
+
+        log::debug!(
+            "{} response status: {} and text: {}",
+            url,
+            status,
+            response_text
+        );
+
+        if !status.is_success() {
+            return Err(BiError::RequestError(status, response_text));
+        }
+
+        let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
+        let page_identities: Vec<Identity> =
+            serde_json::from_value(response_json["identities"].clone())?;
+
+        identities.extend(page_identities);
+
+        if let Some(token) = response_json
+            .get("next_page_token")
+            .and_then(|token| token.as_str())
+        {
+            next_page_token = Some(token.to_string());
+        } else {
+            break;
+        }
+    }
+
+    Ok(identities)
 }

@@ -6,11 +6,13 @@ mod onelogin;
 use beyond_identity::admin::{create_admin_account, get_identities_without_role};
 use beyond_identity::api_token::get_beyond_identity_api_token;
 use beyond_identity::enrollment::{
-    get_all_identities, get_send_email_payload, get_unenrolled_identities, select_identities,
-    send_enrollment_email,
+    get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
+    select_identities, send_enrollment_email,
 };
 use beyond_identity::external_sso::{create_external_sso, load_external_sso};
-use beyond_identity::groups::delete_group_memberships;
+use beyond_identity::groups::{
+    delete_group_memberships, fetch_all_groups, get_identities_from_group, Group,
+};
 use beyond_identity::identities::{
     delete_all_identities, delete_identity, delete_norole_identities, delete_unenrolled_identities,
     Identity,
@@ -132,6 +134,9 @@ enum BeyondIdentityCommands {
 
         #[arg(long, group = "delete_option")]
         unenrolled: bool,
+
+        #[arg(long, group = "delete_option")]
+        groups: bool,
     },
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
@@ -298,7 +303,11 @@ async fn main() {
                     serde_json::to_string_pretty(&external_sso).unwrap()
                 );
             }
-            BeyondIdentityCommands::SendEnrollmentEmail { all, unenrolled } => {
+            BeyondIdentityCommands::SendEnrollmentEmail {
+                all,
+                unenrolled,
+                groups,
+            } => {
                 let config = Config::new();
                 let client = new_http_client_for_api();
                 let tenant_config = load_tenant(&config).await.expect(
@@ -317,6 +326,17 @@ async fn main() {
                     identities = get_unenrolled_identities(&client, &config, &tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
+                }
+
+                if *groups {
+                    let groups: Vec<Group> = fetch_all_groups(&client, &config, &tenant_config)
+                        .await
+                        .expect("Failed to fetch groups");
+                    let group = select_group(&groups);
+                    identities =
+                        get_identities_from_group(&client, &config, &tenant_config, &group.id)
+                            .await
+                            .expect("Failed to fetch identities from group");
                 }
 
                 if identities.len() == 0 {
