@@ -333,7 +333,7 @@ async fn main() {
                     serde_json::to_string_pretty(&external_sso).unwrap()
                 );
             }
-            BeyondIdentityCommands::SendEnrollmentEmail {
+            BeyondIdentityHelperCommands::SendEnrollmentEmail {
                 all,
                 unenrolled,
                 groups,

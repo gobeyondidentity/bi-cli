@@ -1,6 +1,6 @@
 use super::types::{IdentitiesFieldName, Identity, IdentityDetails, Traits};
-use crate::beyond_identity::api::utils::request::send_request;
-use crate::beyond_identity::api::utils::url::URLBuilder;
+use crate::beyond_identity::api::common::request::send_request;
+use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::{
     beyond_identity::tenant::TenantConfig,
     common::{config::Config, error::BiError},

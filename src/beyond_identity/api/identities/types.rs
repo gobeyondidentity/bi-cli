@@ -3,7 +3,7 @@ use super::{
     list_roles::ListRoles, patch::Patch,
 };
 use crate::{
-    beyond_identity::{api::utils::command::execute_and_serialize, tenant::TenantConfig},
+    beyond_identity::{api::common::command::execute_and_serialize, tenant::TenantConfig},
     common::{config::Config, error::BiError},
 };
 use clap::{Args, Subcommand, ValueEnum};

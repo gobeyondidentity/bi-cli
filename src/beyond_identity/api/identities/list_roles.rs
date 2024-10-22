@@ -2,9 +2,9 @@ use super::types::IdentitiesFieldName;
 use crate::beyond_identity::api::roles::types::{
     RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
 };
-use crate::beyond_identity::api::utils::url::URLBuilder;
+use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::{
-    beyond_identity::api::utils::request::send_request_paginated,
+    beyond_identity::api::common::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
     common::{config::Config, error::BiError},
 };

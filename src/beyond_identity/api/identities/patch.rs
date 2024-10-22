@@ -1,7 +1,7 @@
 use super::types::{IdentitiesFieldName, Identity, PatchIdentityDetails};
 use crate::{
     beyond_identity::{
-        api::utils::{request::send_request, url::URLBuilder},
+        api::common::{request::send_request, url::URLBuilder},
         tenant::TenantConfig,
     },
     common::{config::Config, error::BiError},

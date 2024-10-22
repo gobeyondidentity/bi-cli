@@ -1,8 +1,8 @@
 use super::types::{Identities, IdentitiesFieldName, IdentityDetails, IdentityFilterField};
-use crate::beyond_identity::api::utils::filter::{Filter, FilterFieldName};
-use crate::beyond_identity::api::utils::url::URLBuilder;
+use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
+use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::{
-    beyond_identity::api::utils::request::send_request_paginated,
+    beyond_identity::api::common::request::send_request_paginated,
     beyond_identity::tenant::TenantConfig,
     common::{config::Config, error::BiError},
 };
