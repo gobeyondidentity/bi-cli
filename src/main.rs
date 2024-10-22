@@ -43,7 +43,7 @@ use log::LevelFilter;
 #[derive(Parser)]
 #[clap(
     name = "bi-cli",
-    about = "A CLI tool for setting up an SSO ready Secure Access Tenant",
+    about = "Official Beyond Identity command-line interface.",
     version = env!("CARGO_PKG_VERSION"), // Dynamically pulls the version from Cargo.toml
     long_about = None
 )]
@@ -71,6 +71,10 @@ enum Commands {
     /// Commands related to OneLogin
     #[clap(subcommand)]
     Onelogin(OneloginCommands),
+
+    /// Generate Markdown
+    #[clap(hide = true)]
+    GenerateMarkdown,
 }
 
 #[derive(Subcommand)]
@@ -769,5 +773,6 @@ async fn main() {
                 }
             }
         },
+        Commands::GenerateMarkdown => clap_markdown::print_help_markdown::<Cli>(),
     }
 }
