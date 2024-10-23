@@ -1,24 +1,26 @@
+use super::api::{IdentitiesApi, IdentityService};
 use super::types::{IdentitiesFieldName, Identity};
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::request::send_request;
 use crate::beyond_identity::api::common::url::URLBuilder;
-use crate::{
-    beyond_identity::tenant::TenantConfig,
-    common::{config::Config, error::BiError},
-};
+use crate::common::error::BiError;
 use clap::Args;
 use http::Method;
-use reqwest_middleware::ClientWithMiddleware as Client;
 
 // ===============================
 // API Function
 // ===============================
 
-async fn get_identity(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+pub async fn get_identity(
+    service: &IdentityService,
     identity_id: &str,
 ) -> Result<Identity, BiError> {
+    let ApiClient {
+        config,
+        tenant_config,
+        client,
+    } = &service.api_client;
+
     send_request(
         client,
         config,
@@ -48,12 +50,7 @@ pub struct Get {
 }
 
 impl Get {
-    pub async fn execute(
-        self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<Identity, BiError> {
-        get_identity(client, config, tenant_config, &self.id).await
+    pub async fn execute(self, service: &IdentityService) -> Result<Identity, BiError> {
+        service.get_identity(&self.id).await
     }
 }

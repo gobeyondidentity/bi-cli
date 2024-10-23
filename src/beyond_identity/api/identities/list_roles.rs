@@ -1,31 +1,34 @@
+use super::api::{IdentitiesApi, IdentityService};
 use super::types::IdentitiesFieldName;
+use crate::beyond_identity::api::common::api_client::ApiClient;
+use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::beyond_identity::api::roles::types::{
     RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
 };
-use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::{
-    beyond_identity::api::common::request::send_request_paginated,
-    beyond_identity::tenant::TenantConfig,
-    common::{config::Config, error::BiError},
+    beyond_identity::api::common::request::send_request_paginated, common::error::BiError,
 };
 use clap::Args;
 use convert_case::{Case, Casing};
 use function_name::named;
 use http::Method;
-use reqwest_middleware::ClientWithMiddleware as Client;
 
 // ===============================
 // API Function
 // ===============================
 
 #[named]
-async fn list_roles(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+pub async fn list_roles(
+    service: &IdentityService,
     identity_id: &str,
     resource_server_id: &str,
 ) -> Result<Roles, BiError> {
+    let ApiClient {
+        config,
+        tenant_config,
+        client,
+    } = &service.api_client;
+
     let url = URLBuilder::build(tenant_config)
         .api()
         .add_tenant()
@@ -70,19 +73,7 @@ pub struct ListRoles {
 }
 
 impl ListRoles {
-    pub async fn execute(
-        self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<Roles, BiError> {
-        list_roles(
-            client,
-            config,
-            tenant_config,
-            &self.id,
-            &self.resource_server_id,
-        )
-        .await
+    pub async fn execute(self, service: &IdentityService) -> Result<Roles, BiError> {
+        service.list_roles(&self.id, &self.resource_server_id).await
     }
 }

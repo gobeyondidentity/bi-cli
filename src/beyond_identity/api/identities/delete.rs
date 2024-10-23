@@ -1,25 +1,27 @@
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::request::send_request;
 use crate::beyond_identity::api::common::url::URLBuilder;
-use crate::{
-    beyond_identity::tenant::TenantConfig,
-    common::{config::Config, error::BiError},
-};
+use crate::common::error::BiError;
 use clap::Args;
 use http::Method;
-use reqwest_middleware::ClientWithMiddleware as Client;
 
+use super::api::{IdentitiesApi, IdentityService};
 use super::types::IdentitiesFieldName;
 
 // ===============================
 // API Function
 // ===============================
 
-async fn delete_identity(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+pub async fn delete_identity(
+    service: &IdentityService,
     identity_id: &str,
 ) -> Result<serde_json::Value, BiError> {
+    let ApiClient {
+        config,
+        tenant_config,
+        client,
+    } = &service.api_client;
+
     send_request(
         client,
         config,
@@ -48,12 +50,7 @@ pub struct Delete {
 }
 
 impl Delete {
-    pub async fn execute(
-        self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<serde_json::Value, BiError> {
-        delete_identity(client, config, tenant_config, &self.id).await
+    pub async fn execute(self, service: &IdentityService) -> Result<serde_json::Value, BiError> {
+        service.delete_identity(&self.id).await
     }
 }

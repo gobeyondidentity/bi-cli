@@ -1,26 +1,29 @@
+use super::api::{IdentitiesApi, IdentityService};
 use super::types::{Identities, IdentitiesFieldName, IdentityDetails, IdentityFilterField};
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
 use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::{
-    beyond_identity::api::common::request::send_request_paginated,
-    beyond_identity::tenant::TenantConfig,
-    common::{config::Config, error::BiError},
+    beyond_identity::api::common::request::send_request_paginated, common::error::BiError,
 };
 use clap::Args;
 use http::Method;
-use reqwest_middleware::ClientWithMiddleware as Client;
 use std::str::FromStr;
 
 // ===============================
 // API Function
 // ===============================
 
-async fn list_identities(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+pub async fn list_identities(
+    service: &IdentityService,
     filter: Option<Filter>,
 ) -> Result<Identities, BiError> {
+    let ApiClient {
+        config,
+        tenant_config,
+        client,
+    } = &service.api_client;
+
     let url = URLBuilder::build(tenant_config)
         .api()
         .add_tenant()
@@ -60,18 +63,9 @@ pub struct List {
 }
 
 impl List {
-    pub async fn execute(
-        self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<Identities, BiError> {
-        list_identities(
-            client,
-            config,
-            tenant_config,
-            Filter::new(self.filter, IdentityFilterField::from_str)?,
-        )
-        .await
+    pub async fn execute(self, service: &IdentityService) -> Result<Identities, BiError> {
+        service
+            .list_identities(Filter::new(self.filter, IdentityFilterField::from_str)?)
+            .await
     }
 }

@@ -1,14 +1,10 @@
 use super::{
-    create::Create, delete::Delete, get::Get, list::List, list_groups::ListGroups,
-    list_roles::ListRoles, patch::Patch,
+    api::IdentityService, create::Create, delete::Delete, get::Get, list::List,
+    list_groups::ListGroups, list_roles::ListRoles, patch::Patch,
 };
-use crate::{
-    beyond_identity::{api::common::command::execute_and_serialize, tenant::TenantConfig},
-    common::{config::Config, error::BiError},
-};
+use crate::{beyond_identity::api::common::command::execute_and_serialize, common::error::BiError};
 use clap::{Args, Subcommand, ValueEnum};
 use field_types::FieldName;
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
@@ -150,33 +146,26 @@ pub enum IdentityCommands {
 }
 
 impl IdentityCommands {
-    pub async fn execute(
-        &self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<String, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<String, BiError> {
         match self {
             IdentityCommands::Create(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+                execute_and_serialize(cmd.clone().execute(service)).await
             }
             IdentityCommands::List(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+                execute_and_serialize(cmd.clone().execute(service)).await
             }
-            IdentityCommands::Get(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
-            }
+            IdentityCommands::Get(cmd) => execute_and_serialize(cmd.clone().execute(service)).await,
             IdentityCommands::Patch(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+                execute_and_serialize(cmd.clone().execute(service)).await
             }
             IdentityCommands::Delete(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+                execute_and_serialize(cmd.clone().execute(service)).await
             }
             IdentityCommands::ListGroups(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+                execute_and_serialize(cmd.clone().execute(service)).await
             }
             IdentityCommands::ListRoles(cmd) => {
-                execute_and_serialize(cmd.clone().execute(client, config, tenant_config)).await
+                execute_and_serialize(cmd.clone().execute(service)).await
             }
         }
     }

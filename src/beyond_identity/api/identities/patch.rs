@@ -1,14 +1,13 @@
-use super::types::{IdentitiesFieldName, Identity, PatchIdentityDetails};
+use super::{
+    api::{IdentitiesApi, IdentityService},
+    types::{IdentitiesFieldName, Identity, PatchIdentityDetails},
+};
 use crate::{
-    beyond_identity::{
-        api::common::{request::send_request, url::URLBuilder},
-        tenant::TenantConfig,
-    },
-    common::{config::Config, error::BiError},
+    beyond_identity::api::common::{api_client::ApiClient, request::send_request, url::URLBuilder},
+    common::error::BiError,
 };
 use clap::Args;
 use http::Method;
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::Serialize;
 
 // ===============================
@@ -16,7 +15,7 @@ use serde::Serialize;
 // ===============================
 
 #[derive(Clone, Debug, Serialize)]
-struct PatchIdentityRequest {
+pub struct PatchIdentityRequest {
     identity: PatchIdentityDetails,
 }
 
@@ -24,13 +23,16 @@ struct PatchIdentityRequest {
 // API Function
 // ===============================
 
-async fn patch_identity(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+pub async fn patch_identity(
+    service: &IdentityService,
     identity_id: &str,
     patch_request: &PatchIdentityRequest,
 ) -> Result<Identity, BiError> {
+    let ApiClient {
+        config,
+        tenant_config,
+        client,
+    } = &service.api_client;
     send_request(
         client,
         config,
@@ -63,20 +65,18 @@ pub struct Patch {
 }
 
 impl Patch {
-    pub async fn execute(
-        self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<Identity, BiError> {
-        let patch_request = PatchIdentityRequest {
-            identity: PatchIdentityDetails {
-                display_name: self.identity_details.display_name,
-                status: self.identity_details.status,
-                traits: self.identity_details.traits,
-            },
-        };
-
-        patch_identity(client, config, tenant_config, &self.id, &patch_request).await
+    pub async fn execute(self, service: &IdentityService) -> Result<Identity, BiError> {
+        service
+            .patch_identity(
+                &self.id,
+                &PatchIdentityRequest {
+                    identity: PatchIdentityDetails {
+                        display_name: self.identity_details.display_name,
+                        status: self.identity_details.status,
+                        traits: self.identity_details.traits,
+                    },
+                },
+            )
+            .await
     }
 }

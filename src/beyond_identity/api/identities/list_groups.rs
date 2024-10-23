@@ -1,16 +1,15 @@
-use crate::beyond_identity::api::groups::types::{GroupDetails, Groups, GroupsFieldName};
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::url::URLBuilder;
+use crate::beyond_identity::api::groups::types::{GroupDetails, Groups, GroupsFieldName};
 use crate::{
-    beyond_identity::api::common::request::send_request_paginated,
-    beyond_identity::tenant::TenantConfig,
-    common::{config::Config, error::BiError},
+    beyond_identity::api::common::request::send_request_paginated, common::error::BiError,
 };
 use clap::Args;
 use convert_case::{Case, Casing};
 use function_name::named;
 use http::Method;
-use reqwest_middleware::ClientWithMiddleware as Client;
 
+use super::api::{IdentitiesApi, IdentityService};
 use super::types::IdentitiesFieldName;
 
 // ===============================
@@ -18,12 +17,13 @@ use super::types::IdentitiesFieldName;
 // ===============================
 
 #[named]
-async fn list_groups(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
-    identity_id: &str,
-) -> Result<Groups, BiError> {
+pub async fn list_groups(service: &IdentityService, identity_id: &str) -> Result<Groups, BiError> {
+    let ApiClient {
+        config,
+        tenant_config,
+        client,
+    } = &service.api_client;
+
     let url = URLBuilder::build(tenant_config)
         .api()
         .add_tenant()
@@ -61,12 +61,7 @@ pub struct ListGroups {
 }
 
 impl ListGroups {
-    pub async fn execute(
-        self,
-        client: &Client,
-        config: &Config,
-        tenant_config: &TenantConfig,
-    ) -> Result<Groups, BiError> {
-        list_groups(client, config, tenant_config, &self.id).await
+    pub async fn execute(self, service: &IdentityService) -> Result<Groups, BiError> {
+        service.list_groups(&self.id).await
     }
 }

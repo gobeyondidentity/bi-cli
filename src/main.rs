@@ -4,7 +4,9 @@ mod okta;
 mod onelogin;
 
 use beyond_identity::admin::{create_admin_account, get_identities_without_role};
+use beyond_identity::api::common::api_client::ApiClient;
 use beyond_identity::api::identities;
+use beyond_identity::api::identities::api::IdentityService;
 use beyond_identity::api_token::get_beyond_identity_api_token;
 use beyond_identity::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
@@ -240,10 +242,11 @@ async fn main() {
             let tenant_config = load_tenant(&config).await.expect(
                 "Failed to load tenant. Make sure you create a tenant before running this command.",
             );
+            let api_client = ApiClient::new(config, tenant_config, client);
             match cmd {
                 BeyondIdentityApiCommands::Identities(cmd) => {
                     let result = cmd
-                        .execute(&client, &config, &tenant_config)
+                        .execute(&IdentityService::new(api_client))
                         .await
                         .expect("Failed to execute identity command");
                     println!("{}", result);
