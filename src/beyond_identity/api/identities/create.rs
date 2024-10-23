@@ -1,11 +1,7 @@
 use super::api::{IdentitiesApi, IdentityService};
-use super::types::{IdentitiesFieldName, Identity, IdentityDetails, Traits};
-use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::api::common::request::send_request;
-use crate::beyond_identity::api::common::url::URLBuilder;
+use super::types::{Identity, IdentityDetails, Traits};
 use crate::common::error::BiError;
 use clap::Args;
-use http::Method;
 use serde::Serialize;
 
 // ===============================
@@ -21,36 +17,6 @@ pub struct CreateIdentityRequest {
 struct IdentityRequest {
     display_name: String,
     traits: Traits,
-}
-
-// ===============================
-// API Function
-// ===============================
-
-pub async fn create_identity(
-    service: &IdentityService,
-    identity_request: &CreateIdentityRequest,
-) -> Result<Identity, BiError> {
-    let ApiClient {
-        config,
-        tenant_config,
-        client,
-    } = &service.api_client;
-    send_request(
-        client,
-        config,
-        tenant_config,
-        Method::POST,
-        &URLBuilder::build(tenant_config)
-            .api()
-            .add_tenant()
-            .add_realm()
-            .add_path(vec![IdentitiesFieldName::Identities.name()])
-            .to_string()?,
-        Some(identity_request),
-    )
-    .await
-    .map(|details| Identity { identity: details })
 }
 
 // ===============================

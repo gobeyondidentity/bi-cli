@@ -1,17 +1,21 @@
+use convert_case::{Case, Casing};
+use function_name::named;
+use http::Method;
+
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::api::groups::types::Groups;
-use crate::beyond_identity::api::roles::types::Roles;
+use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
+use crate::beyond_identity::api::common::request::{send_request, send_request_paginated};
+use crate::beyond_identity::api::common::url::URLBuilder;
+use crate::beyond_identity::api::groups::types::{GroupDetails, Groups, GroupsFieldName};
+use crate::beyond_identity::api::roles::types::{
+    RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
+};
 use crate::common::error::BiError;
 
-use super::create::{create_identity, CreateIdentityRequest};
-use super::delete::delete_identity;
-use super::get::get_identity;
-use super::list::list_identities;
-use super::list_groups::list_groups;
-use super::list_roles::list_roles;
-use super::patch::{patch_identity, PatchIdentityRequest};
+use super::create::CreateIdentityRequest;
+use super::patch::PatchIdentityRequest;
 use super::types::{Identities, Identity};
-use crate::beyond_identity::api::common::filter::Filter;
+use super::types::{IdentitiesFieldName, IdentityDetails};
 
 // ====================================
 // Identities Service
@@ -55,31 +59,147 @@ pub trait IdentitiesApi {
 
 impl IdentitiesApi for IdentityService {
     async fn create_identity(&self, request: CreateIdentityRequest) -> Result<Identity, BiError> {
-        create_identity(self, &request).await
+        send_request(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::POST,
+            &URLBuilder::build(&self.api_client.tenant_config)
+                .api()
+                .add_tenant()
+                .add_realm()
+                .add_path(vec![IdentitiesFieldName::Identities.name()])
+                .to_string()?,
+            Some(&request),
+        )
+        .await
+        .map(|details| Identity { identity: details })
     }
 
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError> {
-        delete_identity(self, identity_id).await
+        send_request(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::DELETE,
+            &URLBuilder::build(&self.api_client.tenant_config)
+                .api()
+                .add_tenant()
+                .add_realm()
+                .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+                .to_string()?,
+            None::<&()>,
+        )
+        .await
     }
 
     async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError> {
-        get_identity(self, identity_id).await
+        send_request(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::GET,
+            &URLBuilder::build(&self.api_client.tenant_config)
+                .api()
+                .add_tenant()
+                .add_realm()
+                .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+                .to_string()?,
+            None::<&()>,
+        )
+        .await
+        .map(|details| Identity { identity: details })
     }
 
     async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError> {
-        list_identities(self, filter).await
+        let url = URLBuilder::build(&self.api_client.tenant_config)
+            .api()
+            .add_tenant()
+            .add_realm()
+            .add_path(vec![IdentitiesFieldName::Identities.name()])
+            .add_query_param(
+                &FilterFieldName::Filter.name(),
+                filter.as_ref().map(|f| f.filter.as_ref()),
+            )
+            .to_string()?;
+
+        let identities: Vec<IdentityDetails> = send_request_paginated(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::GET,
+            &url,
+            None::<&()>,
+            IdentitiesFieldName::Identities.name(),
+        )
+        .await?;
+
+        Ok(Identities {
+            identities: identities.clone(),
+            total_size: identities.len(),
+        })
     }
 
+    #[named]
     async fn list_groups(&self, identity_id: &str) -> Result<Groups, BiError> {
-        list_groups(self, identity_id).await
+        let url = URLBuilder::build(&self.api_client.tenant_config)
+            .api()
+            .add_tenant()
+            .add_realm()
+            .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+            .add_custom_method(&function_name!().to_case(Case::Camel))
+            .to_string()?;
+
+        let groups: Vec<GroupDetails> = send_request_paginated(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::GET,
+            &url,
+            None::<&()>,
+            GroupsFieldName::Groups.name(),
+        )
+        .await?;
+
+        Ok(Groups {
+            groups: groups.clone(),
+            total_size: groups.len(),
+        })
     }
 
+    #[named]
     async fn list_roles(
         &self,
         identity_id: &str,
         resource_server_id: &str,
     ) -> Result<Roles, BiError> {
-        list_roles(self, identity_id, resource_server_id).await
+        let url = URLBuilder::build(&self.api_client.tenant_config)
+            .api()
+            .add_tenant()
+            .add_realm()
+            .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+            .add_custom_method(&function_name!().to_case(Case::Camel))
+            .add_query_param(
+                &RoleDetailsFieldName::ResourceServerId.name(),
+                Some(resource_server_id),
+            )
+            .to_string()?;
+
+        let roles: Vec<RoleDetails> = send_request_paginated(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::GET,
+            &url,
+            None::<&()>,
+            RolesFieldName::Roles.name(),
+        )
+        .await?;
+
+        Ok(Roles {
+            roles: roles.clone(),
+            total_size: roles.len(),
+        })
     }
 
     async fn patch_identity(
@@ -87,6 +207,20 @@ impl IdentitiesApi for IdentityService {
         identity_id: &str,
         patch_request: &PatchIdentityRequest,
     ) -> Result<Identity, BiError> {
-        patch_identity(self, identity_id, patch_request).await
+        send_request(
+            &self.api_client.client,
+            &self.api_client.config,
+            &self.api_client.tenant_config,
+            Method::PATCH,
+            &URLBuilder::build(&self.api_client.tenant_config)
+                .api()
+                .add_tenant()
+                .add_realm()
+                .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+                .to_string()?,
+            Some(patch_request),
+        )
+        .await
+        .map(|details| Identity { identity: details })
     }
 }
