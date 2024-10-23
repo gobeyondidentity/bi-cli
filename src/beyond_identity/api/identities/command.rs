@@ -6,7 +6,7 @@ use super::{
 use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::groups::types::Groups;
 use crate::beyond_identity::api::roles::types::Roles;
-use crate::{beyond_identity::api::common::command::execute_and_serialize, common::error::BiError};
+use crate::{beyond_identity::api::common::command::serialize, common::error::BiError};
 use clap::{Args, Subcommand};
 use std::str::FromStr;
 
@@ -24,25 +24,13 @@ pub enum IdentityCommands {
 impl IdentityCommands {
     pub async fn execute(&self, service: &IdentityService) -> Result<String, BiError> {
         match self {
-            IdentityCommands::Create(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::List(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::Get(cmd) => execute_and_serialize(cmd.clone().execute(service)).await,
-            IdentityCommands::Patch(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::Delete(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::ListGroups(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::ListRoles(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
+            IdentityCommands::Create(cmd) => serialize(cmd.execute(service)).await,
+            IdentityCommands::List(cmd) => serialize(cmd.execute(service)).await,
+            IdentityCommands::Get(cmd) => serialize(cmd.clone().execute(service)).await,
+            IdentityCommands::Patch(cmd) => serialize(cmd.execute(service)).await,
+            IdentityCommands::Delete(cmd) => serialize(cmd.execute(service)).await,
+            IdentityCommands::ListGroups(cmd) => serialize(cmd.execute(service)).await,
+            IdentityCommands::ListRoles(cmd) => serialize(cmd.execute(service)).await,
         }
     }
 }
@@ -54,12 +42,12 @@ pub struct Create {
 }
 
 impl Create {
-    pub async fn execute(self, service: &IdentityService) -> Result<Identity, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<Identity, BiError> {
         service
             .create_identity(CreateIdentityRequest {
                 identity: IdentityRequest {
-                    display_name: self.identity_details.display_name,
-                    traits: self.identity_details.traits,
+                    display_name: self.identity_details.display_name.clone(),
+                    traits: self.identity_details.traits.clone(),
                 },
             })
             .await
@@ -74,7 +62,7 @@ pub struct Delete {
 }
 
 impl Delete {
-    pub async fn execute(self, service: &IdentityService) -> Result<serde_json::Value, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<serde_json::Value, BiError> {
         service.delete_identity(&self.id).await
     }
 }
@@ -87,7 +75,7 @@ pub struct Get {
 }
 
 impl Get {
-    pub async fn execute(self, service: &IdentityService) -> Result<Identity, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<Identity, BiError> {
         service.get_identity(&self.id).await
     }
 }
@@ -99,9 +87,12 @@ pub struct List {
 }
 
 impl List {
-    pub async fn execute(self, service: &IdentityService) -> Result<Identities, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<Identities, BiError> {
         service
-            .list_identities(Filter::new(self.filter, IdentityFilterField::from_str)?)
+            .list_identities(Filter::new(
+                self.filter.clone(),
+                IdentityFilterField::from_str,
+            )?)
             .await
     }
 }
@@ -114,7 +105,7 @@ pub struct ListGroups {
 }
 
 impl ListGroups {
-    pub async fn execute(self, service: &IdentityService) -> Result<Groups, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<Groups, BiError> {
         service.list_groups(&self.id).await
     }
 }
@@ -130,7 +121,7 @@ pub struct ListRoles {
 }
 
 impl ListRoles {
-    pub async fn execute(self, service: &IdentityService) -> Result<Roles, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<Roles, BiError> {
         service.list_roles(&self.id, &self.resource_server_id).await
     }
 }
@@ -146,15 +137,15 @@ pub struct Patch {
 }
 
 impl Patch {
-    pub async fn execute(self, service: &IdentityService) -> Result<Identity, BiError> {
+    pub async fn execute(&self, service: &IdentityService) -> Result<Identity, BiError> {
         service
             .patch_identity(
                 &self.id,
                 &PatchIdentityRequest {
                     identity: PatchIdentityDetails {
-                        display_name: self.identity_details.display_name,
-                        status: self.identity_details.status,
-                        traits: self.identity_details.traits,
+                        display_name: self.identity_details.display_name.clone(),
+                        status: self.identity_details.status.clone(),
+                        traits: self.identity_details.traits.clone(),
                     },
                 },
             )

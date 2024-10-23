@@ -1,7 +1,7 @@
 use crate::common::error::BiError;
 use serde::Serialize;
 
-pub async fn execute_and_serialize<T>(
+pub async fn serialize<T>(
     fut: impl std::future::Future<Output = Result<T, BiError>>,
 ) -> Result<String, BiError>
 where
