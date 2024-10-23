@@ -1,9 +1,4 @@
-use super::{
-    api::IdentityService, create::Create, delete::Delete, get::Get, list::List,
-    list_groups::ListGroups, list_roles::ListRoles, patch::Patch,
-};
-use crate::{beyond_identity::api::common::command::execute_and_serialize, common::error::BiError};
-use clap::{Args, Subcommand, ValueEnum};
+use clap::{Args, ValueEnum};
 use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -130,43 +125,18 @@ pub enum IdentityFilterField {
     PrimaryEmailAddress,
 }
 
-// ====================================
-// Commands for Managing Identities
-// ====================================
-
-#[derive(Subcommand)]
-pub enum IdentityCommands {
-    Create(Create),
-    List(List),
-    Get(Get),
-    Patch(Patch),
-    Delete(Delete),
-    ListGroups(ListGroups),
-    ListRoles(ListRoles),
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateIdentityRequest {
+    pub identity: IdentityRequest,
 }
 
-impl IdentityCommands {
-    pub async fn execute(&self, service: &IdentityService) -> Result<String, BiError> {
-        match self {
-            IdentityCommands::Create(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::List(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::Get(cmd) => execute_and_serialize(cmd.clone().execute(service)).await,
-            IdentityCommands::Patch(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::Delete(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::ListGroups(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-            IdentityCommands::ListRoles(cmd) => {
-                execute_and_serialize(cmd.clone().execute(service)).await
-            }
-        }
-    }
+#[derive(Clone, Debug, Serialize)]
+pub struct IdentityRequest {
+    pub display_name: String,
+    pub traits: Traits,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PatchIdentityRequest {
+    pub identity: PatchIdentityDetails,
 }

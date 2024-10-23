@@ -12,7 +12,7 @@ use super::{common::api_client::ApiClient, identities::api::IdentityService};
 pub enum BeyondIdentityApiCommands {
     /// Direct API calls for identities
     #[clap(subcommand)]
-    Identities(identities::types::IdentityCommands),
+    Identities(identities::command::IdentityCommands),
 }
 
 #[async_trait]

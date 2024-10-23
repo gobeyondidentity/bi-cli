@@ -2,6 +2,11 @@ use convert_case::{Case, Casing};
 use function_name::named;
 use http::Method;
 
+use super::types::{
+    CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, IdentityDetails,
+    PatchIdentityRequest,
+};
+
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
 use crate::beyond_identity::api::common::request::{send_request, send_request_paginated};
@@ -11,11 +16,6 @@ use crate::beyond_identity::api::roles::types::{
     RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
 };
 use crate::common::error::BiError;
-
-use super::create::CreateIdentityRequest;
-use super::patch::PatchIdentityRequest;
-use super::types::{Identities, Identity};
-use super::types::{IdentitiesFieldName, IdentityDetails};
 
 // ====================================
 // Identities Service
