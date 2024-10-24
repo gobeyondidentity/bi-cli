@@ -49,6 +49,8 @@ else
     echo "Attempting to use sudo to install to /usr/local/bin"
     if command -v sudo >/dev/null 2>&1; then
         sudo mv bi /usr/local/bin/bi
+        sudo chown "$USER" /usr/local/bin/bi
+        sudo chmod +x /usr/local/bin/bi
         echo "bi installed to /usr/local/bin/bi"
     else
         echo "sudo is not installed. Please move the 'bi' binary to a directory in your PATH manually."
@@ -58,5 +60,6 @@ else
 fi
 
 mv bi "$DESTINATION/bi"
+chown "$USER" "$DESTINATION/bi"
+chmod +x "$DESTINATION/bi"
 echo "bi installed to $DESTINATION/bi"
-
