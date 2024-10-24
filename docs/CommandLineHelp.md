@@ -24,16 +24,11 @@ This document contains the help content for the `bi-cli` command-line program.
 * [`bi-cli helper create-external-sso-connection`↴](#bi-cli-helper-create-external-sso-connection)
 * [`bi-cli helper create-admin-account`↴](#bi-cli-helper-create-admin-account)
 * [`bi-cli helper delete-all-identities`↴](#bi-cli-helper-delete-all-identities)
-* [`bi-cli helper get-token`↴](#bi-cli-helper-get-token)
 * [`bi-cli helper send-enrollment-email`↴](#bi-cli-helper-send-enrollment-email)
 * [`bi-cli helper delete-all-sso-configs`↴](#bi-cli-helper-delete-all-sso-configs)
 * [`bi-cli helper review-unenrolled`↴](#bi-cli-helper-review-unenrolled)
 * [`bi-cli okta`↴](#bi-cli-okta)
 * [`bi-cli okta setup`↴](#bi-cli-okta-setup)
-* [`bi-cli okta create-scim-app`↴](#bi-cli-okta-create-scim-app)
-* [`bi-cli okta create-custom-attribute`↴](#bi-cli-okta-create-custom-attribute)
-* [`bi-cli okta create-identity-provider`↴](#bi-cli-okta-create-identity-provider)
-* [`bi-cli okta create-routing-rule`↴](#bi-cli-okta-create-routing-rule)
 * [`bi-cli okta fast-migrate`↴](#bi-cli-okta-fast-migrate)
 * [`bi-cli onelogin`↴](#bi-cli-onelogin)
 * [`bi-cli onelogin setup`↴](#bi-cli-onelogin-setup)
@@ -127,7 +122,7 @@ Direct API calls for identities
 
 ###### **Options:**
 
-* `--id <ID>` — The ID of the identity to retrieve
+* `--id <ID>`
 
 
 
@@ -137,7 +132,7 @@ Direct API calls for identities
 
 ###### **Options:**
 
-* `--id <ID>` — The ID of the identity to patch
+* `--id <ID>`
 * `--display-name <DISPLAY_NAME>`
 * `--status <STATUS>`
 
@@ -161,7 +156,7 @@ Direct API calls for identities
 
 ###### **Options:**
 
-* `--id <ID>` — The ID of the identity to retrieve
+* `--id <ID>`
 
 
 
@@ -171,7 +166,7 @@ Direct API calls for identities
 
 ###### **Options:**
 
-* `--id <ID>` — The ID of the identity to list groups for
+* `--id <ID>`
 
 
 
@@ -181,8 +176,8 @@ Direct API calls for identities
 
 ###### **Options:**
 
-* `--id <ID>` — The ID of the identity to list roles for
-* `--resource-server-id <RESOURCE_SERVER_ID>` — The ID of the resource server used to filter roles
+* `--id <ID>`
+* `--resource-server-id <RESOURCE_SERVER_ID>`
 
 
 
@@ -199,7 +194,6 @@ Commands related to Beyond Identity API helper functions
 * `create-external-sso-connection` — Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity
 * `create-admin-account` — Creates an administrator account in the account
 * `delete-all-identities` — Deletes all identities from a realm in case you want to set them up from scratch. The identities are unassigned from roles and groups automatically
-* `get-token` — Get bearer token
 * `send-enrollment-email` — Helps you send enrollment emails to one or more (or all) users in Beyond Identity
 * `delete-all-sso-configs` — Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch
 * `review-unenrolled` — Get a list of identities who have not enrolled yet (identities without a passkey)
@@ -304,24 +298,17 @@ Deletes all identities from a realm in case you want to set them up from scratch
 
 
 
-## `bi-cli helper get-token`
-
-Get bearer token
-
-**Usage:** `bi-cli helper get-token`
-
-
-
 ## `bi-cli helper send-enrollment-email`
 
 Helps you send enrollment emails to one or more (or all) users in Beyond Identity
 
-**Usage:** `bi-cli helper send-enrollment-email <--all|--unenrolled>`
+**Usage:** `bi-cli helper send-enrollment-email <--all|--unenrolled|--groups>`
 
 ###### **Options:**
 
 * `--all`
 * `--unenrolled`
+* `--groups`
 
 
 
@@ -350,10 +337,6 @@ Commands related to Okta
 ###### **Subcommands:**
 
 * `setup` — Setup allows you to provision an Okta tenant to be used for subsequent commands
-* `create-scim-app` — Creates a SCIM app in Okta that is connected to the SCIM app created in the previous step. Note that this command will generate the app and assign all groups to the SCIM app. However, there is a manual step you have to complete on your own which unfortunately cannot be automated. When you run this command the first time, we'll provide you with a SCIM base URL and API token that you'll need to copy into the SCIM app in Okta. You will also have to enable provisioning of identities manually in Okta. The good news is that both of these steps are very easy to do
-* `create-custom-attribute` — Creates a custom attribute in Okta on the default user type that will be used to create an IDP routing rule in Okta. This is a boolean value that gets set to "true" whenever a passkey is bound for a specific user
-* `create-identity-provider` — Takes the external SSO connection you created in Beyond Identity and uses it to configure an identity provider in Okta. This is the identity provider that will be used to authenticate Okta users using Beyond Identity
-* `create-routing-rule` — The final step when setting up Beyond Identity as an MFA in Okta. This will use the custom attribute you created using an earlier command to route users who have provisioned a Beyond Identity passkey to Beyond Identity during authentication
 * `fast-migrate` — Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta
 
 
@@ -372,46 +355,6 @@ Setup allows you to provision an Okta tenant to be used for subsequent commands
 ###### **Options:**
 
 * `--force` — Flag to allow force reconfiguration
-
-
-
-## `bi-cli okta create-scim-app`
-
-Creates a SCIM app in Okta that is connected to the SCIM app created in the previous step. Note that this command will generate the app and assign all groups to the SCIM app. However, there is a manual step you have to complete on your own which unfortunately cannot be automated. When you run this command the first time, we'll provide you with a SCIM base URL and API token that you'll need to copy into the SCIM app in Okta. You will also have to enable provisioning of identities manually in Okta. The good news is that both of these steps are very easy to do
-
-**Usage:** `bi-cli okta create-scim-app`
-
-
-
-## `bi-cli okta create-custom-attribute`
-
-Creates a custom attribute in Okta on the default user type that will be used to create an IDP routing rule in Okta. This is a boolean value that gets set to "true" whenever a passkey is bound for a specific user
-
-**Usage:** `bi-cli okta create-custom-attribute <OKTA_REGISTRATION_SYNC_ATTRIBUTE>`
-
-###### **Arguments:**
-
-* `<OKTA_REGISTRATION_SYNC_ATTRIBUTE>` — Attribute that controls how and when Okta users are routed to Beyond Identity
-
-
-
-## `bi-cli okta create-identity-provider`
-
-Takes the external SSO connection you created in Beyond Identity and uses it to configure an identity provider in Okta. This is the identity provider that will be used to authenticate Okta users using Beyond Identity
-
-**Usage:** `bi-cli okta create-identity-provider`
-
-
-
-## `bi-cli okta create-routing-rule`
-
-The final step when setting up Beyond Identity as an MFA in Okta. This will use the custom attribute you created using an earlier command to route users who have provisioned a Beyond Identity passkey to Beyond Identity during authentication
-
-**Usage:** `bi-cli okta create-routing-rule <OKTA_REGISTRATION_SYNC_ATTRIBUTE>`
-
-###### **Arguments:**
-
-* `<OKTA_REGISTRATION_SYNC_ATTRIBUTE>` — Attribute that controls how and when Okta users are routed to Beyond Identity
 
 
 
