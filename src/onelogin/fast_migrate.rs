@@ -1,6 +1,6 @@
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::identities;
 use crate::beyond_identity::sso_configs;
-use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::config::OneloginConfig;
 use crate::common::error::BiError;
@@ -270,27 +270,30 @@ fn filter_identities(
 }
 
 pub async fn create_sso_config_and_assign_identities(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     onelogin_application: &OneLoginApplication,
 ) -> Result<sso_configs::SsoConfigBookmark, BiError> {
     let name = onelogin_application.name.clone();
     let login_link = onelogin_application.login_link.clone();
     let icon_url = onelogin_application.icon.clone();
-    let sso_config =
-        sso_configs::create_sso_config(client, config, tenant_config, name, login_link, icon_url)
-            .await?;
+    let sso_config = sso_configs::create_sso_config(
+        &api_client.client,
+        &api_client.tenant_config,
+        name,
+        login_link,
+        icon_url,
+    )
+    .await?;
 
     let beyond_identity_identities =
-        identities::fetch_beyond_identity_identities(client, config, tenant_config).await?;
+        identities::fetch_beyond_identity_identities(&api_client.client, &api_client.tenant_config)
+            .await?;
     let assigned_users = onelogin_application.assigned_users.as_ref();
     let filtered_identities = filter_identities(assigned_users, &beyond_identity_identities);
 
     sso_configs::assign_identities_to_sso_config(
-        client,
-        config,
-        tenant_config,
+        &api_client.client,
+        &api_client.tenant_config,
         &sso_config,
         &filtered_identities,
     )

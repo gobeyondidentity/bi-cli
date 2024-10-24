@@ -1,7 +1,7 @@
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
+use crate::common::config::OktaConfig;
 use crate::common::error::BiError;
-use crate::{beyond_identity::api::common::token::token, common::config::OktaConfig};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -23,7 +23,6 @@ async fn get_first_resource_server(
     client: &Client,
     tenant_id: &str,
     realm_id: &str,
-    beyond_identity_api_token: &str,
     base_url: &str,
 ) -> Result<String, BiError> {
     let url = format!(
@@ -31,14 +30,7 @@ async fn get_first_resource_server(
         base_url, tenant_id, realm_id
     );
 
-    let response = client
-        .get(&url)
-        .header(
-            "Authorization",
-            format!("Bearer {}", beyond_identity_api_token),
-        )
-        .send()
-        .await?;
+    let response = client.get(&url).send().await?;
 
     let status = response.status();
     let response_text = response.text().await?;
@@ -86,19 +78,17 @@ pub struct OktaRegistrationResponse {
 
 async fn create_okta_registration(
     client: &Client,
-    config: &Config,
     okta_config: &OktaConfig,
     tenant_config: &TenantConfig,
     okta_registration_sync_attribute: String,
 ) -> Result<OktaRegistrationResponse, BiError> {
     // Only one Okta registration can exist at a time
-    delete_okta_registration(client, config, tenant_config).await?;
+    delete_okta_registration(client, tenant_config).await?;
 
     let domain = okta_config.domain.clone();
     let okta_token = okta_config.api_key.clone();
     let attribute_name = okta_registration_sync_attribute.clone();
     let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
-    let beyond_identity_api_token = token(client, config, tenant_config).await?;
     let tenant_id = &tenant_config.tenant_id;
     let realm_id = &tenant_config.realm_id;
 
@@ -117,10 +107,6 @@ async fn create_okta_registration(
     let response = client
         .post(&url)
         .header("Content-Type", "application/json")
-        .header(
-            "Authorization",
-            format!("Bearer {}", beyond_identity_api_token),
-        )
         .json(&payload)
         .send()
         .await?;
@@ -145,11 +131,9 @@ async fn create_okta_registration(
 
 async fn delete_okta_registration(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
     let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
-    let beyond_identity_api_token = token(client, config, tenant_config).await?;
     let tenant_id = &tenant_config.tenant_id;
     let realm_id = &tenant_config.realm_id;
 
@@ -161,10 +145,6 @@ async fn delete_okta_registration(
     let response = client
         .delete(&url)
         .header("Content-Type", "application/json")
-        .header(
-            "Authorization",
-            format!("Bearer {}", beyond_identity_api_token),
-        )
         .send()
         .await?;
 
@@ -203,23 +183,16 @@ pub struct ProtocolConfig {
 
 async fn create_scim_app(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<BeyondIdentityAppResponse, BiError> {
     let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
-    let beyond_identity_api_token = token(client, config, tenant_config).await?;
     let tenant_id = tenant_config.tenant_id.clone();
     let realm_id = tenant_config.realm_id.clone();
 
     // Fetch the first resource server
-    let resource_server_id = get_first_resource_server(
-        client,
-        &tenant_id,
-        &realm_id,
-        &beyond_identity_api_token,
-        &beyond_identity_api_base_url,
-    )
-    .await?;
+    let resource_server_id =
+        get_first_resource_server(client, &tenant_id, &realm_id, &beyond_identity_api_base_url)
+            .await?;
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/applications",
@@ -247,10 +220,6 @@ async fn create_scim_app(
     let response = client
         .post(&url)
         .header("Content-Type", "application/json")
-        .header(
-            "Authorization",
-            format!("Bearer {}", beyond_identity_api_token),
-        )
         .json(&payload)
         .send()
         .await?;
@@ -350,13 +319,12 @@ pub async fn create_beyond_identity_scim_app(
 ) -> Result<BiScimConfig, BiError> {
     create_okta_registration(
         client,
-        config,
         okta_config,
         tenant_config,
         okta_registration_sync_attribute,
     )
     .await?;
-    let response = create_scim_app(client, config, tenant_config).await?;
+    let response = create_scim_app(client, tenant_config).await?;
     let oauth_bearer_token = generate_scim_app_token(client, tenant_config, &response).await?;
     let bi_scim_config = BiScimConfig {
         scim_application_config: response.clone(),

@@ -2,10 +2,50 @@ use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
+use http::Extensions;
+use reqwest::{Request, Response};
 use reqwest_middleware::ClientWithMiddleware as Client;
+use reqwest_middleware::{ClientWithMiddleware, Middleware, Next, Result as MiddlewareResult};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+pub struct AuthorizationMiddleware {
+    config: Config,
+    tenant_config: TenantConfig,
+    client: ClientWithMiddleware,
+}
+
+impl AuthorizationMiddleware {
+    pub fn new(config: Config, tenant_config: TenantConfig, client: ClientWithMiddleware) -> Self {
+        Self {
+            config,
+            tenant_config,
+            client,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Middleware for AuthorizationMiddleware {
+    async fn handle(
+        &self,
+        mut req: Request,
+        extensions: &mut Extensions,
+        next: Next<'_>,
+    ) -> MiddlewareResult<Response> {
+        let token = token(&self.client, &self.config, &self.tenant_config)
+            .await
+            .map_err(|e| reqwest_middleware::Error::Middleware(e.into()))?;
+
+        req.headers_mut().insert(
+            reqwest::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        next.run(req, extensions).await
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ApiTokenResponse {
@@ -22,7 +62,7 @@ struct StoredToken {
     application_id: String,
 }
 
-pub async fn token(
+async fn token(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,

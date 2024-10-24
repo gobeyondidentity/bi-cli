@@ -1,6 +1,4 @@
-use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::common::config::Config;
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -16,7 +14,6 @@ pub struct ResourceServer {
 
 pub async fn fetch_beyond_identity_resource_servers(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<ResourceServer>, BiError> {
     let mut resource_servers = Vec::new();
@@ -26,14 +23,7 @@ pub async fn fetch_beyond_identity_resource_servers(
     );
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", token(client, config, tenant_config).await?),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);

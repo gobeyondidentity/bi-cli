@@ -1,10 +1,7 @@
 use crate::beyond_identity::enrollment::{get_credentials_for_identity, Credential};
+use crate::beyond_identity::groups::delete_group_memberships;
 use crate::beyond_identity::roles::{delete_role_memberships, fetch_role_memberships};
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::beyond_identity::{
-    api::common::token::token, groups::delete_group_memberships,
-};
-use crate::common::config::Config;
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -30,7 +27,6 @@ pub struct IdentityTraits {
 
 pub async fn fetch_beyond_identity_identities(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<Identity>, BiError> {
     let mut identities = Vec::new();
@@ -40,17 +36,7 @@ pub async fn fetch_beyond_identity_identities(
     );
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -88,7 +74,6 @@ pub async fn fetch_beyond_identity_identities(
 
 pub async fn delete_identity(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity_id: &str,
 ) -> Result<(), BiError> {
@@ -97,17 +82,7 @@ pub async fn delete_identity(
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity_id,
     );
 
-    let response = client
-        .delete(&url)
-        .header(
-            "Authorization",
-            format!(
-                "Bearer {}",
-                token(client, config, tenant_config).await?
-            ),
-        )
-        .send()
-        .await?;
+    let response = client.delete(&url).send().await?;
 
     let status = response.status();
     if !status.is_success() {
@@ -121,7 +96,6 @@ pub async fn delete_identity(
 
 pub async fn delete_all_identities(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
     let mut url = format!(
@@ -129,22 +103,12 @@ pub async fn delete_all_identities(
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(&client, &config, &tenant_config)
+    let resource_servers = fetch_beyond_identity_resource_servers(&client, &tenant_config)
         .await
         .expect("Failed to fetch resource servers");
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -160,15 +124,15 @@ pub async fn delete_all_identities(
             serde_json::from_value(response_json["identities"].clone())?;
 
         for identity in &page_identities {
-            delete_group_memberships(&client, &config, &tenant_config, &identity.id)
+            delete_group_memberships(&client, &tenant_config, &identity.id)
                 .await
                 .expect("Failed to delete role memberships");
             for rs in &resource_servers {
-                delete_role_memberships(&client, &config, &tenant_config, &identity.id, &rs.id)
+                delete_role_memberships(&client, &tenant_config, &identity.id, &rs.id)
                     .await
                     .expect("Failed to delete role memberships");
             }
-            delete_identity(&client, &config, &tenant_config, &identity.id)
+            delete_identity(&client, &tenant_config, &identity.id)
                 .await
                 .expect("Failed to delete identity");
 
@@ -196,7 +160,6 @@ pub async fn delete_all_identities(
 
 pub async fn delete_unenrolled_identities(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
     let mut url = format!(
@@ -204,22 +167,12 @@ pub async fn delete_unenrolled_identities(
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(&client, &config, &tenant_config)
+    let resource_servers = fetch_beyond_identity_resource_servers(&client, &tenant_config)
         .await
         .expect("Failed to fetch resource servers");
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -235,10 +188,9 @@ pub async fn delete_unenrolled_identities(
             serde_json::from_value(response_json["identities"].clone())?;
 
         for identity in &page_identities {
-            let credentials =
-                get_credentials_for_identity(client, config, tenant_config, &identity.id)
-                    .await
-                    .expect("Failed to fetch credentials");
+            let credentials = get_credentials_for_identity(client, tenant_config, &identity.id)
+                .await
+                .expect("Failed to fetch credentials");
             let enrolled = credentials
                 .into_iter()
                 .filter(|cred| {
@@ -247,15 +199,15 @@ pub async fn delete_unenrolled_identities(
                 })
                 .collect::<Vec<Credential>>();
             if enrolled.is_empty() {
-                delete_group_memberships(&client, &config, &tenant_config, &identity.id)
+                delete_group_memberships(&client, &tenant_config, &identity.id)
                     .await
                     .expect("Failed to delete role memberships");
                 for rs in &resource_servers {
-                    delete_role_memberships(&client, &config, &tenant_config, &identity.id, &rs.id)
+                    delete_role_memberships(&client, &tenant_config, &identity.id, &rs.id)
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                delete_identity(&client, &config, &tenant_config, &identity.id)
+                delete_identity(&client, &tenant_config, &identity.id)
                     .await
                     .expect("Failed to delete identity");
 
@@ -284,7 +236,6 @@ pub async fn delete_unenrolled_identities(
 
 pub async fn delete_norole_identities(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
     let mut url = format!(
@@ -292,22 +243,12 @@ pub async fn delete_norole_identities(
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(&client, &config, &tenant_config)
+    let resource_servers = fetch_beyond_identity_resource_servers(&client, &tenant_config)
         .await
         .expect("Failed to fetch resource servers");
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -327,7 +268,6 @@ pub async fn delete_norole_identities(
             for resource_server in &resource_servers {
                 let roles = fetch_role_memberships(
                     client,
-                    config,
                     tenant_config,
                     &identity.id,
                     &resource_server.id,
@@ -338,15 +278,15 @@ pub async fn delete_norole_identities(
             }
 
             if !has_role {
-                delete_group_memberships(&client, &config, &tenant_config, &identity.id)
+                delete_group_memberships(&client, &tenant_config, &identity.id)
                     .await
                     .expect("Failed to delete role memberships");
                 for rs in &resource_servers {
-                    delete_role_memberships(&client, &config, &tenant_config, &identity.id, &rs.id)
+                    delete_role_memberships(&client, &tenant_config, &identity.id, &rs.id)
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                delete_identity(&client, &config, &tenant_config, &identity.id)
+                delete_identity(&client, &tenant_config, &identity.id)
                     .await
                     .expect("Failed to delete identity");
 

@@ -4,7 +4,6 @@ use crate::{
         command::Executable,
         config::{Config, OktaConfig},
         error::BiError,
-        http::new_http_client_for_api,
     },
 };
 use async_trait::async_trait;
@@ -12,12 +11,10 @@ use clap::ArgGroup;
 use clap::Subcommand;
 
 use super::admin::{create_admin_account, get_identities_without_role};
-use crate::beyond_identity::api::common::token::token;
 use super::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
     select_identities, send_enrollment_email,
 };
-use super::external_sso::{create_external_sso, load_external_sso};
 use super::groups::{delete_group_memberships, fetch_all_groups, get_identities_from_group, Group};
 use super::identities::{
     delete_all_identities, delete_identity, delete_norole_identities, delete_unenrolled_identities,
@@ -28,6 +25,10 @@ use super::roles::delete_role_memberships;
 use super::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use super::sso_configs::delete_all_sso_configs;
 use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_default_tenant_ui};
+use super::{
+    api::common::api_client::ApiClient,
+    external_sso::{create_external_sso, load_external_sso},
+};
 
 #[derive(Subcommand)]
 pub enum BeyondIdentityHelperCommands {
@@ -68,9 +69,6 @@ pub enum BeyondIdentityHelperCommands {
         force: bool,
     },
 
-    /// Get bearer token
-    GetToken,
-
     /// Helps you send enrollment emails to one or more (or all) users in Beyond Identity.
     #[command(group = ArgGroup::new("delete_option").required(true).multiple(false))]
     SendEnrollmentEmail {
@@ -110,46 +108,47 @@ pub enum SetupAction {
 #[async_trait]
 impl Executable for BeyondIdentityHelperCommands {
     async fn execute(&self) -> Result<(), BiError> {
+        let config = Config::new();
+        let api_client = ApiClient::new(
+            &config,
+            &load_tenant(&config).await.expect(
+                "Failed to load tenant. Make sure you create a tenant before running this command.",
+            ),
+        );
+
         match self {
             BeyondIdentityHelperCommands::CreateAdminAccount { email } => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-                let identity =
-                    create_admin_account(&client, &config, &tenant_config, email.to_string())
-                        .await
-                        .expect("Failed to create admin account");
+                let identity = create_admin_account(
+                    &api_client.client,
+                    &api_client.tenant_config,
+                    email.to_string(),
+                )
+                .await
+                .expect("Failed to create admin account");
                 println!("Created identity with id={}", identity.id);
                 Ok(())
             }
             BeyondIdentityHelperCommands::Setup(action) => match action {
                 SetupAction::ProvisionTenant { token } => {
-                    let config = Config::new();
-                    let client = new_http_client_for_api();
-                    _ = provision_tenant(&client, &config, token)
+                    _ = provision_tenant(&api_client.client, &api_client.config, token)
                         .await
                         .expect("Failed to provision existing tenant");
                     Ok(())
                 }
                 SetupAction::ListTenants => {
-                    let config = Config::new();
-                    list_tenants_ui(&config)
+                    list_tenants_ui(&api_client.config)
                         .await
                         .expect("Failed to list tenants");
                     Ok(())
                 }
                 SetupAction::SetDefaultTenant => {
-                    let config = Config::new();
-                    set_default_tenant_ui(&config)
+                    set_default_tenant_ui(&api_client.config)
                         .await
                         .expect("Failed to set default tenant");
                     Ok(())
                 }
                 SetupAction::DeleteTenant => {
-                    let config = Config::new();
-                    delete_tenant_ui(&config)
+                    delete_tenant_ui(&api_client.config)
                         .await
                         .expect("Failed to delete tenant");
                     Ok(())
@@ -158,19 +157,14 @@ impl Executable for BeyondIdentityHelperCommands {
             BeyondIdentityHelperCommands::CreateScimApp {
                 okta_registration_sync_attribute,
             } => {
-                let config = Config::new();
                 let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-                let bi_scim_app = match load_beyond_identity_scim_app(&config).await {
+                let bi_scim_app = match load_beyond_identity_scim_app(&api_client.config).await {
                     Ok(bi_scim_app) => bi_scim_app,
                     Err(_) => create_beyond_identity_scim_app(
-                        &client,
-                        &config,
+                        &api_client.client,
+                        &api_client.config,
                         &okta_config,
-                        &tenant_config,
+                        &api_client.tenant_config,
                         okta_registration_sync_attribute.clone(),
                     )
                     .await
@@ -183,16 +177,13 @@ impl Executable for BeyondIdentityHelperCommands {
                 Ok(())
             }
             BeyondIdentityHelperCommands::CreateExternalSSOConnection => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-                let external_sso = match load_external_sso(&config).await {
+                let external_sso = match load_external_sso(&api_client.config).await {
                     Ok(external_sso) => external_sso,
-                    Err(_) => create_external_sso(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to create External SSO in Beyond Identity"),
+                    Err(_) => {
+                        create_external_sso(&api_client.client, &config, &api_client.tenant_config)
+                            .await
+                            .expect("Failed to create External SSO in Beyond Identity")
+                    }
                 };
                 println!(
                     "External SSO: {}",
@@ -205,35 +196,34 @@ impl Executable for BeyondIdentityHelperCommands {
                 unenrolled,
                 groups,
             } => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-
                 let mut identities: Vec<Identity> = Vec::new();
 
                 if *all {
-                    identities = get_all_identities(&client, &config, &tenant_config)
+                    identities = get_all_identities(&api_client.client, &api_client.tenant_config)
                         .await
                         .expect("Failed to fetch all identities");
                 }
 
                 if *unenrolled {
-                    identities = get_unenrolled_identities(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to fetch unenrolled identities");
+                    identities =
+                        get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+                            .await
+                            .expect("Failed to fetch unenrolled identities");
                 }
 
                 if *groups {
-                    let groups: Vec<Group> = fetch_all_groups(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to fetch groups");
-                    let group = select_group(&groups);
-                    identities =
-                        get_identities_from_group(&client, &config, &tenant_config, &group.id)
+                    let groups: Vec<Group> =
+                        fetch_all_groups(&api_client.client, &api_client.tenant_config)
                             .await
-                            .expect("Failed to fetch identities from group");
+                            .expect("Failed to fetch groups");
+                    let group = select_group(&groups);
+                    identities = get_identities_from_group(
+                        &api_client.client,
+                        &api_client.tenant_config,
+                        &group.id,
+                    )
+                    .await
+                    .expect("Failed to fetch identities from group");
                 }
 
                 if identities.len() == 0 {
@@ -243,15 +233,14 @@ impl Executable for BeyondIdentityHelperCommands {
 
                 let selected_identities = select_identities(&identities);
 
-                let payload = get_send_email_payload(&client, &config, &tenant_config)
+                let payload = get_send_email_payload(&api_client.client, &api_client.tenant_config)
                     .await
                     .expect("Unable to get email payload");
 
                 for identity in selected_identities {
                     match send_enrollment_email(
-                        &client,
-                        &config,
-                        &tenant_config,
+                        &api_client.client,
+                        &api_client.tenant_config,
                         &identity,
                         payload.clone(),
                     )
@@ -278,13 +267,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 Ok(())
             }
             BeyondIdentityHelperCommands::DeleteAllSSOConfigs => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-
-                delete_all_sso_configs(&client, &config, &tenant_config)
+                delete_all_sso_configs(&api_client.client, &api_client.tenant_config)
                     .await
                     .expect("Failed to delete all SSO Configs");
                 Ok(())
@@ -295,27 +278,21 @@ impl Executable for BeyondIdentityHelperCommands {
                 unenrolled,
                 force,
             } => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-
                 if *force {
                     if *all {
-                        delete_all_identities(&client, &config, &tenant_config)
+                        delete_all_identities(&api_client.client, &api_client.tenant_config)
                             .await
                             .expect("Failed to delete all identities");
                     }
 
                     if *unenrolled {
-                        delete_unenrolled_identities(&client, &config, &tenant_config)
+                        delete_unenrolled_identities(&api_client.client, &api_client.tenant_config)
                             .await
                             .expect("Failed to delete unenrolled identities");
                     }
 
                     if *norole {
-                        delete_norole_identities(&client, &config, &tenant_config)
+                        delete_norole_identities(&api_client.client, &api_client.tenant_config)
                             .await
                             .expect("Failed to delete norole identities");
                     }
@@ -325,21 +302,23 @@ impl Executable for BeyondIdentityHelperCommands {
                 let mut identities = vec![];
 
                 if *all {
-                    identities = get_all_identities(&client, &config, &tenant_config)
+                    identities = get_all_identities(&api_client.client, &api_client.tenant_config)
                         .await
                         .expect("Failed to fetch all identities");
                 }
 
                 if *unenrolled {
-                    identities = get_unenrolled_identities(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to fetch unenrolled identities");
+                    identities =
+                        get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+                            .await
+                            .expect("Failed to fetch unenrolled identities");
                 }
 
                 if *norole {
-                    identities = get_identities_without_role(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to fetch unenrolled identities");
+                    identities =
+                        get_identities_without_role(&api_client.client, &api_client.tenant_config)
+                            .await
+                            .expect("Failed to fetch unenrolled identities");
                 }
 
                 if identities.len() == 0 {
@@ -349,20 +328,25 @@ impl Executable for BeyondIdentityHelperCommands {
 
                 let selected_identities = select_identities(&identities);
 
-                let resource_servers =
-                    fetch_beyond_identity_resource_servers(&client, &config, &tenant_config)
-                        .await
-                        .expect("Failed to fetch resource servers");
+                let resource_servers = fetch_beyond_identity_resource_servers(
+                    &api_client.client,
+                    &api_client.tenant_config,
+                )
+                .await
+                .expect("Failed to fetch resource servers");
 
                 for identity in &selected_identities {
-                    delete_group_memberships(&client, &config, &tenant_config, &identity.id)
-                        .await
-                        .expect("Failed to delete role memberships");
+                    delete_group_memberships(
+                        &api_client.client,
+                        &api_client.tenant_config,
+                        &identity.id,
+                    )
+                    .await
+                    .expect("Failed to delete role memberships");
                     for rs in &resource_servers {
                         delete_role_memberships(
-                            &client,
-                            &config,
-                            &tenant_config,
+                            &api_client.client,
+                            &api_client.tenant_config,
                             &identity.id,
                             &rs.id,
                         )
@@ -372,33 +356,16 @@ impl Executable for BeyondIdentityHelperCommands {
                 }
 
                 for identity in &selected_identities {
-                    delete_identity(&client, &config, &tenant_config, &identity.id)
+                    delete_identity(&api_client.client, &api_client.tenant_config, &identity.id)
                         .await
                         .expect("Failed to delete identity");
                     println!("Deleted identity {}", identity.id);
                 }
                 Ok(())
             }
-            BeyondIdentityHelperCommands::GetToken => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
-                let token = token(&client, &config, &tenant_config)
-                    .await
-                    .expect("missing");
-                println!("TOKEN: {}", token);
-                Ok(())
-            }
             BeyondIdentityHelperCommands::ReviewUnenrolled => {
-                let config = Config::new();
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
                 let unenrolled_identities =
-                    get_unenrolled_identities(&client, &config, &tenant_config)
+                    get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
 

@@ -1,7 +1,5 @@
-use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::common::config::Config;
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -16,11 +14,10 @@ pub struct Group {
 
 pub async fn delete_group_memberships(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity_id: &str,
 ) -> Result<(), BiError> {
-    let groups = fetch_group_memberships(client, config, tenant_config, identity_id).await?;
+    let groups = fetch_group_memberships(client, tenant_config, identity_id).await?;
 
     for group in groups {
         let url = format!(
@@ -30,13 +27,6 @@ pub async fn delete_group_memberships(
 
         let response = client
             .post(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
             .json(&serde_json::json!({
                 "identity_ids": [identity_id]
             }))
@@ -60,7 +50,6 @@ pub async fn delete_group_memberships(
 
 pub async fn fetch_group_memberships(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity_id: &str,
 ) -> Result<Vec<Group>, BiError> {
@@ -71,17 +60,7 @@ pub async fn fetch_group_memberships(
     );
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -119,7 +98,6 @@ pub async fn fetch_group_memberships(
 
 pub async fn fetch_all_groups(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<Group>, BiError> {
     let mut groups = Vec::new();
@@ -129,17 +107,7 @@ pub async fn fetch_all_groups(
     );
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -176,13 +144,11 @@ pub async fn fetch_all_groups(
 
 pub async fn get_identities_from_group(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     group_id: &str,
 ) -> Result<Vec<Identity>, BiError> {
     let mut identities = Vec::new();
     let mut next_page_token: Option<String> = None;
-    let bi_api_token = token(client, config, tenant_config).await?;
 
     loop {
         let url = match &next_page_token {
@@ -203,11 +169,7 @@ pub async fn get_identities_from_group(
             ),
         };
 
-        let response = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", bi_api_token))
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;

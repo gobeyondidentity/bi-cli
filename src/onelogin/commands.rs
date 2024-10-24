@@ -1,11 +1,18 @@
 use crate::{
-    beyond_identity::tenant::load_tenant,
+    beyond_identity::{
+        api::common::{api_client::ApiClient, middlewares::rate_limit::RespectRateLimitMiddleware},
+        tenant::load_tenant,
+    },
     common::{
-        command::Executable, config::{Config, OneloginConfig}, error::BiError, http::new_http_client_for_api
+        command::Executable,
+        config::{Config, OneloginConfig},
+        error::BiError,
     },
 };
 use async_trait::async_trait;
 use clap::Subcommand;
+use reqwest::Client;
+use reqwest_middleware::ClientBuilder;
 
 use super::fast_migrate;
 
@@ -53,17 +60,21 @@ impl Executable for OneloginCommands {
                 Ok(())
             }
             OneloginCommands::FastMigrate => {
+                let http_client = Client::new();
+                let onelogin_client = ClientBuilder::new(http_client.clone())
+                    .with(RespectRateLimitMiddleware)
+                    .build();
                 let config = Config::new();
+                let api_client = ApiClient::new(&config, &load_tenant(&config).await.expect(
+                    "Failed to load tenant. Make sure you create a tenant before running this command.",
+                ));
                 let onelogin_config = OneloginConfig::new().expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
-                let client = new_http_client_for_api();
-                let tenant_config = load_tenant(&config).await.expect(
-                            "Failed to load tenant. Make sure you create a tenant before running this command.",
-                        );
+
                 let onelogin_applications =
                     match fast_migrate::load_onelogin_applications(&config).await {
                         Ok(onelogin_applications) => onelogin_applications,
                         Err(_) => fast_migrate::fetch_onelogin_applications(
-                            &client,
+                            &onelogin_client,
                             &config,
                             &onelogin_config,
                         )
@@ -74,13 +85,8 @@ impl Executable for OneloginCommands {
                 let selected_applications =
                     fast_migrate::select_applications(&onelogin_applications);
                 for app in selected_applications {
-                    match fast_migrate::create_sso_config_and_assign_identities(
-                        &client,
-                        &config,
-                        &tenant_config,
-                        &app,
-                    )
-                    .await
+                    match fast_migrate::create_sso_config_and_assign_identities(&api_client, &app)
+                        .await
                     {
                         Ok(sso_config) => println!(
                             "SSO config created for {}: {}",
