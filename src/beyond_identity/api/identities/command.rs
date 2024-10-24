@@ -1,7 +1,7 @@
-use super::types::{IdentityFilterField, PatchIdentityDetails, PatchIdentityRequest};
+use super::types::{IdentityFilterField, PatchIdentity, PatchIdentityRequest};
 use super::{
     api::{IdentitiesApi, IdentityService},
-    types::{CreateIdentityRequest, IdentityDetails, IdentityRequest},
+    types::{CreateIdentityRequest, Identity, IdentityRequest},
 };
 use crate::beyond_identity::api::common::filter::Filter;
 use crate::{beyond_identity::api::common::command::serialize, common::error::BiError};
@@ -12,7 +12,7 @@ use std::str::FromStr;
 pub enum IdentityCommands {
     Create {
         #[clap(flatten)]
-        identity_details: IdentityDetails,
+        identity_details: Identity,
     },
     List {
         #[clap(long)]
@@ -26,7 +26,7 @@ pub enum IdentityCommands {
         #[clap(long)]
         id: String,
         #[clap(flatten)]
-        identity_details: PatchIdentityDetails,
+        identity_details: PatchIdentity,
     },
     Delete {
         #[clap(long)]
@@ -73,7 +73,7 @@ impl IdentityCommands {
                 serialize(service.patch_identity(
                     id,
                     &PatchIdentityRequest {
-                        identity: PatchIdentityDetails {
+                        identity: PatchIdentity {
                             display_name: identity_details.display_name.clone(),
                             status: identity_details.status.clone(),
                             traits: identity_details.traits.clone(),

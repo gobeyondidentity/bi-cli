@@ -8,17 +8,17 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct Groups {
-    pub groups: Vec<GroupDetails>,
+    pub groups: Vec<Group>,
     pub total_size: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Group {
-    pub group: GroupDetails,
+pub struct GroupEnvelope {
+    pub group: Group,
 }
 
 #[derive(Args, Clone, Debug, Serialize, Deserialize)]
-pub struct GroupDetails {
+pub struct Group {
     #[clap(skip)]
     pub id: String,
     #[clap(skip)]

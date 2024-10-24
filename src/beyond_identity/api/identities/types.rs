@@ -9,17 +9,17 @@ use strum_macros::{Display, EnumString};
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct Identities {
-    pub identities: Vec<IdentityDetails>,
+    pub identities: Vec<Identity>,
     pub total_size: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Identity {
-    pub identity: IdentityDetails,
+pub struct IdentityEnvelope {
+    pub identity: Identity,
 }
 
 #[derive(Args, Clone, Debug, Serialize, Deserialize)]
-pub struct IdentityDetails {
+pub struct Identity {
     #[clap(skip)]
     pub id: String,
     #[clap(skip)]
@@ -41,7 +41,7 @@ pub struct IdentityDetails {
 }
 
 #[derive(Args, Clone, Debug, Serialize)]
-pub struct PatchIdentityDetails {
+pub struct PatchIdentity {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[clap(long)]
     pub display_name: Option<String>,
@@ -138,5 +138,5 @@ pub struct IdentityRequest {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PatchIdentityRequest {
-    pub identity: PatchIdentityDetails,
+    pub identity: PatchIdentity,
 }

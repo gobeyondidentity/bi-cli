@@ -3,7 +3,7 @@ use function_name::named;
 use http::Method;
 
 use super::types::{
-    CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, IdentityDetails,
+    CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, IdentityEnvelope,
     PatchIdentityRequest,
 };
 
@@ -11,10 +11,8 @@ use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
 use crate::beyond_identity::api::common::request::{send_request, send_request_paginated};
 use crate::beyond_identity::api::common::url::URLBuilder;
-use crate::beyond_identity::api::groups::types::{GroupDetails, Groups, GroupsFieldName};
-use crate::beyond_identity::api::roles::types::{
-    RoleDetails, RoleDetailsFieldName, Roles, RolesFieldName,
-};
+use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
+use crate::beyond_identity::api::roles::types::{Role, RoleFieldName, Roles, RolesFieldName};
 use crate::common::error::BiError;
 
 // ====================================
@@ -36,9 +34,12 @@ impl IdentityService {
 // ====================================
 
 pub trait IdentitiesApi {
-    async fn create_identity(&self, request: CreateIdentityRequest) -> Result<Identity, BiError>;
+    async fn create_identity(
+        &self,
+        request: CreateIdentityRequest,
+    ) -> Result<IdentityEnvelope, BiError>;
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError>;
-    async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError>;
+    async fn get_identity(&self, identity_id: &str) -> Result<IdentityEnvelope, BiError>;
     async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError>;
     async fn list_groups(&self, identity_id: &str) -> Result<Groups, BiError>;
     async fn list_roles(
@@ -50,7 +51,7 @@ pub trait IdentitiesApi {
         &self,
         identity_id: &str,
         patch_request: &PatchIdentityRequest,
-    ) -> Result<Identity, BiError>;
+    ) -> Result<IdentityEnvelope, BiError>;
 }
 
 // ====================================
@@ -58,7 +59,10 @@ pub trait IdentitiesApi {
 // ====================================
 
 impl IdentitiesApi for IdentityService {
-    async fn create_identity(&self, request: CreateIdentityRequest) -> Result<Identity, BiError> {
+    async fn create_identity(
+        &self,
+        request: CreateIdentityRequest,
+    ) -> Result<IdentityEnvelope, BiError> {
         send_request(
             &self.api_client,
             Method::POST,
@@ -71,7 +75,7 @@ impl IdentitiesApi for IdentityService {
             Some(&request),
         )
         .await
-        .map(|details| Identity { identity: details })
+        .map(|details| IdentityEnvelope { identity: details })
     }
 
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError> {
@@ -89,7 +93,7 @@ impl IdentitiesApi for IdentityService {
         .await
     }
 
-    async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError> {
+    async fn get_identity(&self, identity_id: &str) -> Result<IdentityEnvelope, BiError> {
         send_request(
             &self.api_client,
             Method::GET,
@@ -102,7 +106,7 @@ impl IdentitiesApi for IdentityService {
             None::<&()>,
         )
         .await
-        .map(|details| Identity { identity: details })
+        .map(|details| IdentityEnvelope { identity: details })
     }
 
     async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError> {
@@ -117,7 +121,7 @@ impl IdentitiesApi for IdentityService {
             )
             .to_string()?;
 
-        let identities: Vec<IdentityDetails> = send_request_paginated(
+        let identities: Vec<Identity> = send_request_paginated(
             &self.api_client,
             Method::GET,
             &url,
@@ -142,7 +146,7 @@ impl IdentitiesApi for IdentityService {
             .add_custom_method(&function_name!().to_case(Case::Camel))
             .to_string()?;
 
-        let groups: Vec<GroupDetails> = send_request_paginated(
+        let groups: Vec<Group> = send_request_paginated(
             &self.api_client,
             Method::GET,
             &url,
@@ -170,12 +174,12 @@ impl IdentitiesApi for IdentityService {
             .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
             .add_custom_method(&function_name!().to_case(Case::Camel))
             .add_query_param(
-                &RoleDetailsFieldName::ResourceServerId.name(),
+                &RoleFieldName::ResourceServerId.name(),
                 Some(resource_server_id),
             )
             .to_string()?;
 
-        let roles: Vec<RoleDetails> = send_request_paginated(
+        let roles: Vec<Role> = send_request_paginated(
             &self.api_client,
             Method::GET,
             &url,
@@ -194,7 +198,7 @@ impl IdentitiesApi for IdentityService {
         &self,
         identity_id: &str,
         patch_request: &PatchIdentityRequest,
-    ) -> Result<Identity, BiError> {
+    ) -> Result<IdentityEnvelope, BiError> {
         send_request(
             &self.api_client,
             Method::PATCH,
@@ -207,6 +211,6 @@ impl IdentitiesApi for IdentityService {
             Some(patch_request),
         )
         .await
-        .map(|details| Identity { identity: details })
+        .map(|details| IdentityEnvelope { identity: details })
     }
 }

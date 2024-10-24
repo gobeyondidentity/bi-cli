@@ -8,17 +8,17 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
 pub struct Roles {
-    pub roles: Vec<RoleDetails>,
+    pub roles: Vec<Role>,
     pub total_size: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Role {
-    pub role: RoleDetails,
+pub struct RoleEnvelope {
+    pub role: Role,
 }
 
 #[derive(Args, Clone, Debug, Serialize, Deserialize, FieldName)]
-pub struct RoleDetails {
+pub struct Role {
     #[clap(skip)]
     pub id: String,
     /// (required) A unique identifier for a resource server.
