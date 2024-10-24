@@ -1,6 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::common::config::Config;
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -16,19 +14,12 @@ pub struct Role {
 
 pub async fn delete_role_memberships(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity_id: &str,
     resource_server_id: &str,
 ) -> Result<(), BiError> {
-    let roles = fetch_role_memberships(
-        client,
-        config,
-        tenant_config,
-        identity_id,
-        resource_server_id,
-    )
-    .await?;
+    let roles =
+        fetch_role_memberships(client, tenant_config, identity_id, resource_server_id).await?;
 
     for role in roles {
         let url = format!(
@@ -42,13 +33,6 @@ pub async fn delete_role_memberships(
 
         let response = client
             .post(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
-                ),
-            )
             .json(&serde_json::json!({
                 "group_ids": [],
                 "identity_ids": [identity_id]
@@ -70,7 +54,6 @@ pub async fn delete_role_memberships(
 
 pub async fn fetch_role_memberships(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity_id: &str,
     resource_server_id: &str,
@@ -86,17 +69,7 @@ pub async fn fetch_role_memberships(
     );
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -134,7 +107,6 @@ pub async fn fetch_role_memberships(
 
 pub async fn fetch_beyond_identity_roles(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     resource_server_id: &str,
 ) -> Result<Vec<Role>, BiError> {
@@ -148,17 +120,7 @@ pub async fn fetch_beyond_identity_roles(
     );
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!(
-                    "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
-                ),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);

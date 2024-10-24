@@ -1,10 +1,51 @@
+use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
+use http::Extensions;
+use reqwest::{Request, Response};
 use reqwest_middleware::ClientWithMiddleware as Client;
+use reqwest_middleware::{ClientWithMiddleware, Middleware, Next, Result as MiddlewareResult};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+pub struct AuthorizationMiddleware {
+    config: Config,
+    tenant_config: TenantConfig,
+    client: ClientWithMiddleware,
+}
+
+impl AuthorizationMiddleware {
+    pub fn new(config: Config, tenant_config: TenantConfig, client: ClientWithMiddleware) -> Self {
+        Self {
+            config,
+            tenant_config,
+            client,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Middleware for AuthorizationMiddleware {
+    async fn handle(
+        &self,
+        mut req: Request,
+        extensions: &mut Extensions,
+        next: Next<'_>,
+    ) -> MiddlewareResult<Response> {
+        let token = token(&self.client, &self.config, &self.tenant_config)
+            .await
+            .map_err(|e| reqwest_middleware::Error::Middleware(e.into()))?;
+
+        req.headers_mut().insert(
+            reqwest::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        next.run(req, extensions).await
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ApiTokenResponse {
@@ -21,7 +62,7 @@ struct StoredToken {
     application_id: String,
 }
 
-pub async fn get_beyond_identity_api_token(
+async fn token(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,
@@ -50,13 +91,12 @@ pub async fn get_beyond_identity_api_token(
     log::debug!("No valid token found. Fetching a new one.");
 
     // If no valid token, fetch a new one
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/applications/{}/token",
-        tenant_config.auth_base_url,
-        tenant_config.tenant_id,
-        tenant_config.realm_id,
-        tenant_config.application_id
-    );
+    let url = URLBuilder::build(tenant_config)
+        .auth()
+        .add_tenant()
+        .add_realm()
+        .add_path(vec!["applications", &tenant_config.application_id, "token"])
+        .to_string()?;
 
     let response = client
         .post(&url)
@@ -100,8 +140,7 @@ pub async fn get_beyond_identity_api_token(
         realm_id: tenant_config.realm_id.clone(),
         application_id: tenant_config.application_id.clone(),
     };
-    let serialized =
-        serde_json::to_string(&stored_token).map_err(BiError::SerdeError)?;
+    let serialized = serde_json::to_string(&stored_token).map_err(BiError::SerdeError)?;
     fs::write(token_file_path.clone(), serialized)
         .map_err(|_| BiError::UnableToWriteFile(token_file_path))?;
 

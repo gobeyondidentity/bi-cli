@@ -1,7 +1,5 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
 use crate::beyond_identity::identities;
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::common::config::Config;
 use crate::common::error::BiError;
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware as Client;
@@ -16,7 +14,6 @@ pub struct DeleteSsoConfig {
 
 async fn list_all_sso_configs(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<DeleteSsoConfig>, BiError> {
     let mut sso_configs = Vec::new();
@@ -24,18 +21,9 @@ async fn list_all_sso_configs(
         "{}/v1/tenants/{}/realms/{}/sso-configs?page_size=100",
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
-    let beyond_identity_api_token =
-        get_beyond_identity_api_token(client, config, tenant_config).await?;
 
     loop {
-        let response = client
-            .get(&url)
-            .header(
-                "Authorization",
-                format!("Bearer {}", beyond_identity_api_token),
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -73,7 +61,6 @@ async fn list_all_sso_configs(
 
 async fn delete_sso_config(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     sso_config_id: &str,
 ) -> Result<(), BiError> {
@@ -82,17 +69,7 @@ async fn delete_sso_config(
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, sso_config_id
     );
 
-    let response = client
-        .delete(&url)
-        .header(
-            "Authorization",
-            format!(
-                "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
-            ),
-        )
-        .send()
-        .await?;
+    let response = client.delete(&url).send().await?;
 
     let status = response.status();
     if !status.is_success() {
@@ -105,14 +82,13 @@ async fn delete_sso_config(
 
 pub async fn delete_all_sso_configs(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
-    let sso_configs = list_all_sso_configs(client, config, tenant_config).await?;
+    let sso_configs = list_all_sso_configs(client, tenant_config).await?;
 
     for sso_config in sso_configs {
         log::info!("Deleting SSO Config: {:?}", sso_config.id);
-        delete_sso_config(client, config, tenant_config, &sso_config.id).await?;
+        delete_sso_config(client, tenant_config, &sso_config.id).await?;
     }
 
     Ok(())
@@ -142,13 +118,11 @@ pub struct Bookmark {
 
 pub async fn create_sso_config(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     name: String,
     login_link: String,
     icon_url: Option<String>,
 ) -> Result<SsoConfigBookmark, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs",
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
@@ -172,7 +146,6 @@ pub async fn create_sso_config(
     let response = client
         .post(&url)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", bi_api_token))
         .json(&payload)
         .send()
         .await?;
@@ -208,7 +181,6 @@ fn sanitize_label(label: &str) -> String {
 
 pub async fn assign_identities_to_sso_config(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     sso_config: &SsoConfigBookmark,
     identities: &[identities::Identity],
@@ -229,13 +201,6 @@ pub async fn assign_identities_to_sso_config(
     let response = client
         .post(&url)
         .header("Content-Type", "application/json")
-        .header(
-            "Authorization",
-            format!(
-                "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
-            ),
-        )
         .json(&payload)
         .send()
         .await?;

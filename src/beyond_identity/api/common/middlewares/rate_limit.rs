@@ -1,6 +1,6 @@
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Error, Middleware, Next};
+use reqwest_middleware::{Error, Middleware, Next};
 
-struct RespectRateLimitMiddleware;
+pub struct RespectRateLimitMiddleware;
 
 #[async_trait::async_trait]
 impl Middleware for RespectRateLimitMiddleware {
@@ -30,10 +30,4 @@ impl Middleware for RespectRateLimitMiddleware {
 
         Ok(response)
     }
-}
-
-pub fn new_http_client_for_api() -> ClientWithMiddleware {
-    ClientBuilder::new(reqwest::Client::new())
-        .with(RespectRateLimitMiddleware)
-        .build()
 }

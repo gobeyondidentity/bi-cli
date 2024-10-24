@@ -1,7 +1,5 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
 use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
-use crate::common::config::Config;
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -53,12 +51,10 @@ pub struct IdentityResponse {
 
 pub async fn get_all_identities(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<Identity>, BiError> {
     let mut all_identities = Vec::new();
     let mut next_page_token: Option<String> = None;
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
 
     loop {
         let url = match next_page_token {
@@ -72,11 +68,7 @@ pub async fn get_all_identities(
             ),
         };
 
-        let response = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", bi_api_token))
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;
@@ -108,13 +100,11 @@ pub async fn get_all_identities(
 
 pub async fn get_credentials_for_identity(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity_id: &str,
 ) -> Result<Vec<Credential>, BiError> {
     let mut all_credentials = Vec::new();
     let mut next_page_token: Option<String> = None;
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
 
     loop {
         let url = match next_page_token {
@@ -135,11 +125,7 @@ pub async fn get_credentials_for_identity(
             ),
         };
 
-        let response = client
-            .get(&url)
-            .header("Authorization", format!("Bearer {}", bi_api_token))
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;
@@ -171,17 +157,16 @@ pub async fn get_credentials_for_identity(
 
 pub async fn get_unenrolled_identities(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Vec<Identity>, BiError> {
-    let identities = get_all_identities(client, config, tenant_config)
+    let identities = get_all_identities(client, tenant_config)
         .await
         .expect("Failed to fetch identities");
 
     let mut unenrolled_identities = Vec::new();
 
     for i in identities {
-        let credentials = get_credentials_for_identity(client, config, tenant_config, &i.id)
+        let credentials = get_credentials_for_identity(client, tenant_config, &i.id)
             .await
             .expect("Failed to fetch credentials");
         let enrolled = credentials
@@ -201,22 +186,15 @@ pub async fn get_unenrolled_identities(
 // We expose the sso config to Ike but not the actual idp application. This will get that application_id for us.
 pub async fn get_idp_application_for_sso_config(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     sso_config_id: String,
 ) -> Result<SsoConfigIdpResponse, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
-
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}",
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, sso_config_id
     );
 
-    let response = client
-        .get(&url)
-        .header("Authorization", format!("Bearer {}", bi_api_token))
-        .send()
-        .await?;
+    let response = client.get(&url).send().await?;
 
     let status = response.status();
     let response_text = response.text().await?;
@@ -331,7 +309,6 @@ pub struct MagicLink {}
 
 pub async fn get_send_email_payload(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<Value, BiError> {
     let template = "secure_workforce_credential_binding_with_platform_authenticator_download_link";
@@ -369,7 +346,7 @@ pub async fn get_send_email_payload(
 
         // Ike only has acces to the sso_config_id but we need the identity_provider_id
         let sso_config =
-            get_idp_application_for_sso_config(client, config, tenant_config, input.to_string())
+            get_idp_application_for_sso_config(client, tenant_config, input.to_string())
                 .await
                 .expect("Failed to load get identity provider sso config.");
 
@@ -394,12 +371,10 @@ pub async fn get_send_email_payload(
 
 pub async fn send_enrollment_email(
     client: &Client,
-    config: &Config,
     tenant_config: &TenantConfig,
     identity: &Identity,
     payload: Value,
 ) -> Result<EnrollmentJobResponse, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}/enrollment-jobs",
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity.id
@@ -408,7 +383,6 @@ pub async fn send_enrollment_email(
     let response = client
         .post(&url)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", bi_api_token))
         .json(&payload)
         .send()
         .await?;

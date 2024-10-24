@@ -1,6 +1,6 @@
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::identities;
 use crate::beyond_identity::sso_configs;
-use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::config::OktaConfig;
 use crate::common::error::BiError;
@@ -326,18 +326,18 @@ fn filter_identities(
 }
 
 pub async fn create_sso_config_and_assign_identities(
-    client: &Client,
-    config: &Config,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     okta_application: &OktaApplication,
 ) -> Result<sso_configs::SsoConfigBookmark, BiError> {
     let login_link = okta_application
         ._links
-        .app_links.first()
+        .app_links
+        .first()
         .ok_or_else(|| BiError::StringError("No app_link present".to_string()))?;
     let logo = okta_application
         ._links
-        .logo.first()
+        .logo
+        .first()
         .cloned()
         .unwrap_or(Logo {
             name: "default".to_string(),
@@ -345,9 +345,8 @@ pub async fn create_sso_config_and_assign_identities(
             r#type: "image/png".to_string(),
         });
     let sso_config = sso_configs::create_sso_config(
-        client,
-        config,
-        tenant_config,
+        &api_client.client,
+        &api_client.tenant_config,
         okta_application.label.clone(),
         login_link.href.clone(),
         Some(logo.href),
@@ -355,16 +354,16 @@ pub async fn create_sso_config_and_assign_identities(
     .await?;
 
     let beyond_identity_identities =
-        identities::fetch_beyond_identity_identities(client, config, tenant_config).await?;
+        identities::fetch_beyond_identity_identities(&api_client.client, &api_client.tenant_config)
+            .await?;
     let filtered_identities = filter_identities(
         &okta_application.embedded.as_ref().unwrap().users,
         &beyond_identity_identities,
     );
 
     sso_configs::assign_identities_to_sso_config(
-        client,
-        config,
-        tenant_config,
+        &api_client.client,
+        &api_client.tenant_config,
         &sso_config,
         &filtered_identities,
     )

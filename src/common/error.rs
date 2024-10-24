@@ -19,4 +19,6 @@ pub enum BiError {
     UnableToWriteFile(String),
     #[error("Invalid URL: {0}")]
     InvalidUrl(url::ParseError),
+    #[error("Invalid filter: {0}")]
+    InvalidFilter(String),
 }

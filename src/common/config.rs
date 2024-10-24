@@ -4,7 +4,7 @@ use std::env;
 use std::fs::{self};
 use std::path::PathBuf;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct FilePaths {
     pub tenants_config: String,
     pub bi_scim_app_config: String,
@@ -56,7 +56,7 @@ impl FilePaths {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub file_paths: FilePaths,
 }

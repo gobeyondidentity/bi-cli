@@ -1,5 +1,6 @@
 pub mod admin;
-pub mod api_token;
+pub mod api;
+pub mod commands;
 pub mod enrollment;
 pub mod external_sso;
 pub mod groups;
