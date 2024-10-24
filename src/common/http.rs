@@ -1,6 +1,6 @@
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Error, Middleware, Next};
 
-struct RespectRateLimitMiddleware;
+pub struct RespectRateLimitMiddleware;
 
 #[async_trait::async_trait]
 impl Middleware for RespectRateLimitMiddleware {

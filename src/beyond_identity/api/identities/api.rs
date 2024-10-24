@@ -60,9 +60,7 @@ pub trait IdentitiesApi {
 impl IdentitiesApi for IdentityService {
     async fn create_identity(&self, request: CreateIdentityRequest) -> Result<Identity, BiError> {
         send_request(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::POST,
             &URLBuilder::build(&self.api_client.tenant_config)
                 .api()
@@ -78,9 +76,7 @@ impl IdentitiesApi for IdentityService {
 
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError> {
         send_request(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::DELETE,
             &URLBuilder::build(&self.api_client.tenant_config)
                 .api()
@@ -95,9 +91,7 @@ impl IdentitiesApi for IdentityService {
 
     async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError> {
         send_request(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::GET,
             &URLBuilder::build(&self.api_client.tenant_config)
                 .api()
@@ -124,9 +118,7 @@ impl IdentitiesApi for IdentityService {
             .to_string()?;
 
         let identities: Vec<IdentityDetails> = send_request_paginated(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::GET,
             &url,
             None::<&()>,
@@ -151,9 +143,7 @@ impl IdentitiesApi for IdentityService {
             .to_string()?;
 
         let groups: Vec<GroupDetails> = send_request_paginated(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::GET,
             &url,
             None::<&()>,
@@ -186,9 +176,7 @@ impl IdentitiesApi for IdentityService {
             .to_string()?;
 
         let roles: Vec<RoleDetails> = send_request_paginated(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::GET,
             &url,
             None::<&()>,
@@ -208,9 +196,7 @@ impl IdentitiesApi for IdentityService {
         patch_request: &PatchIdentityRequest,
     ) -> Result<Identity, BiError> {
         send_request(
-            &self.api_client.client,
-            &self.api_client.config,
-            &self.api_client.tenant_config,
+            &self.api_client,
             Method::PATCH,
             &URLBuilder::build(&self.api_client.tenant_config)
                 .api()
