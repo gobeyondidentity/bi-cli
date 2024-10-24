@@ -19,7 +19,7 @@ pub enum BeyondIdentityApiCommands {
 impl Executable for BeyondIdentityApiCommands {
     async fn execute(&self) -> Result<(), BiError> {
         let config = Config::new();
-        let tenant_config = load_tenant(&config).await.expect(
+        let tenant_config = load_tenant(&config).expect(
             "Failed to load tenant. Make sure you create a tenant before running this command.",
         );
         let api_client = ApiClient::new(&config, &tenant_config);

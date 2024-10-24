@@ -63,7 +63,7 @@ impl Executable for OktaCommands {
                     .build();
 
                 let config = Config::new();
-                let api_client = ApiClient::new(&config, &load_tenant(&config).await.expect(
+                let api_client = ApiClient::new(&config, &load_tenant(&config).expect(
                     "Failed to load tenant. Make sure you create a tenant before running this command.",
                 ));
                 let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");

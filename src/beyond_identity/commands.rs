@@ -111,16 +111,18 @@ pub enum SetupAction {
 #[async_trait]
 impl Executable for BeyondIdentityHelperCommands {
     async fn execute(&self) -> Result<(), BiError> {
-        let config = Config::new();
-        let api_client = ApiClient::new(
-            &config,
-            &load_tenant(&config).await.expect(
-                "Failed to load tenant. Make sure you create a tenant before running this command.",
-            ),
-        );
+        fn api_client() -> ApiClient {
+            let config = Config::new();
+            return ApiClient::new(&config,
+                &load_tenant(&config).expect(
+                    "Failed to load tenant. Make sure you create a tenant before running this command.",
+                ),
+            );
+        }
 
         match self {
             BeyondIdentityHelperCommands::CreateAdminAccount { email } => {
+                let api_client = api_client();
                 let identity = create_admin_account(
                     &api_client.client,
                     &api_client.tenant_config,
@@ -135,7 +137,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 SetupAction::ProvisionTenant { token } => {
                     _ = provision_tenant(
                         &RespectRateLimitMiddleware::new_client(),
-                        &api_client.config,
+                        &Config::new(),
                         token,
                     )
                     .await
@@ -143,27 +145,22 @@ impl Executable for BeyondIdentityHelperCommands {
                     Ok(())
                 }
                 SetupAction::ListTenants => {
-                    list_tenants_ui(&api_client.config)
-                        .await
-                        .expect("Failed to list tenants");
+                    list_tenants_ui(&Config::new()).expect("Failed to list tenants");
                     Ok(())
                 }
                 SetupAction::SetDefaultTenant => {
-                    set_default_tenant_ui(&api_client.config)
-                        .await
-                        .expect("Failed to set default tenant");
+                    set_default_tenant_ui(&Config::new()).expect("Failed to set default tenant");
                     Ok(())
                 }
                 SetupAction::DeleteTenant => {
-                    delete_tenant_ui(&api_client.config)
-                        .await
-                        .expect("Failed to delete tenant");
+                    delete_tenant_ui(&Config::new()).expect("Failed to delete tenant");
                     Ok(())
                 }
             },
             BeyondIdentityHelperCommands::CreateScimApp {
                 okta_registration_sync_attribute,
             } => {
+                let api_client = api_client();
                 let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
                 let bi_scim_app = match load_beyond_identity_scim_app(&api_client.config).await {
                     Ok(bi_scim_app) => bi_scim_app,
@@ -184,13 +181,16 @@ impl Executable for BeyondIdentityHelperCommands {
                 Ok(())
             }
             BeyondIdentityHelperCommands::CreateExternalSSOConnection => {
+                let api_client = api_client();
                 let external_sso = match load_external_sso(&api_client.config).await {
                     Ok(external_sso) => external_sso,
-                    Err(_) => {
-                        create_external_sso(&api_client.client, &config, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to create External SSO in Beyond Identity")
-                    }
+                    Err(_) => create_external_sso(
+                        &api_client.client,
+                        &api_client.config,
+                        &api_client.tenant_config,
+                    )
+                    .await
+                    .expect("Failed to create External SSO in Beyond Identity"),
                 };
                 println!(
                     "External SSO: {}",
@@ -203,6 +203,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 unenrolled,
                 groups,
             } => {
+                let api_client = api_client();
                 let mut identities: Vec<Identity> = Vec::new();
 
                 if *all {
@@ -274,6 +275,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 Ok(())
             }
             BeyondIdentityHelperCommands::DeleteAllSSOConfigs => {
+                let api_client = api_client();
                 delete_all_sso_configs(&api_client.client, &api_client.tenant_config)
                     .await
                     .expect("Failed to delete all SSO Configs");
@@ -285,6 +287,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 unenrolled,
                 force,
             } => {
+                let api_client = api_client();
                 if *force {
                     if *all {
                         delete_all_identities(&api_client.client, &api_client.tenant_config)
@@ -371,6 +374,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 Ok(())
             }
             BeyondIdentityHelperCommands::ReviewUnenrolled => {
+                let api_client = api_client();
                 let unenrolled_identities =
                     get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
                         .await

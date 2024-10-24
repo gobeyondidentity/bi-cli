@@ -36,7 +36,7 @@ struct Claims {
     iss: String, // The issuer field in the JWT
 }
 
-async fn load_tenants(config: &Config) -> Result<Tenants, BiError> {
+fn load_tenants(config: &Config) -> Result<Tenants, BiError> {
     let config_path = config.file_paths.tenants_config.clone();
     let data = fs::read_to_string(&config_path).map_err(|_| {
         BiError::ConfigFileNotFound(format!(
@@ -48,12 +48,12 @@ async fn load_tenants(config: &Config) -> Result<Tenants, BiError> {
     Ok(tenants)
 }
 
-async fn set_default_tenant(
+pub fn set_default_tenant(
     config: &Config,
     tenant_id: &str,
     realm_id: &str,
 ) -> Result<(), BiError> {
-    let mut tenants = load_tenants(config).await?;
+    let mut tenants = load_tenants(config)?;
 
     if tenants
         .tenants
@@ -78,8 +78,8 @@ async fn set_default_tenant(
     }
 }
 
-async fn delete_tenant(config: &Config, tenant_id: &str, realm_id: &str) -> Result<(), BiError> {
-    let mut tenants = load_tenants(config).await?;
+pub fn delete_tenant(config: &Config, tenant_id: &str, realm_id: &str) -> Result<(), BiError> {
+    let mut tenants = load_tenants(config)?;
 
     let original_length = tenants.tenants.len();
     tenants
@@ -110,8 +110,8 @@ async fn delete_tenant(config: &Config, tenant_id: &str, realm_id: &str) -> Resu
     Ok(())
 }
 
-pub async fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
-    let tenants = load_tenants(config).await?;
+pub fn load_tenant(config: &Config) -> Result<TenantConfig, BiError> {
+    let tenants = load_tenants(config)?;
     if let Some(default_key) = tenants.default_tenant_key {
         tenants
             .tenants
@@ -205,7 +205,7 @@ pub async fn provision_tenant(
     };
 
     // Load existing tenants
-    let mut tenants = match load_tenants(config).await {
+    let mut tenants = match load_tenants(config) {
         Ok(tenants) => tenants,
         Err(_) => Tenants {
             default_tenant_key: None,
@@ -328,9 +328,9 @@ async fn get_management_api_application(
     ))
 }
 
-pub async fn list_tenants_ui(config: &Config) -> Result<(), BiError> {
+pub fn list_tenants_ui(config: &Config) -> Result<(), BiError> {
     // List Tenants
-    let tenants = load_tenants(config).await?;
+    let tenants = load_tenants(config)?;
     if tenants.tenants.is_empty() {
         println!("No tenants found.");
     } else {
@@ -357,8 +357,8 @@ pub async fn list_tenants_ui(config: &Config) -> Result<(), BiError> {
     Ok(())
 }
 
-pub async fn delete_tenant_ui(config: &Config) -> Result<(), BiError> {
-    let tenants = load_tenants(config).await?;
+pub fn delete_tenant_ui(config: &Config) -> Result<(), BiError> {
+    let tenants = load_tenants(config)?;
     if tenants.tenants.is_empty() {
         println!("No tenants to delete.");
         return Ok(());
@@ -383,7 +383,7 @@ pub async fn delete_tenant_ui(config: &Config) -> Result<(), BiError> {
     match input {
         Ok(num) if num > 0 && num <= tenants.tenants.len() => {
             let tenant = &tenants.tenants[num - 1];
-            match delete_tenant(config, &tenant.tenant_id, &tenant.realm_id).await {
+            match delete_tenant(config, &tenant.tenant_id, &tenant.realm_id) {
                 Ok(_) => println!(
                     "Tenant with Tenant ID: {}, Realm ID: {} deleted.",
                     tenant.tenant_id, tenant.realm_id
@@ -397,8 +397,8 @@ pub async fn delete_tenant_ui(config: &Config) -> Result<(), BiError> {
     Ok(())
 }
 
-pub async fn set_default_tenant_ui(config: &Config) -> Result<(), BiError> {
-    let tenants = load_tenants(config).await?;
+pub fn set_default_tenant_ui(config: &Config) -> Result<(), BiError> {
+    let tenants = load_tenants(config)?;
     if tenants.tenants.is_empty() {
         println!("No tenants available to set as default.");
         return Ok(());
@@ -423,7 +423,7 @@ pub async fn set_default_tenant_ui(config: &Config) -> Result<(), BiError> {
     match input {
         Ok(num) if num > 0 && num <= tenants.tenants.len() => {
             let tenant = &tenants.tenants[num - 1];
-            match set_default_tenant(config, &tenant.tenant_id, &tenant.realm_id).await {
+            match set_default_tenant(config, &tenant.tenant_id, &tenant.realm_id) {
                 Ok(_) => println!(
                     "Tenant with Tenant ID: {}, Realm ID: {} set as default.",
                     tenant.tenant_id, tenant.realm_id

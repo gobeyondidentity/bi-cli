@@ -65,7 +65,7 @@ impl Executable for OneloginCommands {
                     .with(RespectRateLimitMiddleware)
                     .build();
                 let config = Config::new();
-                let api_client = ApiClient::new(&config, &load_tenant(&config).await.expect(
+                let api_client = ApiClient::new(&config, &load_tenant(&config).expect(
                     "Failed to load tenant. Make sure you create a tenant before running this command.",
                 ));
                 let onelogin_config = OneloginConfig::new().expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
