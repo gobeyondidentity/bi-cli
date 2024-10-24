@@ -1,4 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
@@ -58,7 +58,7 @@ pub async fn get_all_identities(
 ) -> Result<Vec<Identity>, BiError> {
     let mut all_identities = Vec::new();
     let mut next_page_token: Option<String> = None;
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
 
     loop {
         let url = match next_page_token {
@@ -114,7 +114,7 @@ pub async fn get_credentials_for_identity(
 ) -> Result<Vec<Credential>, BiError> {
     let mut all_credentials = Vec::new();
     let mut next_page_token: Option<String> = None;
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
 
     loop {
         let url = match next_page_token {
@@ -205,7 +205,7 @@ pub async fn get_idp_application_for_sso_config(
     tenant_config: &TenantConfig,
     sso_config_id: String,
 ) -> Result<SsoConfigIdpResponse, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}",
@@ -399,7 +399,7 @@ pub async fn send_enrollment_email(
     identity: &Identity,
     payload: Value,
 ) -> Result<EnrollmentJobResponse, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}/enrollment-jobs",
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity.id

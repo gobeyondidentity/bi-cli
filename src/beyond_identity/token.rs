@@ -22,7 +22,7 @@ struct StoredToken {
     application_id: String,
 }
 
-pub async fn get_beyond_identity_api_token(
+pub async fn token(
     client: &Client,
     config: &Config,
     tenant_config: &TenantConfig,

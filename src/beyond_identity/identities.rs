@@ -2,7 +2,7 @@ use crate::beyond_identity::enrollment::{get_credentials_for_identity, Credentia
 use crate::beyond_identity::roles::{delete_role_memberships, fetch_role_memberships};
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::beyond_identity::{
-    api_token::get_beyond_identity_api_token, groups::delete_group_memberships,
+    api::common::token::token, groups::delete_group_memberships,
 };
 use crate::common::config::Config;
 use crate::common::error::BiError;
@@ -46,7 +46,7 @@ pub async fn fetch_beyond_identity_identities(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .send()
@@ -103,7 +103,7 @@ pub async fn delete_identity(
             "Authorization",
             format!(
                 "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
+                token(client, config, tenant_config).await?
             ),
         )
         .send()
@@ -140,7 +140,7 @@ pub async fn delete_all_identities(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .send()
@@ -215,7 +215,7 @@ pub async fn delete_unenrolled_identities(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .send()
@@ -303,7 +303,7 @@ pub async fn delete_norole_identities(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .send()

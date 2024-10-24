@@ -1,4 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::identities::{fetch_beyond_identity_identities, Identity};
 use crate::beyond_identity::resource_servers::fetch_beyond_identity_resource_servers;
 use crate::beyond_identity::roles::{fetch_beyond_identity_roles, fetch_role_memberships};
@@ -40,7 +40,7 @@ pub async fn create_admin_account(
             "Authorization",
             format!(
                 "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
+                token(client, config, tenant_config).await?
             ),
         )
         .json(&serde_json::json!({
@@ -84,7 +84,7 @@ pub async fn create_admin_account(
             "Authorization",
             format!(
                 "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
+                token(client, config, tenant_config).await?
             ),
         )
         .json(&serde_json::json!({

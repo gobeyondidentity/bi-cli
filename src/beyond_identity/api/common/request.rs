@@ -3,7 +3,7 @@ use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    beyond_identity::{api_token::get_beyond_identity_api_token, tenant::TenantConfig},
+    beyond_identity::{api::common::token::token, tenant::TenantConfig},
     common::{config::Config, error::BiError},
 };
 
@@ -31,10 +31,7 @@ where
 
     let mut request_builder = client.request(method, url).header(
         "Authorization",
-        format!(
-            "Bearer {}",
-            get_beyond_identity_api_token(client, config, tenant_config).await?
-        ),
+        format!("Bearer {}", token(client, config, tenant_config).await?),
     );
 
     if let Some(body) = body {
@@ -109,10 +106,7 @@ where
 
         let mut request_builder = client.request(method.clone(), &full_url).header(
             "Authorization",
-            format!(
-                "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
-            ),
+            format!("Bearer {}", token(client, config, tenant_config).await?),
         );
 
         if let Some(body) = body {

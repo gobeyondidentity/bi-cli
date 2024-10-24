@@ -1,4 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
@@ -30,10 +30,7 @@ pub async fn fetch_beyond_identity_resource_servers(
             .get(&url)
             .header(
                 "Authorization",
-                format!(
-                    "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
-                ),
+                format!("Bearer {}", token(client, config, tenant_config).await?),
             )
             .send()
             .await?;

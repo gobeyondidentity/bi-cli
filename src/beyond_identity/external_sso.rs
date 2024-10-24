@@ -1,4 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
@@ -32,7 +32,7 @@ async fn create_authenticator_config(
     config: &Config,
     tenant_config: &TenantConfig,
 ) -> Result<AuthenticatorConfigResponse, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
 
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/authenticator-configs",
@@ -150,10 +150,7 @@ async fn create_application(
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
-            format!(
-                "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
-            ),
+            format!("Bearer {}", token(client, config, tenant_config).await?),
         )
         .json(&payload)
         .send()
@@ -184,7 +181,7 @@ pub async fn update_application_redirect_uri(
     application_id: &str,
     redirect_uri: &str,
 ) -> Result<(), BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
     let tenant_id = tenant_config.tenant_id.clone();
     let realm_id = tenant_config.realm_id.clone();
 

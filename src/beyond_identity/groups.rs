@@ -1,4 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::identities::Identity;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
@@ -34,7 +34,7 @@ pub async fn delete_group_memberships(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .json(&serde_json::json!({
@@ -77,7 +77,7 @@ pub async fn fetch_group_memberships(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .send()
@@ -135,7 +135,7 @@ pub async fn fetch_all_groups(
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    get_beyond_identity_api_token(client, config, tenant_config).await?
+                    token(client, config, tenant_config).await?
                 ),
             )
             .send()
@@ -182,7 +182,7 @@ pub async fn get_identities_from_group(
 ) -> Result<Vec<Identity>, BiError> {
     let mut identities = Vec::new();
     let mut next_page_token: Option<String> = None;
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
 
     loop {
         let url = match &next_page_token {

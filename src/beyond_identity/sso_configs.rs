@@ -1,4 +1,4 @@
-use crate::beyond_identity::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use crate::beyond_identity::identities;
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
@@ -25,7 +25,7 @@ async fn list_all_sso_configs(
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
     );
     let beyond_identity_api_token =
-        get_beyond_identity_api_token(client, config, tenant_config).await?;
+        token(client, config, tenant_config).await?;
 
     loop {
         let response = client
@@ -88,7 +88,7 @@ async fn delete_sso_config(
             "Authorization",
             format!(
                 "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
+                token(client, config, tenant_config).await?
             ),
         )
         .send()
@@ -148,7 +148,7 @@ pub async fn create_sso_config(
     login_link: String,
     icon_url: Option<String>,
 ) -> Result<SsoConfigBookmark, BiError> {
-    let bi_api_token = get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let bi_api_token = token(client, config, tenant_config).await?;
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs",
         tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
@@ -233,7 +233,7 @@ pub async fn assign_identities_to_sso_config(
             "Authorization",
             format!(
                 "Bearer {}",
-                get_beyond_identity_api_token(client, config, tenant_config).await?
+                token(client, config, tenant_config).await?
             ),
         )
         .json(&payload)

@@ -1,9 +1,7 @@
 use crate::beyond_identity::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
-use crate::{
-    beyond_identity::api_token::get_beyond_identity_api_token, common::config::OktaConfig,
-};
+use crate::{beyond_identity::api::common::token::token, common::config::OktaConfig};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -100,8 +98,7 @@ async fn create_okta_registration(
     let okta_token = okta_config.api_key.clone();
     let attribute_name = okta_registration_sync_attribute.clone();
     let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
-    let beyond_identity_api_token =
-        get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let beyond_identity_api_token = token(client, config, tenant_config).await?;
     let tenant_id = &tenant_config.tenant_id;
     let realm_id = &tenant_config.realm_id;
 
@@ -152,8 +149,7 @@ async fn delete_okta_registration(
     tenant_config: &TenantConfig,
 ) -> Result<(), BiError> {
     let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
-    let beyond_identity_api_token =
-        get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let beyond_identity_api_token = token(client, config, tenant_config).await?;
     let tenant_id = &tenant_config.tenant_id;
     let realm_id = &tenant_config.realm_id;
 
@@ -211,8 +207,7 @@ async fn create_scim_app(
     tenant_config: &TenantConfig,
 ) -> Result<BeyondIdentityAppResponse, BiError> {
     let beyond_identity_api_base_url = tenant_config.api_base_url.clone();
-    let beyond_identity_api_token =
-        get_beyond_identity_api_token(client, config, tenant_config).await?;
+    let beyond_identity_api_token = token(client, config, tenant_config).await?;
     let tenant_id = tenant_config.tenant_id.clone();
     let realm_id = tenant_config.realm_id.clone();
 

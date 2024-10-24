@@ -12,7 +12,7 @@ use clap::ArgGroup;
 use clap::Subcommand;
 
 use super::admin::{create_admin_account, get_identities_without_role};
-use super::api_token::get_beyond_identity_api_token;
+use crate::beyond_identity::api::common::token::token;
 use super::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
     select_identities, send_enrollment_email,
@@ -385,7 +385,7 @@ impl Executable for BeyondIdentityHelperCommands {
                 let tenant_config = load_tenant(&config).await.expect(
                             "Failed to load tenant. Make sure you create a tenant before running this command.",
                         );
-                let token = get_beyond_identity_api_token(&client, &config, &tenant_config)
+                let token = token(&client, &config, &tenant_config)
                     .await
                     .expect("missing");
                 println!("TOKEN: {}", token);
