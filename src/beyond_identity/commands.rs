@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use clap::ArgGroup;
 use clap::Subcommand;
 
-use super::admin::{create_admin_account, get_identities_without_role};
 use super::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
     select_identities, send_enrollment_email,
@@ -25,6 +24,10 @@ use super::roles::delete_role_memberships;
 use super::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
 use super::sso_configs::delete_all_sso_configs;
 use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_default_tenant_ui};
+use super::{
+    admin::{create_admin_account, get_identities_without_role},
+    api::common::middlewares::rate_limit::RespectRateLimitMiddleware,
+};
 use super::{
     api::common::api_client::ApiClient,
     external_sso::{create_external_sso, load_external_sso},
@@ -130,9 +133,13 @@ impl Executable for BeyondIdentityHelperCommands {
             }
             BeyondIdentityHelperCommands::Setup(action) => match action {
                 SetupAction::ProvisionTenant { token } => {
-                    _ = provision_tenant(&api_client.client, &api_client.config, token)
-                        .await
-                        .expect("Failed to provision existing tenant");
+                    _ = provision_tenant(
+                        &RespectRateLimitMiddleware::new_client(),
+                        &api_client.config,
+                        token,
+                    )
+                    .await
+                    .expect("Failed to provision existing tenant");
                     Ok(())
                 }
                 SetupAction::ListTenants => {
