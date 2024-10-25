@@ -8,9 +8,9 @@ use crate::{
     common::{config::Config, error::BiError},
 };
 
-use super::middlewares::authorization::AuthorizationMiddleware;
-use super::middlewares::logging::LoggingMiddleware;
-use super::middlewares::rate_limit::RespectRateLimitMiddleware;
+use super::middleware::authorization::AuthorizationMiddleware;
+use super::middleware::logging::LoggingMiddleware;
+use super::middleware::rate_limit::RespectRateLimitMiddleware;
 
 pub struct ApiClient {
     pub config: Config,

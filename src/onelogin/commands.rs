@@ -1,6 +1,6 @@
 use crate::{
     beyond_identity::{
-        api::common::{api_client::ApiClient, middlewares::rate_limit::RespectRateLimitMiddleware},
+        api::common::{api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware},
         tenant::load_tenant,
     },
     common::{

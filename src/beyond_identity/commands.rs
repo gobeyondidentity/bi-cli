@@ -26,7 +26,7 @@ use super::sso_configs::delete_all_sso_configs;
 use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_default_tenant_ui};
 use super::{
     admin::{create_admin_account, get_identities_without_role},
-    api::common::middlewares::rate_limit::RespectRateLimitMiddleware,
+    api::common::middleware::rate_limit::RespectRateLimitMiddleware,
 };
 use super::{
     api::common::api_client::ApiClient,
