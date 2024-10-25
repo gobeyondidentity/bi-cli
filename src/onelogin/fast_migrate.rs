@@ -1,6 +1,6 @@
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::identities;
-use crate::beyond_identity::sso_configs;
+use crate::beyond_identity::helper::identities;
+use crate::beyond_identity::helper::sso_configs;
 use crate::common::config::Config;
 use crate::common::config::OneloginConfig;
 use crate::common::error::BiError;

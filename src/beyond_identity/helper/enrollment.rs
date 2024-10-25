@@ -1,5 +1,5 @@
-use crate::beyond_identity::identities::Identity;
-use crate::beyond_identity::tenant::TenantConfig;
+use crate::beyond_identity::helper::identities::Identity;
+use crate::beyond_identity::helper::tenant::TenantConfig;
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};

@@ -3,17 +3,16 @@ mod common;
 mod okta;
 mod onelogin;
 
-use crate::common::command::ambassador_impl_Executable;
 use async_trait::async_trait;
-use beyond_identity::api::commands::BeyondIdentityApiCommands;
-use beyond_identity::commands::BeyondIdentityHelperCommands;
+use beyond_identity::{
+    api::common::command::BeyondIdentityApiCommands, helper::command::BeyondIdentityHelperCommands,
+};
 use clap::{Args, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
-use common::command::Executable;
-use common::error::BiError;
+use common::{command::ambassador_impl_Executable, command::Executable, error::BiError};
 use log::LevelFilter;
-use okta::commands::OktaCommands;
-use onelogin::commands::OneloginCommands;
+use okta::command::OktaCommands;
+use onelogin::command::OneloginCommands;
 
 #[derive(Parser)]
 #[clap(

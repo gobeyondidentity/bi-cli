@@ -1,5 +1,5 @@
 use crate::beyond_identity::api::common::url::URLBuilder;
-use crate::beyond_identity::tenant::TenantConfig;
+use crate::beyond_identity::helper::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::error::BiError;
 use http::Extensions;

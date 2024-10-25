@@ -1,7 +1,7 @@
 use crate::{
     beyond_identity::{
         api::common::{api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware},
-        tenant::load_tenant,
+        helper::tenant::load_tenant,
     },
     common::{
         command::Executable,

@@ -1,2 +1,2 @@
-pub mod commands;
+pub mod command;
 pub mod fast_migrate;

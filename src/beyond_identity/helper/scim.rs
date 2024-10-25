@@ -1,4 +1,4 @@
-use crate::beyond_identity::tenant::TenantConfig;
+use crate::beyond_identity::helper::tenant::TenantConfig;
 use crate::common::config::Config;
 use crate::common::config::OktaConfig;
 use crate::common::error::BiError;

@@ -1,12 +1,2 @@
-pub mod admin;
 pub mod api;
-pub mod commands;
-pub mod enrollment;
-pub mod external_sso;
-pub mod groups;
-pub mod identities;
-pub mod resource_servers;
-pub mod roles;
-pub mod scim;
-pub mod sso_configs;
-pub mod tenant;
+pub mod helper;

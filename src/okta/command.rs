@@ -3,7 +3,7 @@ use super::fast_migrate;
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::middleware::rate_limit::RespectRateLimitMiddleware;
 use crate::{
-    beyond_identity::tenant::load_tenant,
+    beyond_identity::helper::tenant::load_tenant,
     common::{
         command::Executable,
         config::{Config, OktaConfig},

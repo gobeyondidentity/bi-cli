@@ -4,7 +4,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    beyond_identity::tenant::TenantConfig,
+    beyond_identity::helper::tenant::TenantConfig,
     common::{config::Config, error::BiError},
 };
 

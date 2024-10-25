@@ -1,5 +1,5 @@
-use crate::beyond_identity::identities;
-use crate::beyond_identity::tenant::TenantConfig;
+use crate::beyond_identity::helper::identities;
+use crate::beyond_identity::helper::tenant::TenantConfig;
 use crate::common::error::BiError;
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware as Client;
