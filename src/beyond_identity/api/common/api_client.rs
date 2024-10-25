@@ -111,7 +111,7 @@ impl ApiClient {
             }
 
             let response_json: serde_json::Value =
-                self.send_request(method.clone(), url, body).await?;
+                self.send_request(method.clone(), &full_url, body).await?;
 
             if let Some(items) = response_json.get(items_key) {
                 let mut page_results: Vec<U> = serde_json::from_value(items.clone())?;
