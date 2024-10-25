@@ -6,6 +6,9 @@ This document contains the help content for the `bi-cli` command-line program.
 
 * [`bi-cli`↴](#bi-cli)
 * [`bi-cli api`↴](#bi-cli-api)
+* [`bi-cli api tenants`↴](#bi-cli-api-tenants)
+* [`bi-cli api tenants get`↴](#bi-cli-api-tenants-get)
+* [`bi-cli api tenants patch`↴](#bi-cli-api-tenants-patch)
 * [`bi-cli api identities`↴](#bi-cli-api-identities)
 * [`bi-cli api identities create`↴](#bi-cli-api-identities-create)
 * [`bi-cli api identities list`↴](#bi-cli-api-identities-list)
@@ -61,13 +64,47 @@ Commands related to Beyond Identity API
 
 ###### **Subcommands:**
 
-* `identities` — Direct API calls for identities
+* `tenants` — Tenants
+* `identities` — Identities
+
+
+
+## `bi-cli api tenants`
+
+Tenants
+
+**Usage:** `bi-cli api tenants <COMMAND>`
+
+###### **Subcommands:**
+
+* `get` — Get tenant
+* `patch` — Update tenant
+
+
+
+## `bi-cli api tenants get`
+
+Get tenant
+
+**Usage:** `bi-cli api tenants get`
+
+
+
+## `bi-cli api tenants patch`
+
+Update tenant
+
+**Usage:** `bi-cli api tenants patch --display-name <DISPLAY_NAME>`
+
+###### **Options:**
+
+* `--display-name <DISPLAY_NAME>`
 
 
 
 ## `bi-cli api identities`
 
-Direct API calls for identities
+Identities
 
 **Usage:** `bi-cli api identities <COMMAND>`
 

@@ -6,13 +6,18 @@ use crate::beyond_identity::tenant::load_tenant;
 use crate::common::{command::Executable, config::Config, error::BiError};
 
 use super::common::api_client::ApiClient;
-use super::identities;
+use super::identities::command::IdentityCommands;
+use super::tenants::command::TenantCommands;
 
 #[derive(Subcommand)]
 pub enum BeyondIdentityApiCommands {
-    /// Direct API calls for identities
+    /// Tenants
     #[clap(subcommand)]
-    Identities(identities::command::IdentityCommands),
+    Tenants(TenantCommands),
+
+    /// Identities
+    #[clap(subcommand)]
+    Identities(IdentityCommands),
 }
 
 #[async_trait]
@@ -29,6 +34,14 @@ impl Executable for BeyondIdentityApiCommands {
                     .execute(&Service::new(api_client))
                     .await
                     .expect("Failed to execute identity command");
+                println!("{}", result);
+                Ok(())
+            }
+            BeyondIdentityApiCommands::Tenants(cmd) => {
+                let result = cmd
+                    .execute(&Service::new(api_client))
+                    .await
+                    .expect("Failed to execute tenant command");
                 println!("{}", result);
                 Ok(())
             }
