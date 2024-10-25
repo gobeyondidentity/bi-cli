@@ -1,13 +1,8 @@
 use crate::{
-    beyond_identity::{
-        api::common::{api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware},
-        helper::tenant::load_tenant,
+    beyond_identity::api::common::{
+        api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware,
     },
-    common::{
-        command::Executable,
-        config::{Config, OneloginConfig},
-        error::BiError,
-    },
+    common::{command::Executable, config::OneloginConfig, error::BiError},
 };
 use async_trait::async_trait;
 use clap::Subcommand;
@@ -64,18 +59,15 @@ impl Executable for OneloginCommands {
                 let onelogin_client = ClientBuilder::new(http_client.clone())
                     .with(RespectRateLimitMiddleware)
                     .build();
-                let config = Config::new();
-                let api_client = ApiClient::new(&config, &load_tenant(&config).expect(
-                    "Failed to load tenant. Make sure you create a tenant before running this command.",
-                ));
+                let api_client = ApiClient::new();
                 let onelogin_config = OneloginConfig::new().expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
 
                 let onelogin_applications =
-                    match fast_migrate::load_onelogin_applications(&config).await {
+                    match fast_migrate::load_onelogin_applications(&api_client.config).await {
                         Ok(onelogin_applications) => onelogin_applications,
                         Err(_) => fast_migrate::fetch_onelogin_applications(
                             &onelogin_client,
-                            &config,
+                            &api_client.config,
                             &onelogin_config,
                         )
                         .await

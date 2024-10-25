@@ -4,13 +4,10 @@ use super::{
     types::{CreateIdentityRequest, Identity, IdentityRequest},
 };
 
-use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::serialize::output;
 use crate::beyond_identity::api::common::service::Service;
-use crate::beyond_identity::helper::tenant::load_tenant;
 use crate::common::command::Executable;
-use crate::common::config::Config;
 use crate::common::error::BiError;
 
 use async_trait::async_trait;
@@ -63,13 +60,9 @@ pub enum IdentityCommands {
 #[async_trait]
 impl Executable for IdentityCommands {
     async fn execute(&self) -> Result<(), BiError> {
-        let config = Config::new();
-        let tenant_config = load_tenant(&config)?;
-        let api_client = ApiClient::new(&config, &tenant_config);
-        let service = Service::new(api_client);
         match self {
             IdentityCommands::Create { identity_details } => {
-                output(service.create_identity(CreateIdentityRequest {
+                output(Service::new().create_identity(CreateIdentityRequest {
                     identity: IdentityRequest {
                         display_name: identity_details.display_name.clone(),
                         traits: identity_details.traits.clone(),
@@ -79,19 +72,19 @@ impl Executable for IdentityCommands {
             }
             IdentityCommands::List { filter } => {
                 output(
-                    service.list_identities(Filter::new(
+                    Service::new().list_identities(Filter::new(
                         filter.clone(),
                         IdentityFilterField::from_str,
                     )?),
                 )
                 .await
             }
-            IdentityCommands::Get { id } => output(service.get_identity(id)).await,
+            IdentityCommands::Get { id } => output(Service::new().get_identity(id)).await,
             IdentityCommands::Patch {
                 id,
                 identity_details,
             } => {
-                output(service.patch_identity(
+                output(Service::new().patch_identity(
                     id,
                     &PatchIdentityRequest {
                         identity: PatchIdentity {
@@ -103,12 +96,12 @@ impl Executable for IdentityCommands {
                 ))
                 .await
             }
-            IdentityCommands::Delete { id } => output(service.delete_identity(id)).await,
-            IdentityCommands::ListGroups { id } => output(service.list_groups(id)).await,
+            IdentityCommands::Delete { id } => output(Service::new().delete_identity(id)).await,
+            IdentityCommands::ListGroups { id } => output(Service::new().list_groups(id)).await,
             IdentityCommands::ListRoles {
                 id,
                 resource_server_id,
-            } => output(service.list_roles(id, resource_server_id)).await,
+            } => output(Service::new().list_roles(id, resource_server_id)).await,
         }
     }
 }

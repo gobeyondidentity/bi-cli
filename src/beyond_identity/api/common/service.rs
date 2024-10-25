@@ -5,7 +5,9 @@ pub struct Service {
 }
 
 impl Service {
-    pub fn new(api_client: ApiClient) -> Self {
-        Self { api_client }
+    pub fn new() -> Self {
+        Self {
+            api_client: ApiClient::new(),
+        }
     }
 }

@@ -4,7 +4,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    beyond_identity::helper::tenant::TenantConfig,
+    beyond_identity::helper::tenant::{load_tenant, TenantConfig},
     common::{config::Config, error::BiError},
 };
 
@@ -19,7 +19,10 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
-    pub fn new(config: &Config, tenant_config: &TenantConfig) -> Self {
+    pub fn new() -> Self {
+        let config = Config::new();
+        let tenant_config = load_tenant(&config).unwrap();
+
         let http_client = Client::new();
 
         let rate_limit_middleware = ClientBuilder::new(http_client.clone())
@@ -37,6 +40,7 @@ impl ApiClient {
             .with(LoggingMiddleware)
             .with(RespectRateLimitMiddleware)
             .build();
+
 
         Self {
             config: config.clone(),
