@@ -1,47 +1,47 @@
-# Command-Line Help for `bi-cli`
+# bi
 
-This document contains the help content for the `bi-cli` command-line program.
+This document contains the help content for the `bi` command-line program.
 
 **Command Overview:**
 
-* [`bi-cli`↴](#bi-cli)
-* [`bi-cli api`↴](#bi-cli-api)
-* [`bi-cli api tenants`↴](#bi-cli-api-tenants)
-* [`bi-cli api tenants get`↴](#bi-cli-api-tenants-get)
-* [`bi-cli api tenants patch`↴](#bi-cli-api-tenants-patch)
-* [`bi-cli api identities`↴](#bi-cli-api-identities)
-* [`bi-cli api identities create`↴](#bi-cli-api-identities-create)
-* [`bi-cli api identities list`↴](#bi-cli-api-identities-list)
-* [`bi-cli api identities get`↴](#bi-cli-api-identities-get)
-* [`bi-cli api identities patch`↴](#bi-cli-api-identities-patch)
-* [`bi-cli api identities delete`↴](#bi-cli-api-identities-delete)
-* [`bi-cli api identities list-groups`↴](#bi-cli-api-identities-list-groups)
-* [`bi-cli api identities list-roles`↴](#bi-cli-api-identities-list-roles)
-* [`bi-cli helper`↴](#bi-cli-helper)
-* [`bi-cli helper setup`↴](#bi-cli-helper-setup)
-* [`bi-cli helper setup provision-tenant`↴](#bi-cli-helper-setup-provision-tenant)
-* [`bi-cli helper setup list-tenants`↴](#bi-cli-helper-setup-list-tenants)
-* [`bi-cli helper setup set-default-tenant`↴](#bi-cli-helper-setup-set-default-tenant)
-* [`bi-cli helper setup delete-tenant`↴](#bi-cli-helper-setup-delete-tenant)
-* [`bi-cli helper create-scim-app`↴](#bi-cli-helper-create-scim-app)
-* [`bi-cli helper create-external-sso-connection`↴](#bi-cli-helper-create-external-sso-connection)
-* [`bi-cli helper create-admin-account`↴](#bi-cli-helper-create-admin-account)
-* [`bi-cli helper delete-all-identities`↴](#bi-cli-helper-delete-all-identities)
-* [`bi-cli helper send-enrollment-email`↴](#bi-cli-helper-send-enrollment-email)
-* [`bi-cli helper delete-all-sso-configs`↴](#bi-cli-helper-delete-all-sso-configs)
-* [`bi-cli helper review-unenrolled`↴](#bi-cli-helper-review-unenrolled)
-* [`bi-cli okta`↴](#bi-cli-okta)
-* [`bi-cli okta setup`↴](#bi-cli-okta-setup)
-* [`bi-cli okta fast-migrate`↴](#bi-cli-okta-fast-migrate)
-* [`bi-cli onelogin`↴](#bi-cli-onelogin)
-* [`bi-cli onelogin setup`↴](#bi-cli-onelogin-setup)
-* [`bi-cli onelogin fast-migrate`↴](#bi-cli-onelogin-fast-migrate)
+* [`bi`↴](#bi)
+* [`bi api`↴](#bi-api)
+* [`bi api tenants`↴](#bi-api-tenants)
+* [`bi api tenants get`↴](#bi-api-tenants-get)
+* [`bi api tenants patch`↴](#bi-api-tenants-patch)
+* [`bi api identities`↴](#bi-api-identities)
+* [`bi api identities create`↴](#bi-api-identities-create)
+* [`bi api identities list`↴](#bi-api-identities-list)
+* [`bi api identities get`↴](#bi-api-identities-get)
+* [`bi api identities patch`↴](#bi-api-identities-patch)
+* [`bi api identities delete`↴](#bi-api-identities-delete)
+* [`bi api identities list-groups`↴](#bi-api-identities-list-groups)
+* [`bi api identities list-roles`↴](#bi-api-identities-list-roles)
+* [`bi helper`↴](#bi-helper)
+* [`bi helper setup`↴](#bi-helper-setup)
+* [`bi helper setup provision-tenant`↴](#bi-helper-setup-provision-tenant)
+* [`bi helper setup list-tenants`↴](#bi-helper-setup-list-tenants)
+* [`bi helper setup set-default-tenant`↴](#bi-helper-setup-set-default-tenant)
+* [`bi helper setup delete-tenant`↴](#bi-helper-setup-delete-tenant)
+* [`bi helper create-scim-app`↴](#bi-helper-create-scim-app)
+* [`bi helper create-external-sso-connection`↴](#bi-helper-create-external-sso-connection)
+* [`bi helper create-admin-account`↴](#bi-helper-create-admin-account)
+* [`bi helper delete-all-identities`↴](#bi-helper-delete-all-identities)
+* [`bi helper send-enrollment-email`↴](#bi-helper-send-enrollment-email)
+* [`bi helper delete-all-sso-configs`↴](#bi-helper-delete-all-sso-configs)
+* [`bi helper review-unenrolled`↴](#bi-helper-review-unenrolled)
+* [`bi okta`↴](#bi-okta)
+* [`bi okta setup`↴](#bi-okta-setup)
+* [`bi okta fast-migrate`↴](#bi-okta-fast-migrate)
+* [`bi onelogin`↴](#bi-onelogin)
+* [`bi onelogin setup`↴](#bi-onelogin-setup)
+* [`bi onelogin fast-migrate`↴](#bi-onelogin-fast-migrate)
 
-## `bi-cli`
+## `bi`
 
 Official Beyond Identity command-line interface.
 
-**Usage:** `bi-cli [OPTIONS] <COMMAND>`
+**Usage:** `bi [OPTIONS] <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -56,11 +56,11 @@ Official Beyond Identity command-line interface.
 
 
 
-## `bi-cli api`
+## `bi api`
 
 Commands related to Beyond Identity API
 
-**Usage:** `bi-cli api <COMMAND>`
+**Usage:** `bi api <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -69,11 +69,11 @@ Commands related to Beyond Identity API
 
 
 
-## `bi-cli api tenants`
+## `bi api tenants`
 
 Tenants
 
-**Usage:** `bi-cli api tenants <COMMAND>`
+**Usage:** `bi api tenants <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -82,19 +82,19 @@ Tenants
 
 
 
-## `bi-cli api tenants get`
+## `bi api tenants get`
 
 Get tenant
 
-**Usage:** `bi-cli api tenants get`
+**Usage:** `bi api tenants get`
 
 
 
-## `bi-cli api tenants patch`
+## `bi api tenants patch`
 
 Update tenant
 
-**Usage:** `bi-cli api tenants patch --display-name <DISPLAY_NAME>`
+**Usage:** `bi api tenants patch --display-name <DISPLAY_NAME>`
 
 ###### **Options:**
 
@@ -102,11 +102,11 @@ Update tenant
 
 
 
-## `bi-cli api identities`
+## `bi api identities`
 
 Identities
 
-**Usage:** `bi-cli api identities <COMMAND>`
+**Usage:** `bi api identities <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -120,11 +120,11 @@ Identities
 
 
 
-## `bi-cli api identities create`
+## `bi api identities create`
 
 Create a new identity
 
-**Usage:** `bi-cli api identities create [OPTIONS] --display-name <DISPLAY_NAME> --type <TYPE> --username <USERNAME>`
+**Usage:** `bi api identities create [OPTIONS] --display-name <DISPLAY_NAME> --type <TYPE> --username <USERNAME>`
 
 ###### **Options:**
 
@@ -145,11 +145,11 @@ Create a new identity
 
 
 
-## `bi-cli api identities list`
+## `bi api identities list`
 
 List identities
 
-**Usage:** `bi-cli api identities list [OPTIONS]`
+**Usage:** `bi api identities list [OPTIONS]`
 
 ###### **Options:**
 
@@ -157,11 +157,11 @@ List identities
 
 
 
-## `bi-cli api identities get`
+## `bi api identities get`
 
 Get an identity
 
-**Usage:** `bi-cli api identities get --id <ID>`
+**Usage:** `bi api identities get --id <ID>`
 
 ###### **Options:**
 
@@ -169,11 +169,11 @@ Get an identity
 
 
 
-## `bi-cli api identities patch`
+## `bi api identities patch`
 
 Update an identity
 
-**Usage:** `bi-cli api identities patch [OPTIONS] --id <ID> --type <TYPE>`
+**Usage:** `bi api identities patch [OPTIONS] --id <ID> --type <TYPE>`
 
 ###### **Options:**
 
@@ -195,11 +195,11 @@ Update an identity
 
 
 
-## `bi-cli api identities delete`
+## `bi api identities delete`
 
 Delete an identity
 
-**Usage:** `bi-cli api identities delete --id <ID>`
+**Usage:** `bi api identities delete --id <ID>`
 
 ###### **Options:**
 
@@ -207,11 +207,11 @@ Delete an identity
 
 
 
-## `bi-cli api identities list-groups`
+## `bi api identities list-groups`
 
 List an identity's groups
 
-**Usage:** `bi-cli api identities list-groups --id <ID>`
+**Usage:** `bi api identities list-groups --id <ID>`
 
 ###### **Options:**
 
@@ -219,11 +219,11 @@ List an identity's groups
 
 
 
-## `bi-cli api identities list-roles`
+## `bi api identities list-roles`
 
 List an identity's roles
 
-**Usage:** `bi-cli api identities list-roles --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
+**Usage:** `bi api identities list-roles --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
 
 ###### **Options:**
 
@@ -232,11 +232,11 @@ List an identity's roles
 
 
 
-## `bi-cli helper`
+## `bi helper`
 
 Commands related to Beyond Identity API helper functions
 
-**Usage:** `bi-cli helper <COMMAND>`
+**Usage:** `bi helper <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -251,11 +251,11 @@ Commands related to Beyond Identity API helper functions
 
 
 
-## `bi-cli helper setup`
+## `bi helper setup`
 
 Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied
 
-**Usage:** `bi-cli helper setup <COMMAND>`
+**Usage:** `bi helper setup <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -266,11 +266,11 @@ Provisions configuration for an existing tenant provided an issuer url, client i
 
 
 
-## `bi-cli helper setup provision-tenant`
+## `bi helper setup provision-tenant`
 
 Provisions an existing tenant using the given API token
 
-**Usage:** `bi-cli helper setup provision-tenant <TOKEN>`
+**Usage:** `bi helper setup provision-tenant <TOKEN>`
 
 ###### **Arguments:**
 
@@ -278,35 +278,35 @@ Provisions an existing tenant using the given API token
 
 
 
-## `bi-cli helper setup list-tenants`
+## `bi helper setup list-tenants`
 
 Lists all provisioned tenants
 
-**Usage:** `bi-cli helper setup list-tenants`
+**Usage:** `bi helper setup list-tenants`
 
 
 
-## `bi-cli helper setup set-default-tenant`
+## `bi helper setup set-default-tenant`
 
 Update which tenant is the default one
 
-**Usage:** `bi-cli helper setup set-default-tenant`
+**Usage:** `bi helper setup set-default-tenant`
 
 
 
-## `bi-cli helper setup delete-tenant`
+## `bi helper setup delete-tenant`
 
 Delete any provisioned tenants
 
-**Usage:** `bi-cli helper setup delete-tenant`
+**Usage:** `bi helper setup delete-tenant`
 
 
 
-## `bi-cli helper create-scim-app`
+## `bi helper create-scim-app`
 
 Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider
 
-**Usage:** `bi-cli helper create-scim-app <OKTA_REGISTRATION_SYNC_ATTRIBUTE>`
+**Usage:** `bi helper create-scim-app <OKTA_REGISTRATION_SYNC_ATTRIBUTE>`
 
 ###### **Arguments:**
 
@@ -314,19 +314,19 @@ Creates an application in Beyond Identity that enables you to perform inbound SC
 
 
 
-## `bi-cli helper create-external-sso-connection`
+## `bi helper create-external-sso-connection`
 
 Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity
 
-**Usage:** `bi-cli helper create-external-sso-connection`
+**Usage:** `bi helper create-external-sso-connection`
 
 
 
-## `bi-cli helper create-admin-account`
+## `bi helper create-admin-account`
 
 Creates an administrator account in the account
 
-**Usage:** `bi-cli helper create-admin-account <EMAIL>`
+**Usage:** `bi helper create-admin-account <EMAIL>`
 
 ###### **Arguments:**
 
@@ -334,11 +334,11 @@ Creates an administrator account in the account
 
 
 
-## `bi-cli helper delete-all-identities`
+## `bi helper delete-all-identities`
 
 Deletes all identities from a realm in case you want to set them up from scratch. The identities are unassigned from roles and groups automatically
 
-**Usage:** `bi-cli helper delete-all-identities [OPTIONS] <--all|--norole|--unenrolled>`
+**Usage:** `bi helper delete-all-identities [OPTIONS] <--all|--norole|--unenrolled>`
 
 ###### **Options:**
 
@@ -349,11 +349,11 @@ Deletes all identities from a realm in case you want to set them up from scratch
 
 
 
-## `bi-cli helper send-enrollment-email`
+## `bi helper send-enrollment-email`
 
 Helps you send enrollment emails to one or more (or all) users in Beyond Identity
 
-**Usage:** `bi-cli helper send-enrollment-email <--all|--unenrolled|--groups>`
+**Usage:** `bi helper send-enrollment-email <--all|--unenrolled|--groups>`
 
 ###### **Options:**
 
@@ -363,27 +363,27 @@ Helps you send enrollment emails to one or more (or all) users in Beyond Identit
 
 
 
-## `bi-cli helper delete-all-sso-configs`
+## `bi helper delete-all-sso-configs`
 
 Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch
 
-**Usage:** `bi-cli helper delete-all-sso-configs`
+**Usage:** `bi helper delete-all-sso-configs`
 
 
 
-## `bi-cli helper review-unenrolled`
+## `bi helper review-unenrolled`
 
 Get a list of identities who have not enrolled yet (identities without a passkey)
 
-**Usage:** `bi-cli helper review-unenrolled`
+**Usage:** `bi helper review-unenrolled`
 
 
 
-## `bi-cli okta`
+## `bi okta`
 
 Commands related to Okta
 
-**Usage:** `bi-cli okta <COMMAND>`
+**Usage:** `bi okta <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -392,11 +392,11 @@ Commands related to Okta
 
 
 
-## `bi-cli okta setup`
+## `bi okta setup`
 
 Setup allows you to provision an Okta tenant to be used for subsequent commands
 
-**Usage:** `bi-cli okta setup [OPTIONS] <DOMAIN> <API_KEY>`
+**Usage:** `bi okta setup [OPTIONS] <DOMAIN> <API_KEY>`
 
 ###### **Arguments:**
 
@@ -409,19 +409,19 @@ Setup allows you to provision an Okta tenant to be used for subsequent commands
 
 
 
-## `bi-cli okta fast-migrate`
+## `bi okta fast-migrate`
 
 Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta
 
-**Usage:** `bi-cli okta fast-migrate`
+**Usage:** `bi okta fast-migrate`
 
 
 
-## `bi-cli onelogin`
+## `bi onelogin`
 
 Commands related to OneLogin
 
-**Usage:** `bi-cli onelogin <COMMAND>`
+**Usage:** `bi onelogin <COMMAND>`
 
 ###### **Subcommands:**
 
@@ -430,11 +430,11 @@ Commands related to OneLogin
 
 
 
-## `bi-cli onelogin setup`
+## `bi onelogin setup`
 
 Setup allows you to provision a Onelogin tenant to be used for subsequent commands
 
-**Usage:** `bi-cli onelogin setup [OPTIONS] <DOMAIN> <CLIENT_ID> <CLIENT_SECRET>`
+**Usage:** `bi onelogin setup [OPTIONS] <DOMAIN> <CLIENT_ID> <CLIENT_SECRET>`
 
 ###### **Arguments:**
 
@@ -448,18 +448,12 @@ Setup allows you to provision a Onelogin tenant to be used for subsequent comman
 
 
 
-## `bi-cli onelogin fast-migrate`
+## `bi onelogin fast-migrate`
 
 Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin
 
-**Usage:** `bi-cli onelogin fast-migrate`
+**Usage:** `bi onelogin fast-migrate`
 
 
 
-<hr/>
-
-<small><i>
-    This document was generated automatically by
-    <a href="https://crates.io/crates/clap-markdown"><code>clap-markdown</code></a>.
-</i></small>
 

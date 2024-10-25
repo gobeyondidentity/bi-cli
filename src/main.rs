@@ -3,20 +3,21 @@ mod common;
 mod okta;
 mod onelogin;
 
+use crate::common::command::ambassador_impl_Executable;
 use async_trait::async_trait;
 use beyond_identity::api::commands::BeyondIdentityApiCommands;
 use beyond_identity::commands::BeyondIdentityHelperCommands;
 use clap::{Args, Parser, Subcommand};
+use clap_markdown::MarkdownOptions;
 use common::command::Executable;
 use common::error::BiError;
 use log::LevelFilter;
 use okta::commands::OktaCommands;
 use onelogin::commands::OneloginCommands;
-use crate::common::command::ambassador_impl_Executable;
 
 #[derive(Parser)]
 #[clap(
-    name = "bi-cli",
+    name = "bi",
     about = "Official Beyond Identity command-line interface.",
     version = env!("CARGO_PKG_VERSION"), // Dynamically pulls the version from Cargo.toml
     long_about = None
@@ -58,7 +59,15 @@ struct GenerateMarkdownCommand;
 #[async_trait]
 impl Executable for GenerateMarkdownCommand {
     async fn execute(&self) -> Result<(), BiError> {
-        clap_markdown::print_help_markdown::<Cli>();
+        println!(
+            "{}",
+            clap_markdown::help_markdown_custom::<Cli>(
+                &MarkdownOptions::new()
+                    .title(format!("bi"))
+                    .show_footer(false)
+                    .show_table_of_contents(true),
+            )
+        );
         Ok(())
     }
 }
