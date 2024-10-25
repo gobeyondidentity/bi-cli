@@ -1,9 +1,10 @@
 use super::types::{IdentityFilterField, PatchIdentity, PatchIdentityRequest};
 use super::{
-    api::{IdentitiesApi, IdentityService},
+    api::IdentitiesApi,
     types::{CreateIdentityRequest, Identity, IdentityRequest},
 };
 use crate::beyond_identity::api::common::filter::Filter;
+use crate::beyond_identity::api::common::service::Service;
 use crate::{beyond_identity::api::common::command::serialize, common::error::BiError};
 use clap::Subcommand;
 use std::str::FromStr;
@@ -52,7 +53,7 @@ pub enum IdentityCommands {
 }
 
 impl IdentityCommands {
-    pub async fn execute(&self, service: &IdentityService) -> Result<String, BiError> {
+    pub async fn execute(&self, service: &Service) -> Result<String, BiError> {
         match self {
             IdentityCommands::Create { identity_details } => {
                 serialize(service.create_identity(CreateIdentityRequest {

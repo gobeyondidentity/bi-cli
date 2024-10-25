@@ -7,26 +7,12 @@ use super::types::{
     PatchIdentityRequest,
 };
 
-use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
+use crate::beyond_identity::api::common::service::Service;
 use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
 use crate::beyond_identity::api::roles::types::{Role, RoleFieldName, Roles, RolesFieldName};
 use crate::common::error::BiError;
-
-// ====================================
-// Identities Service
-// ====================================
-
-pub struct IdentityService {
-    pub api_client: ApiClient,
-}
-
-impl IdentityService {
-    pub fn new(api_client: ApiClient) -> Self {
-        Self { api_client }
-    }
-}
 
 // ====================================
 // Identities API
@@ -57,7 +43,7 @@ pub trait IdentitiesApi {
 // Identities API Implementation
 // ====================================
 
-impl IdentitiesApi for IdentityService {
+impl IdentitiesApi for Service {
     async fn create_identity(
         &self,
         request: CreateIdentityRequest,

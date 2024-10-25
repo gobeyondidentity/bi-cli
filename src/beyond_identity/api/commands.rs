@@ -1,12 +1,12 @@
-use super::identities;
-use crate::{
-    beyond_identity::tenant::load_tenant,
-    common::{command::Executable, config::Config, error::BiError},
-};
 use async_trait::async_trait;
 use clap::Subcommand;
 
-use super::{common::api_client::ApiClient, identities::api::IdentityService};
+use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::tenant::load_tenant;
+use crate::common::{command::Executable, config::Config, error::BiError};
+
+use super::common::api_client::ApiClient;
+use super::identities;
 
 #[derive(Subcommand)]
 pub enum BeyondIdentityApiCommands {
@@ -26,7 +26,7 @@ impl Executable for BeyondIdentityApiCommands {
         match self {
             BeyondIdentityApiCommands::Identities(cmd) => {
                 let result = cmd
-                    .execute(&IdentityService::new(api_client))
+                    .execute(&Service::new(api_client))
                     .await
                     .expect("Failed to execute identity command");
                 println!("{}", result);
