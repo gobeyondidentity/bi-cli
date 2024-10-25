@@ -353,13 +353,13 @@ Deletes all identities from a realm in case you want to set them up from scratch
 
 Helps you send enrollment emails to one or more (or all) users in Beyond Identity
 
-**Usage:** `bi helper send-enrollment-email <--all|--unenrolled|--groups>`
+**Usage:** `bi helper send-enrollment-email [OPTIONS] <--all|--groups>`
 
 ###### **Options:**
 
 * `--all`
-* `--unenrolled`
 * `--groups`
+* `--unenrolled`
 
 
 

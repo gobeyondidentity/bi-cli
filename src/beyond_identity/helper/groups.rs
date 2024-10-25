@@ -1,5 +1,6 @@
-use crate::beyond_identity::helper::identities::Identity;
+use crate::beyond_identity::helper::enrollment::get_credentials_for_identity;
 use crate::beyond_identity::helper::tenant::TenantConfig;
+use crate::beyond_identity::helper::{enrollment::Credential, identities::Identity};
 use crate::common::error::BiError;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -190,6 +191,86 @@ pub async fn get_identities_from_group(
             serde_json::from_value(response_json["identities"].clone())?;
 
         identities.extend(page_identities);
+
+        if let Some(token) = response_json
+            .get("next_page_token")
+            .and_then(|token| token.as_str())
+        {
+            next_page_token = Some(token.to_string());
+        } else {
+            break;
+        }
+    }
+
+    Ok(identities)
+}
+
+pub async fn get_unenrolled_identities_from_group(
+    client: &Client,
+    tenant_config: &TenantConfig,
+    group_id: &str,
+) -> Result<Vec<Identity>, BiError> {
+    let mut identities = Vec::new();
+    let mut next_page_token: Option<String> = None;
+
+    loop {
+        let url = match &next_page_token {
+            Some(token) => format!(
+                "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers?page_token={}",
+                tenant_config.api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                group_id,
+                token
+            ),
+            None => format!(
+                "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers",
+                tenant_config.api_base_url,
+                tenant_config.tenant_id,
+                tenant_config.realm_id,
+                group_id
+            ),
+        };
+
+        let response = client.get(&url).send().await?;
+
+        let status = response.status();
+        let response_text = response.text().await?;
+
+        log::debug!(
+            "{} response status: {} and text: {}",
+            url,
+            status,
+            response_text
+        );
+
+        if !status.is_success() {
+            return Err(BiError::RequestError(status, response_text));
+        }
+
+        let response_json: serde_json::Value = serde_json::from_str(&response_text)?;
+        let page_identities: Vec<Identity> =
+            serde_json::from_value(response_json["identities"].clone())?;
+
+        let mut unenrolled_identities = Vec::new();
+
+        for i in page_identities {
+            let credentials = get_credentials_for_identity(client, tenant_config, &i.id)
+                .await
+                .expect("Failed to fetch credentials");
+            let enrolled = credentials
+                .into_iter()
+                .filter(|cred| {
+                    cred.realm_id == tenant_config.realm_id
+                        && cred.tenant_id == tenant_config.tenant_id
+                })
+                .collect::<Vec<Credential>>();
+            if enrolled.is_empty() {
+                unenrolled_identities.push(i);
+            }
+        }
+
+        identities.extend(unenrolled_identities);
 
         if let Some(token) = response_json
             .get("next_page_token")

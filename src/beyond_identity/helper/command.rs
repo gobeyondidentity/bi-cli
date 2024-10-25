@@ -7,8 +7,7 @@ use crate::{
     },
 };
 use async_trait::async_trait;
-use clap::ArgGroup;
-use clap::Subcommand;
+use clap::{ArgGroup, Subcommand};
 
 use super::admin::{create_admin_account, get_identities_without_role};
 use super::enrollment::{
@@ -16,7 +15,10 @@ use super::enrollment::{
     select_identities, send_enrollment_email,
 };
 use super::external_sso::{create_external_sso, load_external_sso};
-use super::groups::{delete_group_memberships, fetch_all_groups, get_identities_from_group, Group};
+use super::groups::{
+    delete_group_memberships, fetch_all_groups, get_identities_from_group,
+    get_unenrolled_identities_from_group, Group,
+};
 use super::identities::{
     delete_all_identities, delete_identity, delete_norole_identities, delete_unenrolled_identities,
     Identity,
@@ -76,10 +78,10 @@ pub enum BeyondIdentityHelperCommands {
         all: bool,
 
         #[arg(long, group = "delete_option")]
-        unenrolled: bool,
-
-        #[arg(long, group = "delete_option")]
         groups: bool,
+
+        #[arg(long, requires = "all", requires = "groups")]
+        unenrolled: bool,
     },
 
     /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
@@ -197,23 +199,26 @@ impl Executable for BeyondIdentityHelperCommands {
             }
             BeyondIdentityHelperCommands::SendEnrollmentEmail {
                 all,
-                unenrolled,
                 groups,
+                unenrolled,
             } => {
                 let api_client = api_client();
                 let mut identities: Vec<Identity> = Vec::new();
 
                 if *all {
-                    identities = get_all_identities(&api_client.client, &api_client.tenant_config)
+                    if *unenrolled {
+                        identities = get_unenrolled_identities(
+                            &api_client.client,
+                            &api_client.tenant_config,
+                        )
                         .await
-                        .expect("Failed to fetch all identities");
-                }
-
-                if *unenrolled {
-                    identities =
-                        get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to fetch unenrolled identities");
+                        .expect("Failed to fetch unenrolled identities");
+                    } else {
+                        identities =
+                            get_all_identities(&api_client.client, &api_client.tenant_config)
+                                .await
+                                .expect("Failed to fetch all identities");
+                    }
                 }
 
                 if *groups {
@@ -221,17 +226,34 @@ impl Executable for BeyondIdentityHelperCommands {
                         fetch_all_groups(&api_client.client, &api_client.tenant_config)
                             .await
                             .expect("Failed to fetch groups");
+
+                    if groups.is_empty() {
+                        println!("No groups found.");
+                        return Ok(());
+                    }
+
                     let group = select_group(&groups);
-                    identities = get_identities_from_group(
-                        &api_client.client,
-                        &api_client.tenant_config,
-                        &group.id,
-                    )
-                    .await
-                    .expect("Failed to fetch identities from group");
+
+                    if *unenrolled {
+                        identities = get_unenrolled_identities_from_group(
+                            &api_client.client,
+                            &api_client.tenant_config,
+                            &group.id,
+                        )
+                        .await
+                        .expect("Failed to fetch unenrolled identities from group");
+                    } else {
+                        identities = get_identities_from_group(
+                            &api_client.client,
+                            &api_client.tenant_config,
+                            &group.id,
+                        )
+                        .await
+                        .expect("Failed to fetch identities from group");
+                    }
                 }
 
-                if identities.len() == 0 {
+                if identities.is_empty() {
                     println!("No identities found.");
                     return Ok(());
                 }
