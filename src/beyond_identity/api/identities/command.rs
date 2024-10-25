@@ -10,32 +10,39 @@ use std::str::FromStr;
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum IdentityCommands {
+    /// Create a new identity
     Create {
         #[clap(flatten)]
         identity_details: Identity,
     },
+    /// List identities
     List {
         #[clap(long)]
         filter: Option<String>,
     },
+    /// Get an identity
     Get {
         #[clap(long)]
         id: String,
     },
+    /// Update an identity
     Patch {
         #[clap(long)]
         id: String,
         #[clap(flatten)]
         identity_details: PatchIdentity,
     },
+    /// Delete an identity
     Delete {
         #[clap(long)]
         id: String,
     },
+    /// List an identity's groups
     ListGroups {
         #[clap(long)]
         id: String,
     },
+    /// List an identity's roles
     ListRoles {
         #[clap(long)]
         id: String,

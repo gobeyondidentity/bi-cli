@@ -73,17 +73,19 @@ Direct API calls for identities
 
 ###### **Subcommands:**
 
-* `create` — 
-* `list` — 
-* `get` — 
-* `patch` — 
-* `delete` — 
-* `list-groups` — 
-* `list-roles` — 
+* `create` — Create a new identity
+* `list` — List identities
+* `get` — Get an identity
+* `patch` — Update an identity
+* `delete` — Delete an identity
+* `list-groups` — List an identity's groups
+* `list-roles` — List an identity's roles
 
 
 
 ## `bi-cli api identities create`
+
+Create a new identity
 
 **Usage:** `bi-cli api identities create [OPTIONS] --display-name <DISPLAY_NAME> --type <TYPE> --username <USERNAME>`
 
@@ -108,6 +110,8 @@ Direct API calls for identities
 
 ## `bi-cli api identities list`
 
+List identities
+
 **Usage:** `bi-cli api identities list [OPTIONS]`
 
 ###### **Options:**
@@ -118,6 +122,8 @@ Direct API calls for identities
 
 ## `bi-cli api identities get`
 
+Get an identity
+
 **Usage:** `bi-cli api identities get --id <ID>`
 
 ###### **Options:**
@@ -127,6 +133,8 @@ Direct API calls for identities
 
 
 ## `bi-cli api identities patch`
+
+Update an identity
 
 **Usage:** `bi-cli api identities patch [OPTIONS] --id <ID> --type <TYPE>`
 
@@ -152,6 +160,8 @@ Direct API calls for identities
 
 ## `bi-cli api identities delete`
 
+Delete an identity
+
 **Usage:** `bi-cli api identities delete --id <ID>`
 
 ###### **Options:**
@@ -162,6 +172,8 @@ Direct API calls for identities
 
 ## `bi-cli api identities list-groups`
 
+List an identity's groups
+
 **Usage:** `bi-cli api identities list-groups --id <ID>`
 
 ###### **Options:**
@@ -171,6 +183,8 @@ Direct API calls for identities
 
 
 ## `bi-cli api identities list-roles`
+
+List an identity's roles
 
 **Usage:** `bi-cli api identities list-roles --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
 
