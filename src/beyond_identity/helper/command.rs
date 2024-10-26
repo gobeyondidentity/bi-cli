@@ -1,17 +1,8 @@
-use crate::common::{
-    command::Executable,
-    config::{Config, OktaConfig},
-    error::BiError,
-};
-use async_trait::async_trait;
-use clap::{ArgGroup, Subcommand};
-
 use super::admin::{create_admin_account, get_identities_without_role};
 use super::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
     select_identities, send_enrollment_email,
 };
-use super::external_sso::{create_external_sso, load_external_sso};
 use super::groups::{
     delete_group_memberships, fetch_all_groups, get_identities_from_group,
     get_unenrolled_identities_from_group, Group,
@@ -22,27 +13,21 @@ use super::identities::{
 };
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::delete_role_memberships;
-use super::scim::{create_beyond_identity_scim_app, load_beyond_identity_scim_app};
-use super::sso_configs::delete_all_sso_configs;
 use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_default_tenant_ui};
+
 use crate::beyond_identity::api::{
     common::api_client::ApiClient, common::middleware::rate_limit::RespectRateLimitMiddleware,
 };
+use crate::common::{command::Executable, config::Config, error::BiError};
+
+use async_trait::async_trait;
+use clap::{ArgGroup, Subcommand};
 
 #[derive(Subcommand)]
 pub enum BeyondIdentityHelperCommands {
     /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
     #[clap(subcommand)]
     Setup(SetupAction),
-
-    /// Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider.
-    CreateScimApp {
-        /// Attribute that controls how and when Okta users are routed to Beyond Identity.
-        okta_registration_sync_attribute: String,
-    },
-
-    /// Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity.
-    CreateExternalSSOConnection,
 
     /// Creates an administrator account in the account.
     CreateAdminAccount {
@@ -80,9 +65,6 @@ pub enum BeyondIdentityHelperCommands {
         #[arg(long, requires = "all", requires = "groups")]
         unenrolled: bool,
     },
-
-    /// Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch.
-    DeleteAllSSOConfigs,
 
     /// Get a list of identities who have not enrolled yet (identities without a passkey).
     ReviewUnenrolled,
@@ -144,47 +126,6 @@ impl Executable for BeyondIdentityHelperCommands {
                     Ok(())
                 }
             },
-            BeyondIdentityHelperCommands::CreateScimApp {
-                okta_registration_sync_attribute,
-            } => {
-                let api_client = ApiClient::new();
-                let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
-                let bi_scim_app = match load_beyond_identity_scim_app(&api_client.config).await {
-                    Ok(bi_scim_app) => bi_scim_app,
-                    Err(_) => create_beyond_identity_scim_app(
-                        &api_client.client,
-                        &api_client.config,
-                        &okta_config,
-                        &api_client.tenant_config,
-                        okta_registration_sync_attribute.clone(),
-                    )
-                    .await
-                    .expect("Failed to create beyond identity scim app"),
-                };
-                println!(
-                    "Beyond Identity SCIM App: {}",
-                    serde_json::to_string_pretty(&bi_scim_app).unwrap()
-                );
-                Ok(())
-            }
-            BeyondIdentityHelperCommands::CreateExternalSSOConnection => {
-                let api_client = ApiClient::new();
-                let external_sso = match load_external_sso(&api_client.config).await {
-                    Ok(external_sso) => external_sso,
-                    Err(_) => create_external_sso(
-                        &api_client.client,
-                        &api_client.config,
-                        &api_client.tenant_config,
-                    )
-                    .await
-                    .expect("Failed to create External SSO in Beyond Identity"),
-                };
-                println!(
-                    "External SSO: {}",
-                    serde_json::to_string_pretty(&external_sso).unwrap()
-                );
-                Ok(())
-            }
             BeyondIdentityHelperCommands::SendEnrollmentEmail {
                 all,
                 groups,
@@ -279,13 +220,6 @@ impl Executable for BeyondIdentityHelperCommands {
                         ),
                     }
                 }
-                Ok(())
-            }
-            BeyondIdentityHelperCommands::DeleteAllSSOConfigs => {
-                let api_client = ApiClient::new();
-                delete_all_sso_configs(&api_client.client, &api_client.tenant_config)
-                    .await
-                    .expect("Failed to delete all SSO Configs");
                 Ok(())
             }
             BeyondIdentityHelperCommands::DeleteAllIdentities {
