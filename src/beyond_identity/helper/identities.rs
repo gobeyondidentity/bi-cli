@@ -1,8 +1,10 @@
 use super::enrollment::{get_credentials_for_identity, Credential};
 use super::groups::delete_group_memberships;
 use super::roles::{delete_role_memberships, fetch_role_memberships};
-use super::tenant::TenantConfig;
+
+use crate::setup::tenants::tenant::TenantConfig;
 use crate::common::error::BiError;
+
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 

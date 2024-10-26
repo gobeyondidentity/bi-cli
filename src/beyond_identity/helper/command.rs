@@ -13,13 +13,10 @@ use super::identities::{
 };
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::delete_role_memberships;
-use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_default_tenant_ui};
 
-use crate::beyond_identity::api::{
-    common::api_client::ApiClient, common::middleware::rate_limit::RespectRateLimitMiddleware,
-};
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::common::command::ambassador_impl_Executable;
-use crate::common::{command::Executable, config::Config, error::BiError};
+use crate::common::{command::Executable, error::BiError};
 
 use async_trait::async_trait;
 use clap::{ArgGroup, Args, Subcommand};
@@ -27,10 +24,6 @@ use clap::{ArgGroup, Args, Subcommand};
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum BeyondIdentityHelperCommands {
-    /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
-    #[clap(subcommand)]
-    Setup(SetupAction),
-
     /// Creates an administrator account in the account.
     CreateAdminAccount(CreateAdminAccount),
 
@@ -46,37 +39,6 @@ pub enum BeyondIdentityHelperCommands {
     /// Get a list of identities who have not enrolled yet (identities without a passkey).
     ReviewUnenrolled(ReviewUnenrolled),
 }
-
-/// Enum representing the actions that can be performed in the Setup command.
-#[derive(Subcommand, ambassador::Delegate)]
-#[delegate(Executable)]
-pub enum SetupAction {
-    /// Provisions an existing tenant using the given API token.
-    ProvisionTenant(ProvisionTenant),
-
-    /// Lists all provisioned tenants.
-    ListTenants(ListTenants),
-
-    /// Update which tenant is the default one.
-    SetDefaultTenant(SetDefaultTenant),
-
-    /// Delete any provisioned tenants.
-    DeleteTenant(DeleteTenant),
-}
-
-#[derive(Args)]
-pub struct ProvisionTenant {
-    token: String,
-}
-
-#[derive(Args)]
-pub struct ListTenants;
-
-#[derive(Args)]
-pub struct SetDefaultTenant;
-
-#[derive(Args)]
-pub struct DeleteTenant;
 
 #[derive(Args)]
 pub struct CreateAdminAccount {
@@ -127,44 +89,6 @@ impl Executable for CreateAdminAccount {
         .await
         .expect("Failed to create admin account");
         println!("Created identity with id={}", identity.id);
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl Executable for ProvisionTenant {
-    async fn execute(&self) -> Result<(), BiError> {
-        _ = provision_tenant(
-            &RespectRateLimitMiddleware::new_client(),
-            &Config::new(),
-            &self.token,
-        )
-        .await
-        .expect("Failed to provision existing tenant");
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl Executable for ListTenants {
-    async fn execute(&self) -> Result<(), BiError> {
-        list_tenants_ui(&Config::new()).expect("Failed to list tenants");
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl Executable for SetDefaultTenant {
-    async fn execute(&self) -> Result<(), BiError> {
-        set_default_tenant_ui(&Config::new()).expect("Failed to set default tenant");
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl Executable for DeleteTenant {
-    async fn execute(&self) -> Result<(), BiError> {
-        delete_tenant_ui(&Config::new()).expect("Failed to delete tenant");
         Ok(())
     }
 }

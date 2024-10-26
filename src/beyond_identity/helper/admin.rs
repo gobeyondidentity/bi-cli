@@ -1,8 +1,10 @@
 use super::identities::{fetch_beyond_identity_identities, Identity};
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::{fetch_beyond_identity_roles, fetch_role_memberships};
-use super::tenant::TenantConfig;
+
+use crate::setup::tenants::tenant::TenantConfig;
 use crate::common::error::BiError;
+
 use reqwest_middleware::ClientWithMiddleware as Client;
 
 pub async fn create_admin_account(

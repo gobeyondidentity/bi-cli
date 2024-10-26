@@ -1,6 +1,7 @@
 use crate::beyond_identity::helper::identities;
-use crate::beyond_identity::helper::tenant::TenantConfig;
 use crate::common::error::BiError;
+use crate::setup::tenants::tenant::TenantConfig;
+
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};

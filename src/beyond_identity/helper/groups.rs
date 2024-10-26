@@ -1,7 +1,8 @@
 use crate::beyond_identity::helper::enrollment::get_credentials_for_identity;
-use crate::beyond_identity::helper::tenant::TenantConfig;
 use crate::beyond_identity::helper::{enrollment::Credential, identities::Identity};
 use crate::common::error::BiError;
+use crate::setup::tenants::tenant::TenantConfig;
+
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 

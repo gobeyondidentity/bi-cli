@@ -1,4 +1,6 @@
-use crate::{beyond_identity::helper::tenant::TenantConfig, common::error::BiError};
+use crate::common::error::BiError;
+use crate::setup::tenants::tenant::TenantConfig;
+
 use url::Url;
 
 pub struct URLBuilder {

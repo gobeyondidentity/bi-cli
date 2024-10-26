@@ -2,6 +2,7 @@ mod beyond_identity;
 mod common;
 mod okta;
 mod onelogin;
+mod setup;
 
 use async_trait::async_trait;
 use beyond_identity::{
@@ -13,6 +14,7 @@ use common::{command::ambassador_impl_Executable, command::Executable, error::Bi
 use log::LevelFilter;
 use okta::command::OktaCommands;
 use onelogin::command::OneloginCommands;
+use setup::tenants::command::SetupCommands;
 
 #[derive(Parser)]
 #[clap(
@@ -34,6 +36,10 @@ enum Commands {
     /// Commands related to Beyond Identity API
     #[clap(subcommand)]
     Api(BeyondIdentityApiCommands),
+
+    /// Commands related to Beyond Identity API
+    #[clap(subcommand)]
+    Setup(SetupCommands),
 
     /// Commands related to Beyond Identity API helper functions
     #[clap(subcommand)]

@@ -6,4 +6,3 @@ pub mod identities;
 pub mod resource_servers;
 pub mod roles;
 pub mod sso_configs;
-pub mod tenant;
