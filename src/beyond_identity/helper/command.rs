@@ -18,326 +18,357 @@ use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_def
 use crate::beyond_identity::api::{
     common::api_client::ApiClient, common::middleware::rate_limit::RespectRateLimitMiddleware,
 };
+use crate::common::command::ambassador_impl_Executable;
 use crate::common::{command::Executable, config::Config, error::BiError};
 
 use async_trait::async_trait;
-use clap::{ArgGroup, Subcommand};
+use clap::{ArgGroup, Args, Subcommand};
 
-#[derive(Subcommand)]
+#[derive(Subcommand, ambassador::Delegate)]
+#[delegate(Executable)]
 pub enum BeyondIdentityHelperCommands {
     /// Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied.
     #[clap(subcommand)]
     Setup(SetupAction),
 
     /// Creates an administrator account in the account.
-    CreateAdminAccount {
-        /// Email address of the admin to be created
-        email: String,
-    },
+    CreateAdminAccount(CreateAdminAccount),
 
     /// Deletes all identities from a realm in case you want to set them up from scratch.
     /// The identities are unassigned from roles and groups automatically.
     #[command(group = ArgGroup::new("delete_option").required(true).multiple(false))]
-    DeleteAllIdentities {
-        #[arg(long, group = "delete_option")]
-        all: bool,
-
-        #[arg(long, group = "delete_option")]
-        norole: bool,
-
-        #[arg(long, group = "delete_option")]
-        unenrolled: bool,
-
-        /// Skip validation when deleting identities.
-        #[arg(long)]
-        force: bool,
-    },
+    DeleteAllIdentities(DeleteAllIdentities),
 
     /// Helps you send enrollment emails to one or more (or all) users in Beyond Identity.
     #[command(group = ArgGroup::new("delete_option").required(true).multiple(false))]
-    SendEnrollmentEmail {
-        #[arg(long, group = "delete_option")]
-        all: bool,
-
-        #[arg(long, group = "delete_option")]
-        groups: bool,
-
-        #[arg(long, requires = "all", requires = "groups")]
-        unenrolled: bool,
-    },
+    SendEnrollmentEmail(SendEnrollmentEmail),
 
     /// Get a list of identities who have not enrolled yet (identities without a passkey).
-    ReviewUnenrolled,
+    ReviewUnenrolled(ReviewUnenrolled),
 }
 
 /// Enum representing the actions that can be performed in the Setup command.
-#[derive(Subcommand)]
+#[derive(Subcommand, ambassador::Delegate)]
+#[delegate(Executable)]
 pub enum SetupAction {
     /// Provisions an existing tenant using the given API token.
-    ProvisionTenant { token: String },
+    ProvisionTenant(ProvisionTenant),
 
     /// Lists all provisioned tenants.
-    ListTenants,
+    ListTenants(ListTenants),
 
     /// Update which tenant is the default one.
-    SetDefaultTenant,
+    SetDefaultTenant(SetDefaultTenant),
 
     /// Delete any provisioned tenants.
-    DeleteTenant,
+    DeleteTenant(DeleteTenant),
+}
+
+#[derive(Args)]
+pub struct ProvisionTenant {
+    token: String,
+}
+
+#[derive(Args)]
+pub struct ListTenants;
+
+#[derive(Args)]
+pub struct SetDefaultTenant;
+
+#[derive(Args)]
+pub struct DeleteTenant;
+
+#[derive(Args)]
+pub struct CreateAdminAccount {
+    /// Email address of the admin to be created
+    email: String,
+}
+
+#[derive(Args)]
+pub struct DeleteAllIdentities {
+    #[arg(long, group = "delete_option")]
+    all: bool,
+
+    #[arg(long, group = "delete_option")]
+    norole: bool,
+
+    #[arg(long, group = "delete_option")]
+    unenrolled: bool,
+
+    /// Skip validation when deleting identities.
+    #[arg(long)]
+    force: bool,
+}
+
+#[derive(Args)]
+pub struct SendEnrollmentEmail {
+    #[arg(long, group = "delete_option")]
+    all: bool,
+
+    #[arg(long, group = "delete_option")]
+    groups: bool,
+
+    #[arg(long, requires = "all", requires = "groups")]
+    unenrolled: bool,
+}
+
+#[derive(Args)]
+pub struct ReviewUnenrolled;
+
+#[async_trait]
+impl Executable for CreateAdminAccount {
+    async fn execute(&self) -> Result<(), BiError> {
+        let api_client = ApiClient::new();
+        let identity = create_admin_account(
+            &api_client.client,
+            &api_client.tenant_config,
+            self.email.to_string(),
+        )
+        .await
+        .expect("Failed to create admin account");
+        println!("Created identity with id={}", identity.id);
+        Ok(())
+    }
 }
 
 #[async_trait]
-impl Executable for BeyondIdentityHelperCommands {
+impl Executable for ProvisionTenant {
     async fn execute(&self) -> Result<(), BiError> {
-        match self {
-            BeyondIdentityHelperCommands::CreateAdminAccount { email } => {
-                let api_client = ApiClient::new();
-                let identity = create_admin_account(
-                    &api_client.client,
-                    &api_client.tenant_config,
-                    email.to_string(),
-                )
-                .await
-                .expect("Failed to create admin account");
-                println!("Created identity with id={}", identity.id);
-                Ok(())
-            }
-            BeyondIdentityHelperCommands::Setup(action) => match action {
-                SetupAction::ProvisionTenant { token } => {
-                    _ = provision_tenant(
-                        &RespectRateLimitMiddleware::new_client(),
-                        &Config::new(),
-                        token,
-                    )
-                    .await
-                    .expect("Failed to provision existing tenant");
-                    Ok(())
-                }
-                SetupAction::ListTenants => {
-                    list_tenants_ui(&Config::new()).expect("Failed to list tenants");
-                    Ok(())
-                }
-                SetupAction::SetDefaultTenant => {
-                    set_default_tenant_ui(&Config::new()).expect("Failed to set default tenant");
-                    Ok(())
-                }
-                SetupAction::DeleteTenant => {
-                    delete_tenant_ui(&Config::new()).expect("Failed to delete tenant");
-                    Ok(())
-                }
-            },
-            BeyondIdentityHelperCommands::SendEnrollmentEmail {
-                all,
-                groups,
-                unenrolled,
-            } => {
-                let api_client = ApiClient::new();
-                let mut identities: Vec<Identity> = Vec::new();
+        _ = provision_tenant(
+            &RespectRateLimitMiddleware::new_client(),
+            &Config::new(),
+            &self.token,
+        )
+        .await
+        .expect("Failed to provision existing tenant");
+        Ok(())
+    }
+}
 
-                if *all {
-                    if *unenrolled {
-                        identities = get_unenrolled_identities(
-                            &api_client.client,
-                            &api_client.tenant_config,
-                        )
-                        .await
-                        .expect("Failed to fetch unenrolled identities");
-                    } else {
-                        identities =
-                            get_all_identities(&api_client.client, &api_client.tenant_config)
-                                .await
-                                .expect("Failed to fetch all identities");
-                    }
-                }
+#[async_trait]
+impl Executable for ListTenants {
+    async fn execute(&self) -> Result<(), BiError> {
+        list_tenants_ui(&Config::new()).expect("Failed to list tenants");
+        Ok(())
+    }
+}
 
-                if *groups {
-                    let groups: Vec<Group> =
-                        fetch_all_groups(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to fetch groups");
+#[async_trait]
+impl Executable for SetDefaultTenant {
+    async fn execute(&self) -> Result<(), BiError> {
+        set_default_tenant_ui(&Config::new()).expect("Failed to set default tenant");
+        Ok(())
+    }
+}
 
-                    if groups.is_empty() {
-                        println!("No groups found.");
-                        return Ok(());
-                    }
+#[async_trait]
+impl Executable for DeleteTenant {
+    async fn execute(&self) -> Result<(), BiError> {
+        delete_tenant_ui(&Config::new()).expect("Failed to delete tenant");
+        Ok(())
+    }
+}
 
-                    let group = select_group(&groups);
+#[async_trait]
+impl Executable for SendEnrollmentEmail {
+    async fn execute(&self) -> Result<(), BiError> {
+        let api_client = ApiClient::new();
+        let mut identities: Vec<Identity> = Vec::new();
 
-                    if *unenrolled {
-                        identities = get_unenrolled_identities_from_group(
-                            &api_client.client,
-                            &api_client.tenant_config,
-                            &group.id,
-                        )
-                        .await
-                        .expect("Failed to fetch unenrolled identities from group");
-                    } else {
-                        identities = get_identities_from_group(
-                            &api_client.client,
-                            &api_client.tenant_config,
-                            &group.id,
-                        )
-                        .await
-                        .expect("Failed to fetch identities from group");
-                    }
-                }
-
-                if identities.is_empty() {
-                    println!("No identities found.");
-                    return Ok(());
-                }
-
-                let selected_identities = select_identities(&identities);
-
-                let payload = get_send_email_payload(&api_client.client, &api_client.tenant_config)
-                    .await
-                    .expect("Unable to get email payload");
-
-                for identity in selected_identities {
-                    match send_enrollment_email(
-                        &api_client.client,
-                        &api_client.tenant_config,
-                        &identity,
-                        payload.clone(),
-                    )
-                    .await
-                    {
-                        Ok(job) => println!(
-                            "Enrollment job created for {}: {}",
-                            identity
-                                .traits
-                                .primary_email_address
-                                .unwrap_or_else(|| "<no email provided>".to_string()),
-                            serde_json::to_string_pretty(&job).unwrap()
-                        ),
-                        Err(err) => println!(
-                            "Failed to create enrollment job for {}: {}",
-                            identity
-                                .traits
-                                .primary_email_address
-                                .unwrap_or_else(|| "<no email provided>".to_string()),
-                            err
-                        ),
-                    }
-                }
-                Ok(())
-            }
-            BeyondIdentityHelperCommands::DeleteAllIdentities {
-                all,
-                norole,
-                unenrolled,
-                force,
-            } => {
-                let api_client = ApiClient::new();
-                if *force {
-                    if *all {
-                        delete_all_identities(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to delete all identities");
-                    }
-
-                    if *unenrolled {
-                        delete_unenrolled_identities(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to delete unenrolled identities");
-                    }
-
-                    if *norole {
-                        delete_norole_identities(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to delete norole identities");
-                    }
-                    return Ok(());
-                }
-
-                let mut identities = vec![];
-
-                if *all {
-                    identities = get_all_identities(&api_client.client, &api_client.tenant_config)
-                        .await
-                        .expect("Failed to fetch all identities");
-                }
-
-                if *unenrolled {
-                    identities =
-                        get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to fetch unenrolled identities");
-                }
-
-                if *norole {
-                    identities =
-                        get_identities_without_role(&api_client.client, &api_client.tenant_config)
-                            .await
-                            .expect("Failed to fetch unenrolled identities");
-                }
-
-                if identities.len() == 0 {
-                    println!("No identities found.");
-                    return Ok(());
-                }
-
-                let selected_identities = select_identities(&identities);
-
-                let resource_servers = fetch_beyond_identity_resource_servers(
-                    &api_client.client,
-                    &api_client.tenant_config,
-                )
-                .await
-                .expect("Failed to fetch resource servers");
-
-                for identity in &selected_identities {
-                    delete_group_memberships(
-                        &api_client.client,
-                        &api_client.tenant_config,
-                        &identity.id,
-                    )
-                    .await
-                    .expect("Failed to delete role memberships");
-                    for rs in &resource_servers {
-                        delete_role_memberships(
-                            &api_client.client,
-                            &api_client.tenant_config,
-                            &identity.id,
-                            &rs.id,
-                        )
-                        .await
-                        .expect("Failed to delete role memberships");
-                    }
-                }
-
-                for identity in &selected_identities {
-                    delete_identity(&api_client.client, &api_client.tenant_config, &identity.id)
-                        .await
-                        .expect("Failed to delete identity");
-                    println!("Deleted identity {}", identity.id);
-                }
-                Ok(())
-            }
-            BeyondIdentityHelperCommands::ReviewUnenrolled => {
-                let api_client = ApiClient::new();
-                let unenrolled_identities =
+        if self.all {
+            if self.unenrolled {
+                identities =
                     get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
                         .await
                         .expect("Failed to fetch unenrolled identities");
-
-                println!(
-                    "{} identities have not completed enrollment yet:",
-                    unenrolled_identities.len()
-                );
-                for identity in unenrolled_identities.iter() {
-                    println!(
-                        "{} - {}",
-                        identity
-                            .traits
-                            .primary_email_address
-                            .as_deref()
-                            .unwrap_or("<no email provided>"),
-                        identity.id,
-                    );
-                }
-                Ok(())
+            } else {
+                identities = get_all_identities(&api_client.client, &api_client.tenant_config)
+                    .await
+                    .expect("Failed to fetch all identities");
             }
         }
+
+        if self.groups {
+            let groups: Vec<Group> =
+                fetch_all_groups(&api_client.client, &api_client.tenant_config)
+                    .await
+                    .expect("Failed to fetch groups");
+
+            if groups.is_empty() {
+                println!("No groups found.");
+                return Ok(());
+            }
+
+            let group = select_group(&groups);
+
+            if self.unenrolled {
+                identities = get_unenrolled_identities_from_group(
+                    &api_client.client,
+                    &api_client.tenant_config,
+                    &group.id,
+                )
+                .await
+                .expect("Failed to fetch unenrolled identities from group");
+            } else {
+                identities = get_identities_from_group(
+                    &api_client.client,
+                    &api_client.tenant_config,
+                    &group.id,
+                )
+                .await
+                .expect("Failed to fetch identities from group");
+            }
+        }
+
+        if identities.is_empty() {
+            println!("No identities found.");
+            return Ok(());
+        }
+
+        let selected_identities = select_identities(&identities);
+
+        let payload = get_send_email_payload(&api_client.client, &api_client.tenant_config)
+            .await
+            .expect("Unable to get email payload");
+
+        for identity in selected_identities {
+            match send_enrollment_email(
+                &api_client.client,
+                &api_client.tenant_config,
+                &identity,
+                payload.clone(),
+            )
+            .await
+            {
+                Ok(job) => println!(
+                    "Enrollment job created for {}: {}",
+                    identity
+                        .traits
+                        .primary_email_address
+                        .unwrap_or_else(|| "<no email provided>".to_string()),
+                    serde_json::to_string_pretty(&job).unwrap()
+                ),
+                Err(err) => println!(
+                    "Failed to create enrollment job for {}: {}",
+                    identity
+                        .traits
+                        .primary_email_address
+                        .unwrap_or_else(|| "<no email provided>".to_string()),
+                    err
+                ),
+            }
+        }
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl Executable for DeleteAllIdentities {
+    async fn execute(&self) -> Result<(), BiError> {
+        let api_client = ApiClient::new();
+        if self.force {
+            if self.all {
+                delete_all_identities(&api_client.client, &api_client.tenant_config)
+                    .await
+                    .expect("Failed to delete all identities");
+            }
+
+            if self.unenrolled {
+                delete_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+                    .await
+                    .expect("Failed to delete unenrolled identities");
+            }
+
+            if self.norole {
+                delete_norole_identities(&api_client.client, &api_client.tenant_config)
+                    .await
+                    .expect("Failed to delete norole identities");
+            }
+            return Ok(());
+        }
+
+        let mut identities = vec![];
+
+        if self.all {
+            identities = get_all_identities(&api_client.client, &api_client.tenant_config)
+                .await
+                .expect("Failed to fetch all identities");
+        }
+
+        if self.unenrolled {
+            identities = get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+                .await
+                .expect("Failed to fetch unenrolled identities");
+        }
+
+        if self.norole {
+            identities = get_identities_without_role(&api_client.client, &api_client.tenant_config)
+                .await
+                .expect("Failed to fetch unenrolled identities");
+        }
+
+        if identities.len() == 0 {
+            println!("No identities found.");
+            return Ok(());
+        }
+
+        let selected_identities = select_identities(&identities);
+
+        let resource_servers =
+            fetch_beyond_identity_resource_servers(&api_client.client, &api_client.tenant_config)
+                .await
+                .expect("Failed to fetch resource servers");
+
+        for identity in &selected_identities {
+            delete_group_memberships(&api_client.client, &api_client.tenant_config, &identity.id)
+                .await
+                .expect("Failed to delete role memberships");
+            for rs in &resource_servers {
+                delete_role_memberships(
+                    &api_client.client,
+                    &api_client.tenant_config,
+                    &identity.id,
+                    &rs.id,
+                )
+                .await
+                .expect("Failed to delete role memberships");
+            }
+        }
+
+        for identity in &selected_identities {
+            delete_identity(&api_client.client, &api_client.tenant_config, &identity.id)
+                .await
+                .expect("Failed to delete identity");
+            println!("Deleted identity {}", identity.id);
+        }
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl Executable for ReviewUnenrolled {
+    async fn execute(&self) -> Result<(), BiError> {
+        let api_client = ApiClient::new();
+        let unenrolled_identities =
+            get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+                .await
+                .expect("Failed to fetch unenrolled identities");
+
+        println!(
+            "{} identities have not completed enrollment yet:",
+            unenrolled_identities.len()
+        );
+        for identity in unenrolled_identities.iter() {
+            println!(
+                "{} - {}",
+                identity
+                    .traits
+                    .primary_email_address
+                    .as_deref()
+                    .unwrap_or("<no email provided>"),
+                identity.id,
+            );
+        }
+        Ok(())
     }
 }
