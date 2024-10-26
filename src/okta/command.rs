@@ -10,6 +10,10 @@ use clap::{Args, Subcommand};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 
+// ====================================
+// Okta Commands
+// ====================================
+
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum OktaCommands {
@@ -30,8 +34,9 @@ pub struct Setup {
     force: bool,
 }
 
-#[derive(Args)]
-pub struct FastMigrate;
+// ====================================
+// Okta Setup
+// ====================================
 
 #[async_trait]
 impl Executable for Setup {
@@ -52,6 +57,13 @@ impl Executable for Setup {
         Ok(())
     }
 }
+
+// ====================================
+// Okta FastMigrate
+// ====================================
+
+#[derive(Args)]
+pub struct FastMigrate;
 
 #[async_trait]
 impl Executable for FastMigrate {

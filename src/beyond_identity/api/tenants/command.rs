@@ -10,6 +10,10 @@ use crate::common::error::BiError;
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
 
+// ====================================
+// Tenants Commands
+// ====================================
+
 #[derive(Subcommand, Debug, Clone, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum TenantCommands {
@@ -19,20 +23,28 @@ pub enum TenantCommands {
     Patch(Patch),
 }
 
-#[derive(Debug, Clone, Args)]
-pub struct Get;
+// ====================================
+// Tenants Get
+// ====================================
 
 #[derive(Debug, Clone, Args)]
-pub struct Patch {
-    #[clap(long)]
-    display_name: String,
-}
+pub struct Get;
 
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
         output(Service::new().get_tenant()).await
     }
+}
+
+// ====================================
+// Tenants Patch
+// ====================================
+
+#[derive(Debug, Clone, Args)]
+pub struct Patch {
+    #[clap(long)]
+    display_name: String,
 }
 
 #[async_trait]

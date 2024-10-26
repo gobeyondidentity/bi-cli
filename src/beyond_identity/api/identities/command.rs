@@ -15,6 +15,10 @@ use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use std::str::FromStr;
 
+// ====================================
+// Identities Commands
+// ====================================
+
 #[derive(Subcommand, Debug, Clone, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum IdentityCommands {
@@ -34,50 +38,14 @@ pub enum IdentityCommands {
     ListRoles(ListRoles),
 }
 
+// ====================================
+// Identities Create
+// ====================================
+
 #[derive(Args, Debug, Clone)]
 pub struct Create {
     #[clap(flatten)]
     identity_details: Identity,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct List {
-    #[clap(long)]
-    filter: Option<String>,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct Get {
-    #[clap(long)]
-    id: String,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct Patch {
-    #[clap(long)]
-    id: String,
-    #[clap(flatten)]
-    identity_details: PatchIdentity,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct Delete {
-    #[clap(long)]
-    id: String,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct ListGroups {
-    #[clap(long)]
-    id: String,
-}
-
-#[derive(Args, Debug, Clone)]
-pub struct ListRoles {
-    #[clap(long)]
-    id: String,
-    #[clap(long)]
-    resource_server_id: String,
 }
 
 #[async_trait]
@@ -93,6 +61,16 @@ impl Executable for Create {
     }
 }
 
+// ====================================
+// Identities List
+// ====================================
+
+#[derive(Args, Debug, Clone)]
+pub struct List {
+    #[clap(long)]
+    filter: Option<String>,
+}
+
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
@@ -104,11 +82,33 @@ impl Executable for List {
     }
 }
 
+// ====================================
+// Identities Get
+// ====================================
+
+#[derive(Args, Debug, Clone)]
+pub struct Get {
+    #[clap(long)]
+    id: String,
+}
+
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
         output(Service::new().get_identity(&self.id)).await
     }
+}
+
+// ====================================
+// Identities Patch
+// ====================================
+
+#[derive(Args, Debug, Clone)]
+pub struct Patch {
+    #[clap(long)]
+    id: String,
+    #[clap(flatten)]
+    identity_details: PatchIdentity,
 }
 
 #[async_trait]
@@ -128,6 +128,16 @@ impl Executable for Patch {
     }
 }
 
+// ====================================
+// Identities Delete
+// ====================================
+
+#[derive(Args, Debug, Clone)]
+pub struct Delete {
+    #[clap(long)]
+    id: String,
+}
+
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
@@ -135,11 +145,33 @@ impl Executable for Delete {
     }
 }
 
+// ====================================
+// Identities ListGroups
+// ====================================
+
+#[derive(Args, Debug, Clone)]
+pub struct ListGroups {
+    #[clap(long)]
+    id: String,
+}
+
 #[async_trait]
 impl Executable for ListGroups {
     async fn execute(&self) -> Result<(), BiError> {
         output(Service::new().list_groups(&self.id)).await
     }
+}
+
+// ====================================
+// Identities ListRoles
+// ====================================
+
+#[derive(Args, Debug, Clone)]
+pub struct ListRoles {
+    #[clap(long)]
+    id: String,
+    #[clap(long)]
+    resource_server_id: String,
 }
 
 #[async_trait]

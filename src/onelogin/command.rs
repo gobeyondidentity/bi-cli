@@ -13,6 +13,10 @@ use clap::{Args, Subcommand};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 
+// ====================================
+// Onelogin Commands
+// ====================================
+
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum OneloginCommands {
@@ -22,6 +26,10 @@ pub enum OneloginCommands {
     /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
     FastMigrate(FastMigrate),
 }
+
+// ====================================
+// Onelogin Setup
+// ====================================
 
 #[derive(Args)]
 pub struct Setup {
@@ -33,9 +41,6 @@ pub struct Setup {
     #[arg(long)]
     force: bool,
 }
-
-#[derive(Args)]
-pub struct FastMigrate;
 
 #[async_trait]
 impl Executable for Setup {
@@ -57,6 +62,13 @@ impl Executable for Setup {
         Ok(())
     }
 }
+
+// ====================================
+// Onelogin FastMigrate
+// ====================================
+
+#[derive(Args)]
+pub struct FastMigrate;
 
 #[async_trait]
 impl Executable for FastMigrate {
