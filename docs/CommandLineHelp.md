@@ -9,6 +9,12 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api tenants`↴](#bi-api-tenants)
 * [`bi api tenants get`↴](#bi-api-tenants-get)
 * [`bi api tenants patch`↴](#bi-api-tenants-patch)
+* [`bi api realms`↴](#bi-api-realms)
+* [`bi api realms create`↴](#bi-api-realms-create)
+* [`bi api realms list`↴](#bi-api-realms-list)
+* [`bi api realms get`↴](#bi-api-realms-get)
+* [`bi api realms patch`↴](#bi-api-realms-patch)
+* [`bi api realms delete`↴](#bi-api-realms-delete)
 * [`bi api identities`↴](#bi-api-identities)
 * [`bi api identities create`↴](#bi-api-identities-create)
 * [`bi api identities list`↴](#bi-api-identities-list)
@@ -23,12 +29,9 @@ This document contains the help content for the `bi` command-line program.
 * [`bi helper setup list-tenants`↴](#bi-helper-setup-list-tenants)
 * [`bi helper setup set-default-tenant`↴](#bi-helper-setup-set-default-tenant)
 * [`bi helper setup delete-tenant`↴](#bi-helper-setup-delete-tenant)
-* [`bi helper create-scim-app`↴](#bi-helper-create-scim-app)
-* [`bi helper create-external-sso-connection`↴](#bi-helper-create-external-sso-connection)
 * [`bi helper create-admin-account`↴](#bi-helper-create-admin-account)
 * [`bi helper delete-all-identities`↴](#bi-helper-delete-all-identities)
 * [`bi helper send-enrollment-email`↴](#bi-helper-send-enrollment-email)
-* [`bi helper delete-all-sso-configs`↴](#bi-helper-delete-all-sso-configs)
 * [`bi helper review-unenrolled`↴](#bi-helper-review-unenrolled)
 * [`bi okta`↴](#bi-okta)
 * [`bi okta setup`↴](#bi-okta-setup)
@@ -65,6 +68,7 @@ Commands related to Beyond Identity API
 ###### **Subcommands:**
 
 * `tenants` — Tenants
+* `realms` — Realms
 * `identities` — Identities
 
 
@@ -102,6 +106,83 @@ Update tenant
 
 
 
+## `bi api realms`
+
+Realms
+
+**Usage:** `bi api realms <COMMAND>`
+
+###### **Subcommands:**
+
+* `create` — Create realm
+* `list` — List realms
+* `get` — Get realm
+* `patch` — Patch realm
+* `delete` — Delete realm
+
+
+
+## `bi api realms create`
+
+Create realm
+
+**Usage:** `bi api realms create --classification <CLASSIFICATION> --display-name <DISPLAY_NAME>`
+
+###### **Options:**
+
+* `--classification <CLASSIFICATION>`
+
+  Possible values: `secure_customer`, `secure_workforce`
+
+* `--display-name <DISPLAY_NAME>`
+
+
+
+## `bi api realms list`
+
+List realms
+
+**Usage:** `bi api realms list`
+
+
+
+## `bi api realms get`
+
+Get realm
+
+**Usage:** `bi api realms get --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+
+
+
+## `bi api realms patch`
+
+Patch realm
+
+**Usage:** `bi api realms patch [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--display-name <DISPLAY_NAME>` — (optional) The display name of the realm
+
+
+
+## `bi api realms delete`
+
+Delete realm
+
+**Usage:** `bi api realms delete --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+
+
+
 ## `bi api identities`
 
 Identities
@@ -128,11 +209,7 @@ Create a new identity
 
 ###### **Options:**
 
-* `--display-name <DISPLAY_NAME>` — (required) The display name of the identity
-* `--status <STATUS>` — (optional) Indicator for the identity's administrative status
-
-  Possible values: `active`, `suspended`
-
+* `--display-name <DISPLAY_NAME>`
 * `--type <TYPE>` — (required) The version of the identity's traits
 
   Possible values: `traits_v0`
@@ -241,12 +318,9 @@ Commands related to Beyond Identity API helper functions
 ###### **Subcommands:**
 
 * `setup` — Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied
-* `create-scim-app` — Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider
-* `create-external-sso-connection` — Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity
 * `create-admin-account` — Creates an administrator account in the account
 * `delete-all-identities` — Deletes all identities from a realm in case you want to set them up from scratch. The identities are unassigned from roles and groups automatically
 * `send-enrollment-email` — Helps you send enrollment emails to one or more (or all) users in Beyond Identity
-* `delete-all-sso-configs` — Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch
 * `review-unenrolled` — Get a list of identities who have not enrolled yet (identities without a passkey)
 
 
@@ -302,26 +376,6 @@ Delete any provisioned tenants
 
 
 
-## `bi helper create-scim-app`
-
-Creates an application in Beyond Identity that enables you to perform inbound SCIM from an external identity provider
-
-**Usage:** `bi helper create-scim-app <OKTA_REGISTRATION_SYNC_ATTRIBUTE>`
-
-###### **Arguments:**
-
-* `<OKTA_REGISTRATION_SYNC_ATTRIBUTE>` — Attribute that controls how and when Okta users are routed to Beyond Identity
-
-
-
-## `bi helper create-external-sso-connection`
-
-Creates an OIDC application in Beyond Identity that Okta will use to enable Okta identities to authenticate using Beyond Identity
-
-**Usage:** `bi helper create-external-sso-connection`
-
-
-
 ## `bi helper create-admin-account`
 
 Creates an administrator account in the account
@@ -360,14 +414,6 @@ Helps you send enrollment emails to one or more (or all) users in Beyond Identit
 * `--all`
 * `--groups`
 * `--unenrolled`
-
-
-
-## `bi helper delete-all-sso-configs`
-
-Clears out your Beyond Identity SSO apps in case you want to run fast migrate from scratch
-
-**Usage:** `bi helper delete-all-sso-configs`
 
 
 
