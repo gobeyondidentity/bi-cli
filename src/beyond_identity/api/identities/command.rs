@@ -1,8 +1,5 @@
-use super::types::{IdentityFilterField, PatchIdentity, PatchIdentityRequest};
-use super::{
-    api::IdentitiesApi,
-    types::{CreateIdentityRequest, Identity, IdentityRequest},
-};
+use super::types::{IdentityFilterField, PatchIdentityRequest};
+use super::{api::IdentitiesApi, types::CreateIdentityRequest};
 
 use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::serialize::output;
@@ -23,13 +20,13 @@ use std::str::FromStr;
 #[delegate(Executable)]
 pub enum IdentityCommands {
     /// Create a new identity
-    Create(Create),
+    Create(CreateIdentityRequest),
     /// List identities
     List(List),
     /// Get an identity
     Get(Get),
     /// Update an identity
-    Patch(Patch),
+    Patch(PatchIdentityRequest),
     /// Delete an identity
     Delete(Delete),
     /// List an identity's groups
@@ -42,22 +39,10 @@ pub enum IdentityCommands {
 // Identities Create
 // ====================================
 
-#[derive(Args, Debug, Clone)]
-pub struct Create {
-    #[clap(flatten)]
-    identity_details: Identity,
-}
-
 #[async_trait]
-impl Executable for Create {
+impl Executable for CreateIdentityRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().create_identity(CreateIdentityRequest {
-            identity: IdentityRequest {
-                display_name: self.identity_details.display_name.clone(),
-                traits: self.identity_details.traits.clone(),
-            },
-        }))
-        .await
+        output(Service::new().create_identity(self)).await
     }
 }
 
@@ -103,28 +88,10 @@ impl Executable for Get {
 // Identities Patch
 // ====================================
 
-#[derive(Args, Debug, Clone)]
-pub struct Patch {
-    #[clap(long)]
-    id: String,
-    #[clap(flatten)]
-    identity_details: PatchIdentity,
-}
-
 #[async_trait]
-impl Executable for Patch {
+impl Executable for PatchIdentityRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().patch_identity(
-            &self.id,
-            &PatchIdentityRequest {
-                identity: PatchIdentity {
-                    display_name: self.identity_details.display_name.clone(),
-                    status: self.identity_details.status.clone(),
-                    traits: self.identity_details.traits.clone(),
-                },
-            },
-        ))
-        .await
+        output(Service::new().patch_identity(self)).await
     }
 }
 

@@ -40,19 +40,6 @@ pub struct Identity {
     pub traits: Traits,
 }
 
-#[derive(Args, Clone, Debug, Serialize)]
-pub struct PatchIdentity {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long)]
-    pub display_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long, value_enum)]
-    pub status: Option<Status>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(flatten)]
-    pub traits: Option<PatchTraits>,
-}
-
 #[derive(Args, Clone, Debug, Serialize, Deserialize)]
 pub struct Traits {
     /// (required) The version of the identity's traits.
@@ -80,27 +67,6 @@ pub struct Traits {
     pub given_name: Option<String>,
 }
 
-#[derive(Args, Clone, Debug, Serialize)]
-pub struct PatchTraits {
-    #[clap(long, value_enum)]
-    r#type: Type,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long)]
-    username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long)]
-    primary_email_address: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long)]
-    external_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long)]
-    family_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[clap(long)]
-    given_name: Option<String>,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum Type {
@@ -125,18 +91,58 @@ pub enum IdentityFilterField {
     PrimaryEmailAddress,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Args, Clone, Debug, Serialize)]
 pub struct CreateIdentityRequest {
-    pub identity: IdentityRequest,
+    #[clap(flatten)]
+    pub identity: CreateIdentity,
 }
 
-#[derive(Clone, Debug, Serialize)]
-pub struct IdentityRequest {
+#[derive(Args, Clone, Debug, Serialize)]
+pub struct CreateIdentity {
+    #[clap(long)]
     pub display_name: String,
+    #[clap(flatten)]
     pub traits: Traits,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Args, Clone, Debug, Serialize)]
 pub struct PatchIdentityRequest {
+    #[clap(flatten)]
     pub identity: PatchIdentity,
+}
+
+#[derive(Args, Clone, Debug, Serialize)]
+pub struct PatchIdentity {
+    #[clap(long)]
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long)]
+    pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long, value_enum)]
+    pub status: Option<Status>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(flatten)]
+    pub traits: Option<PatchTraits>,
+}
+
+#[derive(Args, Clone, Debug, Serialize)]
+pub struct PatchTraits {
+    #[clap(long, value_enum)]
+    r#type: Type,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long)]
+    username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long)]
+    primary_email_address: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long)]
+    external_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long)]
+    family_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[clap(long)]
+    given_name: Option<String>,
 }

@@ -21,7 +21,7 @@ use crate::common::error::BiError;
 pub trait IdentitiesApi {
     async fn create_identity(
         &self,
-        request: CreateIdentityRequest,
+        request: &CreateIdentityRequest,
     ) -> Result<IdentityEnvelope, BiError>;
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError>;
     async fn get_identity(&self, identity_id: &str) -> Result<IdentityEnvelope, BiError>;
@@ -34,8 +34,7 @@ pub trait IdentitiesApi {
     ) -> Result<Roles, BiError>;
     async fn patch_identity(
         &self,
-        identity_id: &str,
-        patch_request: &PatchIdentityRequest,
+        request: &PatchIdentityRequest,
     ) -> Result<IdentityEnvelope, BiError>;
 }
 
@@ -46,7 +45,7 @@ pub trait IdentitiesApi {
 impl IdentitiesApi for Service {
     async fn create_identity(
         &self,
-        request: CreateIdentityRequest,
+        request: &CreateIdentityRequest,
     ) -> Result<IdentityEnvelope, BiError> {
         self.api_client
             .send_request(
@@ -57,7 +56,7 @@ impl IdentitiesApi for Service {
                     .add_realm()
                     .add_path(vec![IdentitiesFieldName::Identities.name()])
                     .to_string()?,
-                Some(&request),
+                Some(request),
             )
             .await
             .map(|details| IdentityEnvelope { identity: details })
@@ -179,8 +178,7 @@ impl IdentitiesApi for Service {
 
     async fn patch_identity(
         &self,
-        identity_id: &str,
-        patch_request: &PatchIdentityRequest,
+        request: &PatchIdentityRequest,
     ) -> Result<IdentityEnvelope, BiError> {
         self.api_client
             .send_request(
@@ -189,9 +187,12 @@ impl IdentitiesApi for Service {
                     .api()
                     .add_tenant()
                     .add_realm()
-                    .add_path(vec![IdentitiesFieldName::Identities.name(), identity_id])
+                    .add_path(vec![
+                        IdentitiesFieldName::Identities.name(),
+                        &request.identity.id,
+                    ])
                     .to_string()?,
-                Some(patch_request),
+                Some(request),
             )
             .await
             .map(|details| IdentityEnvelope { identity: details })

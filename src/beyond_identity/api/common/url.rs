@@ -60,6 +60,15 @@ impl URLBuilder {
         self
     }
 
+    /// Adds the specified realm ID to the URL path.
+    pub fn add_realm_with_override(mut self, id: String) -> Self {
+        self.url_mut()
+            .path_segments_mut()
+            .expect("Cannot be base")
+            .extend(&["realms", &id]);
+        self
+    }
+
     /// Adds additional path segments to the URL.
     pub fn add_path(mut self, segments: Vec<&str>) -> Self {
         self.url_mut()
