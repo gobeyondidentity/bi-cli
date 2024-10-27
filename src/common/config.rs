@@ -7,12 +7,6 @@ use std::path::PathBuf;
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct FilePaths {
     pub tenants_config: String,
-    pub bi_scim_app_config: String,
-    pub okta_scim_app_config: String,
-    pub external_sso_config: String,
-    pub okta_identity_provider: String,
-    pub okta_routing_rule: String,
-    pub okta_custom_attribute: String,
     pub okta_applications: String,
     pub onelogin_applications: String,
     pub token_path: String,
@@ -41,12 +35,6 @@ impl FilePaths {
 
         Self {
             tenants_config: path_to_string(configs_dir.join("tenants_config.json")),
-            bi_scim_app_config: path_to_string(configs_dir.join("bi_scim_application.json")),
-            okta_scim_app_config: path_to_string(configs_dir.join("okta_scim_application.json")),
-            external_sso_config: path_to_string(configs_dir.join("external_sso.json")),
-            okta_identity_provider: path_to_string(configs_dir.join("okta_identity_provider.json")),
-            okta_routing_rule: path_to_string(configs_dir.join("okta_routing_rule.json")),
-            okta_custom_attribute: path_to_string(configs_dir.join("okta_custom_attribute.json")),
             okta_applications: path_to_string(configs_dir.join("okta_applications.json")),
             onelogin_applications: path_to_string(configs_dir.join("onelogin_applications.json")),
             token_path: path_to_string(configs_dir.join("token.json")),
