@@ -8,13 +8,14 @@ use super::groups::{
     get_unenrolled_identities_from_group, Group,
 };
 use super::identities::{
-    delete_all_identities, delete_identity, delete_norole_identities, delete_unenrolled_identities,
-    Identity,
+    delete_all_identities, delete_norole_identities, delete_unenrolled_identities, Identity,
 };
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::delete_role_memberships;
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
+use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::identities::api::IdentitiesApi;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::{command::Executable, error::BiError};
 
@@ -233,7 +234,9 @@ impl Executable for DeleteAllIdentities {
         }
 
         for identity in &selected_identities {
-            delete_identity(&api_client, &identity.id)
+            Service::new()
+                .await
+                .delete_identity(&identity.id)
                 .await
                 .expect("Failed to delete identity");
             println!("Deleted identity {}", identity.id);

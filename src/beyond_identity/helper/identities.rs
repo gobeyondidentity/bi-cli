@@ -4,6 +4,8 @@ use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::{delete_role_memberships, fetch_role_memberships};
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
+use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::identities::api::IdentitiesApi;
 use crate::common::error::BiError;
 
 use serde::{Deserialize, Serialize};
@@ -77,33 +79,6 @@ pub async fn fetch_beyond_identity_identities(
     Ok(identities)
 }
 
-pub async fn delete_identity(api_client: &ApiClient, identity_id: &str) -> Result<(), BiError> {
-    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
-        Some((t, r)) => (t, r),
-        None => {
-            return Err(BiError::StringError(
-                "No default tenant/realm set".to_string(),
-            ))
-        }
-    };
-
-    let url = format!(
-        "{}/v1/tenants/{}/realms/{}/identities/{}",
-        realm.api_base_url, tenant.id, realm.id, identity_id,
-    );
-
-    let response = api_client.client.delete(&url).send().await?;
-
-    let status = response.status();
-    if !status.is_success() {
-        log::debug!("{} response status: {}", url, status);
-        let error_text = response.text().await?;
-        return Err(BiError::RequestError(status, error_text));
-    }
-
-    Ok(())
-}
-
 pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError> {
     let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
         Some((t, r)) => (t, r),
@@ -148,10 +123,11 @@ pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError
                     .await
                     .expect("Failed to delete role memberships");
             }
-            delete_identity(api_client, &identity.id)
+            Service::new()
+                .await
+                .delete_identity(&identity.id)
                 .await
                 .expect("Failed to delete identity");
-
             println!("Deleted identity {}", identity.id);
         }
 
@@ -223,10 +199,11 @@ pub async fn delete_unenrolled_identities(api_client: &ApiClient) -> Result<(), 
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                delete_identity(api_client, &identity.id)
+                Service::new()
+                    .await
+                    .delete_identity(&identity.id)
                     .await
                     .expect("Failed to delete identity");
-
                 println!("Deleted identity {}", identity.id);
             }
         }
@@ -300,10 +277,11 @@ pub async fn delete_norole_identities(api_client: &ApiClient) -> Result<(), BiEr
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                delete_identity(api_client, &identity.id)
+                Service::new()
+                    .await
+                    .delete_identity(&identity.id)
                     .await
                     .expect("Failed to delete identity");
-
                 println!("Deleted identity {}", identity.id);
             }
         }
