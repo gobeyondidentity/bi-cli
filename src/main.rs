@@ -10,7 +10,10 @@ use beyond_identity::{
 };
 use clap::{Args, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
-use common::{command::ambassador_impl_Executable, command::Executable, error::BiError};
+use common::{
+    command::{ambassador_impl_Executable, Executable},
+    error::BiError,
+};
 use log::LevelFilter;
 use okta::command::OktaCommands;
 use onelogin::command::OneloginCommands;

@@ -1,7 +1,3 @@
-use convert_case::{Case, Casing};
-use function_name::named;
-use http::Method;
-
 use super::types::{
     CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, IdentityEnvelope,
     PatchIdentityRequest,
@@ -9,10 +5,13 @@ use super::types::{
 
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
 use crate::beyond_identity::api::common::service::Service;
-use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
 use crate::beyond_identity::api::roles::types::{Role, RoleFieldName, Roles, RolesFieldName};
 use crate::common::error::BiError;
+
+use convert_case::{Case, Casing};
+use function_name::named;
+use http::Method;
 
 // ====================================
 // Identities API
@@ -50,7 +49,10 @@ impl IdentitiesApi for Service {
         self.api_client
             .send_request(
                 Method::POST,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm()
@@ -66,7 +68,10 @@ impl IdentitiesApi for Service {
         self.api_client
             .send_request(
                 Method::DELETE,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm()
@@ -81,7 +86,10 @@ impl IdentitiesApi for Service {
         self.api_client
             .send_request(
                 Method::GET,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm()
@@ -94,7 +102,10 @@ impl IdentitiesApi for Service {
     }
 
     async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError> {
-        let url = URLBuilder::build(&self.api_client.tenant_config)
+        let url = self
+            .api_client
+            .build_url()
+            .await?
             .api()
             .add_tenant()
             .add_realm()
@@ -123,7 +134,10 @@ impl IdentitiesApi for Service {
 
     #[named]
     async fn list_groups(&self, identity_id: &str) -> Result<Groups, BiError> {
-        let url = URLBuilder::build(&self.api_client.tenant_config)
+        let url = self
+            .api_client
+            .build_url()
+            .await?
             .api()
             .add_tenant()
             .add_realm()
@@ -153,7 +167,10 @@ impl IdentitiesApi for Service {
         identity_id: &str,
         resource_server_id: &str,
     ) -> Result<Roles, BiError> {
-        let url = URLBuilder::build(&self.api_client.tenant_config)
+        let url = self
+            .api_client
+            .build_url()
+            .await?
             .api()
             .add_tenant()
             .add_realm()
@@ -183,7 +200,10 @@ impl IdentitiesApi for Service {
         self.api_client
             .send_request(
                 Method::PATCH,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm()

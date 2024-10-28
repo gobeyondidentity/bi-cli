@@ -1,14 +1,12 @@
 use super::enrollment::{get_credentials_for_identity, Credential};
 use super::groups::delete_group_memberships;
+use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::{delete_role_memberships, fetch_role_memberships};
 
-use crate::setup::tenants::tenant::TenantConfig;
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::common::error::BiError;
 
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
-
-use super::resource_servers::fetch_beyond_identity_resource_servers;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Identity {
@@ -28,17 +26,25 @@ pub struct IdentityTraits {
 }
 
 pub async fn fetch_beyond_identity_identities(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
 ) -> Result<Vec<Identity>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut identities = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities?page_size=200",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -61,10 +67,7 @@ pub async fn fetch_beyond_identity_identities(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, next_page_token
             );
         } else {
             break;
@@ -74,17 +77,22 @@ pub async fn fetch_beyond_identity_identities(
     Ok(identities)
 }
 
-pub async fn delete_identity(
-    client: &Client,
-    tenant_config: &TenantConfig,
-    identity_id: &str,
-) -> Result<(), BiError> {
+pub async fn delete_identity(api_client: &ApiClient, identity_id: &str) -> Result<(), BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity_id,
+        realm.api_base_url, tenant.id, realm.id, identity_id,
     );
 
-    let response = client.delete(&url).send().await?;
+    let response = api_client.client.delete(&url).send().await?;
 
     let status = response.status();
     if !status.is_success() {
@@ -96,21 +104,27 @@ pub async fn delete_identity(
     Ok(())
 }
 
-pub async fn delete_all_identities(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<(), BiError> {
+pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities?page_size=200",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(&client, &tenant_config)
+    let resource_servers = fetch_beyond_identity_resource_servers(api_client)
         .await
         .expect("Failed to fetch resource servers");
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -126,15 +140,15 @@ pub async fn delete_all_identities(
             serde_json::from_value(response_json["identities"].clone())?;
 
         for identity in &page_identities {
-            delete_group_memberships(&client, &tenant_config, &identity.id)
+            delete_group_memberships(api_client, &identity.id)
                 .await
                 .expect("Failed to delete role memberships");
             for rs in &resource_servers {
-                delete_role_memberships(&client, &tenant_config, &identity.id, &rs.id)
+                delete_role_memberships(api_client, &identity.id, &rs.id)
                     .await
                     .expect("Failed to delete role memberships");
             }
-            delete_identity(&client, &tenant_config, &identity.id)
+            delete_identity(api_client, &identity.id)
                 .await
                 .expect("Failed to delete identity");
 
@@ -147,10 +161,7 @@ pub async fn delete_all_identities(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, next_page_token
             );
         } else {
             break;
@@ -160,21 +171,27 @@ pub async fn delete_all_identities(
     Ok(())
 }
 
-pub async fn delete_unenrolled_identities(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<(), BiError> {
+pub async fn delete_unenrolled_identities(api_client: &ApiClient) -> Result<(), BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities?page_size=200",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(&client, &tenant_config)
+    let resource_servers = fetch_beyond_identity_resource_servers(api_client)
         .await
         .expect("Failed to fetch resource servers");
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -190,26 +207,23 @@ pub async fn delete_unenrolled_identities(
             serde_json::from_value(response_json["identities"].clone())?;
 
         for identity in &page_identities {
-            let credentials = get_credentials_for_identity(client, tenant_config, &identity.id)
+            let credentials = get_credentials_for_identity(api_client, &identity.id)
                 .await
                 .expect("Failed to fetch credentials");
             let enrolled = credentials
                 .into_iter()
-                .filter(|cred| {
-                    cred.realm_id == tenant_config.realm_id
-                        && cred.tenant_id == tenant_config.tenant_id
-                })
+                .filter(|cred| cred.realm_id == realm.id && cred.tenant_id == tenant.id)
                 .collect::<Vec<Credential>>();
             if enrolled.is_empty() {
-                delete_group_memberships(&client, &tenant_config, &identity.id)
+                delete_group_memberships(api_client, &identity.id)
                     .await
                     .expect("Failed to delete role memberships");
                 for rs in &resource_servers {
-                    delete_role_memberships(&client, &tenant_config, &identity.id, &rs.id)
+                    delete_role_memberships(api_client, &identity.id, &rs.id)
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                delete_identity(&client, &tenant_config, &identity.id)
+                delete_identity(api_client, &identity.id)
                     .await
                     .expect("Failed to delete identity");
 
@@ -223,10 +237,7 @@ pub async fn delete_unenrolled_identities(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, next_page_token
             );
         } else {
             break;
@@ -236,21 +247,27 @@ pub async fn delete_unenrolled_identities(
     Ok(())
 }
 
-pub async fn delete_norole_identities(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<(), BiError> {
+pub async fn delete_norole_identities(api_client: &ApiClient) -> Result<(), BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities?page_size=200",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(&client, &tenant_config)
+    let resource_servers = fetch_beyond_identity_resource_servers(api_client)
         .await
         .expect("Failed to fetch resource servers");
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -268,27 +285,22 @@ pub async fn delete_norole_identities(
         for identity in &page_identities {
             let mut has_role = false;
             for resource_server in &resource_servers {
-                let roles = fetch_role_memberships(
-                    client,
-                    tenant_config,
-                    &identity.id,
-                    &resource_server.id,
-                )
-                .await?;
+                let roles =
+                    fetch_role_memberships(api_client, &identity.id, &resource_server.id).await?;
 
                 has_role |= !roles.is_empty();
             }
 
             if !has_role {
-                delete_group_memberships(&client, &tenant_config, &identity.id)
+                delete_group_memberships(api_client, &identity.id)
                     .await
                     .expect("Failed to delete role memberships");
                 for rs in &resource_servers {
-                    delete_role_memberships(&client, &tenant_config, &identity.id, &rs.id)
+                    delete_role_memberships(api_client, &identity.id, &rs.id)
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                delete_identity(&client, &tenant_config, &identity.id)
+                delete_identity(api_client, &identity.id)
                     .await
                     .expect("Failed to delete identity");
 
@@ -302,10 +314,7 @@ pub async fn delete_norole_identities(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, next_page_token
             );
         } else {
             break;

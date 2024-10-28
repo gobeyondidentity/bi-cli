@@ -41,7 +41,7 @@ pub enum RealmCommands {
 #[async_trait]
 impl Executable for CreateRealmRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().create_realm(self)).await
+        output(Service::new().await.create_realm(self)).await
     }
 }
 
@@ -55,7 +55,7 @@ pub struct List;
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().list_realms()).await
+        output(Service::new().await.list_realms()).await
     }
 }
 
@@ -72,7 +72,7 @@ pub struct Get {
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().get_realm(&self.id)).await
+        output(Service::new().await.get_realm(&self.id)).await
     }
 }
 
@@ -83,7 +83,7 @@ impl Executable for Get {
 #[async_trait]
 impl Executable for PatchRealmRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().patch_realm(self)).await
+        output(Service::new().await.patch_realm(self)).await
     }
 }
 
@@ -100,6 +100,6 @@ pub struct Delete {
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().delete_realm(&self.id)).await
+        output(Service::new().await.delete_realm(&self.id)).await
     }
 }

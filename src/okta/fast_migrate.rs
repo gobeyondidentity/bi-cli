@@ -1,17 +1,13 @@
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::helper::identities;
 use crate::beyond_identity::helper::sso_configs;
-use crate::common::config::Config;
-use crate::common::config::OktaConfig;
+use crate::common::database::models::OktaConfig;
 use crate::common::error::BiError;
-use rand::Rng;
+
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
 use std::io::{self, Write};
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -126,7 +122,6 @@ async fn fetch_all_okta_users(
 
 pub async fn fetch_okta_applications(
     client: &Client,
-    config: &Config,
     okta_config: &OktaConfig,
 ) -> Result<Vec<OktaApplication>, BiError> {
     let mut apps = Vec::new();
@@ -160,8 +155,6 @@ pub async fn fetch_okta_applications(
             log::info!("Fetching assigned users for app: {:?}", app.label);
             let users = get_users_assigned_to_app(client, okta_config, &app.id, &users_map).await?;
             app.embedded = Some(OktaEmbeddedUsers { users });
-            let sleep_duration = rand::thread_rng().gen_range(2..=4);
-            sleep(Duration::from_secs(sleep_duration)).await;
         }
 
         apps.extend(page_apps);
@@ -172,12 +165,6 @@ pub async fn fetch_okta_applications(
             break;
         }
     }
-
-    let serialized = serde_json::to_string_pretty(&apps)?;
-
-    let config_path = config.file_paths.okta_applications.clone();
-    fs::write(config_path.clone(), serialized)
-        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
 
     Ok(apps)
 }
@@ -199,15 +186,6 @@ fn extract_next_link(response: &reqwest::Response) -> Option<String> {
             None
         }
     })
-}
-
-pub async fn load_okta_applications(config: &Config) -> Result<Vec<OktaApplication>, BiError> {
-    let config_path = config.file_paths.okta_applications.clone();
-    let data = fs::read_to_string(&config_path)
-        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
-    let okta_applications: Vec<OktaApplication> =
-        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
-    Ok(okta_applications)
 }
 
 async fn get_users_assigned_to_app(
@@ -345,8 +323,7 @@ pub async fn create_sso_config_and_assign_identities(
             r#type: "image/png".to_string(),
         });
     let sso_config = sso_configs::create_sso_config(
-        &api_client.client,
-        &api_client.tenant_config,
+        &api_client,
         okta_application.label.clone(),
         login_link.href.clone(),
         Some(logo.href),
@@ -354,20 +331,14 @@ pub async fn create_sso_config_and_assign_identities(
     .await?;
 
     let beyond_identity_identities =
-        identities::fetch_beyond_identity_identities(&api_client.client, &api_client.tenant_config)
-            .await?;
+        identities::fetch_beyond_identity_identities(&api_client).await?;
     let filtered_identities = filter_identities(
         &okta_application.embedded.as_ref().unwrap().users,
         &beyond_identity_identities,
     );
 
-    sso_configs::assign_identities_to_sso_config(
-        &api_client.client,
-        &api_client.tenant_config,
-        &sso_config,
-        &filtered_identities,
-    )
-    .await?;
+    sso_configs::assign_identities_to_sso_config(&api_client, &sso_config, &filtered_identities)
+        .await?;
 
     Ok(sso_config)
 }

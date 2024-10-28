@@ -1,11 +1,12 @@
 use super::fast_migrate;
 
 use crate::common::command::ambassador_impl_Executable;
+use crate::common::database::models::OneloginConfig;
 use crate::{
     beyond_identity::api::common::{
         api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware,
     },
-    common::{command::Executable, config::OneloginConfig, error::BiError},
+    common::{command::Executable, error::BiError},
 };
 
 use async_trait::async_trait;
@@ -33,8 +34,16 @@ pub enum OneloginCommands {
 
 #[derive(Args)]
 pub struct Setup {
+    /// Onelogin domain
+    #[clap(long)]
     domain: String,
+
+    /// Onelogin client id
+    #[clap(long)]
     client_id: String,
+
+    /// Onelogin client secret
+    #[clap(long)]
     client_secret: String,
 
     /// Flag to allow force reconfiguration
@@ -45,7 +54,8 @@ pub struct Setup {
 #[async_trait]
 impl Executable for Setup {
     async fn execute(&self) -> Result<(), BiError> {
-        if let Ok(c) = OneloginConfig::load_from_file() {
+        let api_client = ApiClient::new().await;
+        if let Ok(Some(c)) = api_client.db.get_onelogin_config().await {
             if !self.force {
                 println!("Already configured: {:?}", c);
                 return Ok(());
@@ -58,8 +68,7 @@ impl Executable for Setup {
             client_id: self.client_id.to_string(),
             client_secret: self.client_secret.to_string(),
         };
-        OneloginConfig::save_to_file(&onelogin_config)?;
-        Ok(())
+        Ok(api_client.db.set_onelogin_config(onelogin_config).await?)
     }
 }
 
@@ -77,20 +86,13 @@ impl Executable for FastMigrate {
         let onelogin_client = ClientBuilder::new(http_client.clone())
             .with(RespectRateLimitMiddleware)
             .build();
-        let api_client = ApiClient::new();
-        let onelogin_config = OneloginConfig::new().expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
+        let api_client = ApiClient::new().await;
+        let onelogin_config = api_client.db.get_onelogin_config().await?.expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
 
         let onelogin_applications =
-            match fast_migrate::load_onelogin_applications(&api_client.config).await {
-                Ok(onelogin_applications) => onelogin_applications,
-                Err(_) => fast_migrate::fetch_onelogin_applications(
-                    &onelogin_client,
-                    &api_client.config,
-                    &onelogin_config,
-                )
+            fast_migrate::fetch_onelogin_applications(&onelogin_client, &onelogin_config)
                 .await
-                .expect("Failed to fetch onelogin applications"),
-            };
+                .expect("Failed to fetch onelogin applications");
 
         let selected_applications = fast_migrate::select_applications(&onelogin_applications);
         for app in selected_applications {

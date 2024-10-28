@@ -23,12 +23,13 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api identities delete`↴](#bi-api-identities-delete)
 * [`bi api identities list-groups`↴](#bi-api-identities-list-groups)
 * [`bi api identities list-roles`↴](#bi-api-identities-list-roles)
+* [`bi setup`↴](#bi-setup)
+* [`bi setup tenants`↴](#bi-setup-tenants)
+* [`bi setup tenants provision`↴](#bi-setup-tenants-provision)
+* [`bi setup tenants list`↴](#bi-setup-tenants-list)
+* [`bi setup tenants set-default`↴](#bi-setup-tenants-set-default)
+* [`bi setup tenants remove`↴](#bi-setup-tenants-remove)
 * [`bi helper`↴](#bi-helper)
-* [`bi helper setup`↴](#bi-helper-setup)
-* [`bi helper setup provision-tenant`↴](#bi-helper-setup-provision-tenant)
-* [`bi helper setup list-tenants`↴](#bi-helper-setup-list-tenants)
-* [`bi helper setup set-default-tenant`↴](#bi-helper-setup-set-default-tenant)
-* [`bi helper setup delete-tenant`↴](#bi-helper-setup-delete-tenant)
 * [`bi helper create-admin-account`↴](#bi-helper-create-admin-account)
 * [`bi helper delete-all-identities`↴](#bi-helper-delete-all-identities)
 * [`bi helper send-enrollment-email`↴](#bi-helper-send-enrollment-email)
@@ -49,6 +50,7 @@ Official Beyond Identity command-line interface.
 ###### **Subcommands:**
 
 * `api` — Commands related to Beyond Identity API
+* `setup` — Commands related to Beyond Identity API
 * `helper` — Commands related to Beyond Identity API helper functions
 * `okta` — Commands related to Okta
 * `onelogin` — Commands related to OneLogin
@@ -309,6 +311,69 @@ List an identity's roles
 
 
 
+## `bi setup`
+
+Commands related to Beyond Identity API
+
+**Usage:** `bi setup <COMMAND>`
+
+###### **Subcommands:**
+
+* `tenants` — Tenant management actions
+
+
+
+## `bi setup tenants`
+
+Tenant management actions
+
+**Usage:** `bi setup tenants <COMMAND>`
+
+###### **Subcommands:**
+
+* `provision` — Provisions an existing tenant using the provided API token
+* `list` — Display a list of all currently provisioned tenants
+* `set-default` — Set a specific teannt as the default
+* `remove` — Remove a tenant from the list of provisioned tenants
+
+
+
+## `bi setup tenants provision`
+
+Provisions an existing tenant using the provided API token
+
+**Usage:** `bi setup tenants provision --token <TOKEN>`
+
+###### **Options:**
+
+* `--token <TOKEN>`
+
+
+
+## `bi setup tenants list`
+
+Display a list of all currently provisioned tenants
+
+**Usage:** `bi setup tenants list`
+
+
+
+## `bi setup tenants set-default`
+
+Set a specific teannt as the default
+
+**Usage:** `bi setup tenants set-default`
+
+
+
+## `bi setup tenants remove`
+
+Remove a tenant from the list of provisioned tenants
+
+**Usage:** `bi setup tenants remove`
+
+
+
 ## `bi helper`
 
 Commands related to Beyond Identity API helper functions
@@ -317,62 +382,10 @@ Commands related to Beyond Identity API helper functions
 
 ###### **Subcommands:**
 
-* `setup` — Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied
 * `create-admin-account` — Creates an administrator account in the account
 * `delete-all-identities` — Deletes all identities from a realm in case you want to set them up from scratch. The identities are unassigned from roles and groups automatically
 * `send-enrollment-email` — Helps you send enrollment emails to one or more (or all) users in Beyond Identity
 * `review-unenrolled` — Get a list of identities who have not enrolled yet (identities without a passkey)
-
-
-
-## `bi helper setup`
-
-Provisions configuration for an existing tenant provided an issuer url, client id, and client secret are supplied
-
-**Usage:** `bi helper setup <COMMAND>`
-
-###### **Subcommands:**
-
-* `provision-tenant` — Provisions an existing tenant using the given API token
-* `list-tenants` — Lists all provisioned tenants
-* `set-default-tenant` — Update which tenant is the default one
-* `delete-tenant` — Delete any provisioned tenants
-
-
-
-## `bi helper setup provision-tenant`
-
-Provisions an existing tenant using the given API token
-
-**Usage:** `bi helper setup provision-tenant <TOKEN>`
-
-###### **Arguments:**
-
-* `<TOKEN>`
-
-
-
-## `bi helper setup list-tenants`
-
-Lists all provisioned tenants
-
-**Usage:** `bi helper setup list-tenants`
-
-
-
-## `bi helper setup set-default-tenant`
-
-Update which tenant is the default one
-
-**Usage:** `bi helper setup set-default-tenant`
-
-
-
-## `bi helper setup delete-tenant`
-
-Delete any provisioned tenants
-
-**Usage:** `bi helper setup delete-tenant`
 
 
 
@@ -442,15 +455,12 @@ Commands related to Okta
 
 Setup allows you to provision an Okta tenant to be used for subsequent commands
 
-**Usage:** `bi okta setup [OPTIONS] <DOMAIN> <API_KEY>`
-
-###### **Arguments:**
-
-* `<DOMAIN>`
-* `<API_KEY>`
+**Usage:** `bi okta setup [OPTIONS] --domain <DOMAIN> --api-key <API_KEY>`
 
 ###### **Options:**
 
+* `--domain <DOMAIN>` — Okta domain
+* `--api-key <API_KEY>` — Okta API key
 * `--force` — Flag to allow force reconfiguration
 
 
@@ -480,16 +490,13 @@ Commands related to OneLogin
 
 Setup allows you to provision a Onelogin tenant to be used for subsequent commands
 
-**Usage:** `bi onelogin setup [OPTIONS] <DOMAIN> <CLIENT_ID> <CLIENT_SECRET>`
-
-###### **Arguments:**
-
-* `<DOMAIN>`
-* `<CLIENT_ID>`
-* `<CLIENT_SECRET>`
+**Usage:** `bi onelogin setup [OPTIONS] --domain <DOMAIN> --client-id <CLIENT_ID> --client-secret <CLIENT_SECRET>`
 
 ###### **Options:**
 
+* `--domain <DOMAIN>` — Onelogin domain
+* `--client-id <CLIENT_ID>` — Onelogin client id
+* `--client-secret <CLIENT_SECRET>` — Onelogin client secret
 * `--force` — Flag to allow force reconfiguration
 
 

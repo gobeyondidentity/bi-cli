@@ -1,10 +1,11 @@
 use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_default_tenant_ui};
 
 use crate::{
-    beyond_identity::api::common::middleware::rate_limit::RespectRateLimitMiddleware,
+    beyond_identity::api::common::{
+        api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware,
+    },
     common::{
         command::{ambassador_impl_Executable, Executable},
-        config::Config,
         error::BiError,
     },
 };
@@ -54,13 +55,14 @@ pub struct Remove;
 #[async_trait]
 impl Executable for Provision {
     async fn execute(&self) -> Result<(), BiError> {
+        let api_client = ApiClient::new().await;
         _ = provision_tenant(
             &RespectRateLimitMiddleware::new_client(),
-            &Config::new(),
+            &api_client.db,
             &self.token,
         )
         .await
-        .expect("Failed to provision existing tenant");
+        .expect("Failed to provision tenant/realm");
         Ok(())
     }
 }
@@ -68,23 +70,23 @@ impl Executable for Provision {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        list_tenants_ui(&Config::new()).expect("Failed to list tenants");
-        Ok(())
+        let api_client = ApiClient::new().await;
+        Ok(list_tenants_ui(&api_client.db).await?)
     }
 }
 
 #[async_trait]
 impl Executable for SetDefault {
     async fn execute(&self) -> Result<(), BiError> {
-        set_default_tenant_ui(&Config::new()).expect("Failed to set default tenant");
-        Ok(())
+        let api_client = ApiClient::new().await;
+        Ok(set_default_tenant_ui(&api_client.db).await?)
     }
 }
 
 #[async_trait]
 impl Executable for Remove {
     async fn execute(&self) -> Result<(), BiError> {
-        delete_tenant_ui(&Config::new()).expect("Failed to delete tenant");
-        Ok(())
+        let api_client = ApiClient::new().await;
+        Ok(delete_tenant_ui(&api_client.db).await?)
     }
 }

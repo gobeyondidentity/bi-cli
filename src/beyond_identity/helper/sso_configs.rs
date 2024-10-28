@@ -1,9 +1,7 @@
-use crate::beyond_identity::helper::identities;
+use crate::beyond_identity::{api::common::api_client::ApiClient, helper::identities};
 use crate::common::error::BiError;
-use crate::setup::tenants::tenant::TenantConfig;
 
 use regex::Regex;
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -36,15 +34,23 @@ pub struct Bookmark {
 }
 
 pub async fn create_sso_config(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     name: String,
     login_link: String,
     icon_url: Option<String>,
 ) -> Result<SsoConfigBookmark, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
     let name = sanitize_label(&name);
@@ -62,7 +68,8 @@ pub async fn create_sso_config(
         }
     });
 
-    let response = client
+    let response = api_client
+        .client
         .post(&url)
         .header("Content-Type", "application/json")
         .json(&payload)
@@ -99,14 +106,22 @@ fn sanitize_label(label: &str) -> String {
 }
 
 pub async fn assign_identities_to_sso_config(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     sso_config: &SsoConfigBookmark,
     identities: &[identities::Identity],
 ) -> Result<(), BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}:addIdentities",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, sso_config.id
+        realm.api_base_url, tenant.id, realm.id, sso_config.id
     );
 
     let identity_ids: Vec<String> = identities
@@ -117,7 +132,8 @@ pub async fn assign_identities_to_sso_config(
         "identity_ids": identity_ids,
     });
 
-    let response = client
+    let response = api_client
+        .client
         .post(&url)
         .header("Content-Type", "application/json")
         .json(&payload)

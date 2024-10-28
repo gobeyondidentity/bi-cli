@@ -42,7 +42,7 @@ pub enum IdentityCommands {
 #[async_trait]
 impl Executable for CreateIdentityRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().create_identity(self)).await
+        output(Service::new().await.create_identity(self)).await
     }
 }
 
@@ -59,7 +59,7 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().list_identities(Filter::new(
+        output(Service::new().await.list_identities(Filter::new(
             self.filter.clone(),
             IdentityFilterField::from_str,
         )?))
@@ -80,7 +80,7 @@ pub struct Get {
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().get_identity(&self.id)).await
+        output(Service::new().await.get_identity(&self.id)).await
     }
 }
 
@@ -91,7 +91,7 @@ impl Executable for Get {
 #[async_trait]
 impl Executable for PatchIdentityRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().patch_identity(self)).await
+        output(Service::new().await.patch_identity(self)).await
     }
 }
 
@@ -108,7 +108,7 @@ pub struct Delete {
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().delete_identity(&self.id)).await
+        output(Service::new().await.delete_identity(&self.id)).await
     }
 }
 
@@ -125,7 +125,7 @@ pub struct ListGroups {
 #[async_trait]
 impl Executable for ListGroups {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().list_groups(&self.id)).await
+        output(Service::new().await.list_groups(&self.id)).await
     }
 }
 
@@ -144,6 +144,11 @@ pub struct ListRoles {
 #[async_trait]
 impl Executable for ListRoles {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().list_roles(&self.id, &self.resource_server_id)).await
+        output(
+            Service::new()
+                .await
+                .list_roles(&self.id, &self.resource_server_id),
+        )
+        .await
     }
 }

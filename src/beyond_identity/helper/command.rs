@@ -80,14 +80,10 @@ pub struct ReviewUnenrolled;
 #[async_trait]
 impl Executable for CreateAdminAccount {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new();
-        let identity = create_admin_account(
-            &api_client.client,
-            &api_client.tenant_config,
-            self.email.to_string(),
-        )
-        .await
-        .expect("Failed to create admin account");
+        let api_client = ApiClient::new().await;
+        let identity = create_admin_account(&api_client, self.email.to_string())
+            .await
+            .expect("Failed to create admin account");
         println!("Created identity with id={}", identity.id);
         Ok(())
     }
@@ -96,27 +92,25 @@ impl Executable for CreateAdminAccount {
 #[async_trait]
 impl Executable for SendEnrollmentEmail {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new();
+        let api_client = ApiClient::new().await;
         let mut identities: Vec<Identity> = Vec::new();
 
         if self.all {
             if self.unenrolled {
-                identities =
-                    get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
-                        .await
-                        .expect("Failed to fetch unenrolled identities");
+                identities = get_unenrolled_identities(&api_client)
+                    .await
+                    .expect("Failed to fetch unenrolled identities");
             } else {
-                identities = get_all_identities(&api_client.client, &api_client.tenant_config)
+                identities = get_all_identities(&api_client)
                     .await
                     .expect("Failed to fetch all identities");
             }
         }
 
         if self.groups {
-            let groups: Vec<Group> =
-                fetch_all_groups(&api_client.client, &api_client.tenant_config)
-                    .await
-                    .expect("Failed to fetch groups");
+            let groups: Vec<Group> = fetch_all_groups(&api_client)
+                .await
+                .expect("Failed to fetch groups");
 
             if groups.is_empty() {
                 println!("No groups found.");
@@ -126,21 +120,13 @@ impl Executable for SendEnrollmentEmail {
             let group = select_group(&groups);
 
             if self.unenrolled {
-                identities = get_unenrolled_identities_from_group(
-                    &api_client.client,
-                    &api_client.tenant_config,
-                    &group.id,
-                )
-                .await
-                .expect("Failed to fetch unenrolled identities from group");
+                identities = get_unenrolled_identities_from_group(&api_client, &group.id)
+                    .await
+                    .expect("Failed to fetch unenrolled identities from group");
             } else {
-                identities = get_identities_from_group(
-                    &api_client.client,
-                    &api_client.tenant_config,
-                    &group.id,
-                )
-                .await
-                .expect("Failed to fetch identities from group");
+                identities = get_identities_from_group(&api_client, &group.id)
+                    .await
+                    .expect("Failed to fetch identities from group");
             }
         }
 
@@ -151,19 +137,12 @@ impl Executable for SendEnrollmentEmail {
 
         let selected_identities = select_identities(&identities);
 
-        let payload = get_send_email_payload(&api_client.client, &api_client.tenant_config)
+        let payload = get_send_email_payload(&api_client)
             .await
             .expect("Unable to get email payload");
 
         for identity in selected_identities {
-            match send_enrollment_email(
-                &api_client.client,
-                &api_client.tenant_config,
-                &identity,
-                payload.clone(),
-            )
-            .await
-            {
+            match send_enrollment_email(&api_client, &identity, payload.clone()).await {
                 Ok(job) => println!(
                     "Enrollment job created for {}: {}",
                     identity
@@ -189,22 +168,22 @@ impl Executable for SendEnrollmentEmail {
 #[async_trait]
 impl Executable for DeleteAllIdentities {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new();
+        let api_client = ApiClient::new().await;
         if self.force {
             if self.all {
-                delete_all_identities(&api_client.client, &api_client.tenant_config)
+                delete_all_identities(&api_client)
                     .await
                     .expect("Failed to delete all identities");
             }
 
             if self.unenrolled {
-                delete_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+                delete_unenrolled_identities(&api_client)
                     .await
                     .expect("Failed to delete unenrolled identities");
             }
 
             if self.norole {
-                delete_norole_identities(&api_client.client, &api_client.tenant_config)
+                delete_norole_identities(&api_client)
                     .await
                     .expect("Failed to delete norole identities");
             }
@@ -214,19 +193,19 @@ impl Executable for DeleteAllIdentities {
         let mut identities = vec![];
 
         if self.all {
-            identities = get_all_identities(&api_client.client, &api_client.tenant_config)
+            identities = get_all_identities(&api_client)
                 .await
                 .expect("Failed to fetch all identities");
         }
 
         if self.unenrolled {
-            identities = get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
+            identities = get_unenrolled_identities(&api_client)
                 .await
                 .expect("Failed to fetch unenrolled identities");
         }
 
         if self.norole {
-            identities = get_identities_without_role(&api_client.client, &api_client.tenant_config)
+            identities = get_identities_without_role(&api_client)
                 .await
                 .expect("Failed to fetch unenrolled identities");
         }
@@ -238,29 +217,23 @@ impl Executable for DeleteAllIdentities {
 
         let selected_identities = select_identities(&identities);
 
-        let resource_servers =
-            fetch_beyond_identity_resource_servers(&api_client.client, &api_client.tenant_config)
-                .await
-                .expect("Failed to fetch resource servers");
+        let resource_servers = fetch_beyond_identity_resource_servers(&api_client)
+            .await
+            .expect("Failed to fetch resource servers");
 
         for identity in &selected_identities {
-            delete_group_memberships(&api_client.client, &api_client.tenant_config, &identity.id)
+            delete_group_memberships(&api_client, &identity.id)
                 .await
                 .expect("Failed to delete role memberships");
             for rs in &resource_servers {
-                delete_role_memberships(
-                    &api_client.client,
-                    &api_client.tenant_config,
-                    &identity.id,
-                    &rs.id,
-                )
-                .await
-                .expect("Failed to delete role memberships");
+                delete_role_memberships(&api_client, &identity.id, &rs.id)
+                    .await
+                    .expect("Failed to delete role memberships");
             }
         }
 
         for identity in &selected_identities {
-            delete_identity(&api_client.client, &api_client.tenant_config, &identity.id)
+            delete_identity(&api_client, &identity.id)
                 .await
                 .expect("Failed to delete identity");
             println!("Deleted identity {}", identity.id);
@@ -272,11 +245,10 @@ impl Executable for DeleteAllIdentities {
 #[async_trait]
 impl Executable for ReviewUnenrolled {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new();
-        let unenrolled_identities =
-            get_unenrolled_identities(&api_client.client, &api_client.tenant_config)
-                .await
-                .expect("Failed to fetch unenrolled identities");
+        let api_client = ApiClient::new().await;
+        let unenrolled_identities = get_unenrolled_identities(&api_client)
+            .await
+            .expect("Failed to fetch unenrolled identities");
 
         println!(
             "{} identities have not completed enrollment yet:",

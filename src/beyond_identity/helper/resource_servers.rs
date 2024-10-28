@@ -1,7 +1,6 @@
-use crate::setup::tenants::tenant::TenantConfig;
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::common::error::BiError;
 
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -14,17 +13,25 @@ pub struct ResourceServer {
 }
 
 pub async fn fetch_beyond_identity_resource_servers(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
 ) -> Result<Vec<ResourceServer>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut resource_servers = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/resource-servers?page_size=100",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -47,10 +54,7 @@ pub async fn fetch_beyond_identity_resource_servers(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/resource-servers?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, next_page_token
             );
         } else {
             break;

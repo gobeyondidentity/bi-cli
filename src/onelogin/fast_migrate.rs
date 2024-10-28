@@ -1,17 +1,13 @@
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::helper::identities;
 use crate::beyond_identity::helper::sso_configs;
-use crate::common::config::Config;
-use crate::common::config::OneloginConfig;
+use crate::common::database::models::OneloginConfig;
 use crate::common::error::BiError;
-use rand::Rng;
+
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::fs;
 use std::io::{self, Write};
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -80,7 +76,6 @@ async fn get_onelogin_access_token(
 
 pub async fn fetch_onelogin_applications(
     client: &Client,
-    config: &Config,
     onelogin_config: &OneloginConfig,
 ) -> Result<Vec<OneLoginApplication>, BiError> {
     let url = format!("{}/api/2/apps", onelogin_config.domain);
@@ -119,15 +114,7 @@ pub async fn fetch_onelogin_applications(
                 .await?;
         app.icon = application.icon;
         app.login_link = format!("{}/launch/{}", onelogin_config.domain, app.id);
-        let sleep_duration = rand::thread_rng().gen_range(2..=4);
-        sleep(Duration::from_secs(sleep_duration)).await;
     }
-
-    let serialized = serde_json::to_string_pretty(&applications)?;
-
-    let config_path = config.file_paths.onelogin_applications.clone();
-    fs::write(config_path.clone(), serialized)
-        .map_err(|_| BiError::UnableToWriteFile(config_path))?;
 
     Ok(applications)
 }
@@ -205,17 +192,6 @@ async fn get_users_assigned_to_app(
     Ok(assigned_users)
 }
 
-pub async fn load_onelogin_applications(
-    config: &Config,
-) -> Result<Vec<OneLoginApplication>, BiError> {
-    let config_path = config.file_paths.onelogin_applications.clone();
-    let data = fs::read_to_string(&config_path)
-        .map_err(|_| BiError::ConfigFileNotFound(config_path.clone()))?;
-    let onelogin_applications: Vec<OneLoginApplication> =
-        serde_json::from_str(&data).map_err(BiError::SerdeError)?;
-    Ok(onelogin_applications)
-}
-
 pub fn select_applications(applications: &[OneLoginApplication]) -> Vec<OneLoginApplication> {
     println!("Select applications to fast migrate (comma separated indices or 'all' for all applications):");
 
@@ -276,28 +252,16 @@ pub async fn create_sso_config_and_assign_identities(
     let name = onelogin_application.name.clone();
     let login_link = onelogin_application.login_link.clone();
     let icon_url = onelogin_application.icon.clone();
-    let sso_config = sso_configs::create_sso_config(
-        &api_client.client,
-        &api_client.tenant_config,
-        name,
-        login_link,
-        icon_url,
-    )
-    .await?;
+    let sso_config =
+        sso_configs::create_sso_config(&api_client, name, login_link, icon_url).await?;
 
     let beyond_identity_identities =
-        identities::fetch_beyond_identity_identities(&api_client.client, &api_client.tenant_config)
-            .await?;
+        identities::fetch_beyond_identity_identities(&api_client).await?;
     let assigned_users = onelogin_application.assigned_users.as_ref();
     let filtered_identities = filter_identities(assigned_users, &beyond_identity_identities);
 
-    sso_configs::assign_identities_to_sso_config(
-        &api_client.client,
-        &api_client.tenant_config,
-        &sso_config,
-        &filtered_identities,
-    )
-    .await?;
+    sso_configs::assign_identities_to_sso_config(&api_client, &sso_config, &filtered_identities)
+        .await?;
 
     Ok(sso_config)
 }

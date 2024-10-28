@@ -3,7 +3,8 @@ use super::fast_migrate;
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::middleware::rate_limit::RespectRateLimitMiddleware;
 use crate::common::command::ambassador_impl_Executable;
-use crate::common::{command::Executable, config::OktaConfig, error::BiError};
+use crate::common::database::models::OktaConfig;
+use crate::common::{command::Executable, error::BiError};
 
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
@@ -26,11 +27,16 @@ pub enum OktaCommands {
 
 #[derive(Args)]
 pub struct Setup {
+    /// Okta domain
+    #[clap(long)]
     domain: String,
+
+    /// Okta API key
+    #[clap(long)]
     api_key: String,
 
     /// Flag to allow force reconfiguration
-    #[arg(long)]
+    #[clap(long)]
     force: bool,
 }
 
@@ -41,7 +47,8 @@ pub struct Setup {
 #[async_trait]
 impl Executable for Setup {
     async fn execute(&self) -> Result<(), BiError> {
-        if let Ok(c) = OktaConfig::load_from_file() {
+        let api_client = ApiClient::new().await;
+        if let Ok(Some(c)) = api_client.db.get_okta_config().await {
             if !self.force {
                 println!("Already configured: {:?}", c);
                 return Ok(());
@@ -53,8 +60,7 @@ impl Executable for Setup {
             domain: self.domain.to_string(),
             api_key: self.api_key.to_string(),
         };
-        OktaConfig::save_to_file(&okta_config)?;
-        Ok(())
+        Ok(api_client.db.set_okta_config(okta_config).await?)
     }
 }
 
@@ -73,20 +79,12 @@ impl Executable for FastMigrate {
             .with(RespectRateLimitMiddleware)
             .build();
 
-        let api_client = ApiClient::new();
-        let okta_config = OktaConfig::new().expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
+        let api_client = ApiClient::new().await;
+        let okta_config = api_client.db.get_okta_config().await?.expect("Failed to load Okta Configuration. Make sure to setup Okta before running this command.");
 
-        let okta_applications = match fast_migrate::load_okta_applications(&api_client.config).await
-        {
-            Ok(okta_applications) => okta_applications,
-            Err(_) => fast_migrate::fetch_okta_applications(
-                &okta_client,
-                &api_client.config,
-                &okta_config,
-            )
+        let okta_applications = fast_migrate::fetch_okta_applications(&okta_client, &okta_config)
             .await
-            .expect("Failed to fetch okta applications"),
-        };
+            .expect("Failed to fetch okta applications");
 
         let selected_applications = fast_migrate::select_applications(&okta_applications);
         for app in selected_applications {

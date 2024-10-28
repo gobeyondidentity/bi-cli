@@ -1,13 +1,12 @@
+use super::groups::Group;
+
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::helper::identities::Identity;
 use crate::common::error::BiError;
-use crate::setup::tenants::tenant::TenantConfig;
 
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::{self, Write};
-
-use super::groups::Group;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialResponse {
@@ -50,10 +49,16 @@ pub struct IdentityResponse {
     pub next_page_token: Option<String>,
 }
 
-pub async fn get_all_identities(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<Vec<Identity>, BiError> {
+pub async fn get_all_identities(api_client: &ApiClient) -> Result<Vec<Identity>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut all_identities = Vec::new();
     let mut next_page_token: Option<String> = None;
 
@@ -61,15 +66,15 @@ pub async fn get_all_identities(
         let url = match next_page_token {
             Some(ref token) => format!(
                 "{}/v1/tenants/{}/realms/{}/identities?page_token={}",
-                tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, token
+                realm.api_base_url, tenant.id, realm.id, token
             ),
             None => format!(
                 "{}/v1/tenants/{}/realms/{}/identities",
-                tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+                realm.api_base_url, tenant.id, realm.id
             ),
         };
 
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;
@@ -100,10 +105,18 @@ pub async fn get_all_identities(
 }
 
 pub async fn get_credentials_for_identity(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     identity_id: &str,
 ) -> Result<Vec<Credential>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut all_credentials = Vec::new();
     let mut next_page_token: Option<String> = None;
 
@@ -111,22 +124,15 @@ pub async fn get_credentials_for_identity(
         let url = match next_page_token {
             Some(ref token) => format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}/credentials?page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                identity_id,
-                token
+                realm.api_base_url, tenant.id, realm.id, identity_id, token
             ),
             None => format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}/credentials",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                identity_id,
+                realm.api_base_url, tenant.id, realm.id, identity_id,
             ),
         };
 
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;
@@ -156,25 +162,29 @@ pub async fn get_credentials_for_identity(
     Ok(all_credentials)
 }
 
-pub async fn get_unenrolled_identities(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<Vec<Identity>, BiError> {
-    let identities = get_all_identities(client, tenant_config)
+pub async fn get_unenrolled_identities(api_client: &ApiClient) -> Result<Vec<Identity>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
+    let identities = get_all_identities(api_client)
         .await
         .expect("Failed to fetch identities");
 
     let mut unenrolled_identities = Vec::new();
 
     for i in identities {
-        let credentials = get_credentials_for_identity(client, tenant_config, &i.id)
+        let credentials = get_credentials_for_identity(api_client, &i.id)
             .await
             .expect("Failed to fetch credentials");
         let enrolled = credentials
             .into_iter()
-            .filter(|cred| {
-                cred.realm_id == tenant_config.realm_id && cred.tenant_id == tenant_config.tenant_id
-            })
+            .filter(|cred| cred.realm_id == realm.id && cred.tenant_id == tenant.id)
             .collect::<Vec<Credential>>();
         if enrolled.is_empty() {
             unenrolled_identities.push(i);
@@ -186,16 +196,24 @@ pub async fn get_unenrolled_identities(
 
 // We expose the sso config to Ike but not the actual idp application. This will get that application_id for us.
 pub async fn get_idp_application_for_sso_config(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     sso_config_id: String,
 ) -> Result<SsoConfigIdpResponse, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/sso-configs/{}",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, sso_config_id
+        realm.api_base_url, tenant.id, realm.id, sso_config_id
     );
 
-    let response = client.get(&url).send().await?;
+    let response = api_client.client.get(&url).send().await?;
 
     let status = response.status();
     let response_text = response.text().await?;
@@ -308,10 +326,7 @@ pub struct IdpAuthorization {}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MagicLink {}
 
-pub async fn get_send_email_payload(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<Value, BiError> {
+pub async fn get_send_email_payload(api_client: &ApiClient) -> Result<Value, BiError> {
     let template = "secure_workforce_credential_binding_with_platform_authenticator_download_link";
 
     let mut payload = json!({
@@ -346,10 +361,9 @@ pub async fn get_send_email_payload(
         let input = input.trim();
 
         // Ike only has acces to the sso_config_id but we need the identity_provider_id
-        let sso_config =
-            get_idp_application_for_sso_config(client, tenant_config, input.to_string())
-                .await
-                .expect("Failed to load get identity provider sso config.");
+        let sso_config = get_idp_application_for_sso_config(api_client, input.to_string())
+            .await
+            .expect("Failed to load get identity provider sso config.");
 
         payload = json!({
             "job": {
@@ -371,17 +385,26 @@ pub async fn get_send_email_payload(
 }
 
 pub async fn send_enrollment_email(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     identity: &Identity,
     payload: Value,
 ) -> Result<EnrollmentJobResponse, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}/enrollment-jobs",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity.id
+        realm.api_base_url, tenant.id, realm.id, identity.id
     );
 
-    let response = client
+    let response = api_client
+        .client
         .post(&url)
         .header("Content-Type", "application/json")
         .json(&payload)

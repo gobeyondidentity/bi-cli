@@ -1,10 +1,9 @@
-use http::Method;
-
 use super::types::{CreateRealmRequest, PatchRealmRequest, Realm, Realms, RealmsFieldName};
 
 use crate::beyond_identity::api::common::service::Service;
-use crate::beyond_identity::api::common::url::URLBuilder;
 use crate::common::error::BiError;
+
+use http::Method;
 
 // ====================================
 // Realms API
@@ -27,7 +26,10 @@ impl RealmsApi for Service {
         self.api_client
             .send_request(
                 Method::POST,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_path(vec![RealmsFieldName::Realms.name()])
@@ -38,7 +40,10 @@ impl RealmsApi for Service {
     }
 
     async fn list_realms(&self) -> Result<Realms, BiError> {
-        let url = URLBuilder::build(&self.api_client.tenant_config)
+        let url = self
+            .api_client
+            .build_url()
+            .await?
             .api()
             .add_tenant()
             .add_path(vec![RealmsFieldName::Realms.name()])
@@ -64,7 +69,10 @@ impl RealmsApi for Service {
         self.api_client
             .send_request(
                 Method::GET,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm_with_override(realm_id.to_string())
@@ -78,7 +86,10 @@ impl RealmsApi for Service {
         self.api_client
             .send_request(
                 Method::PATCH,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm()
@@ -92,7 +103,10 @@ impl RealmsApi for Service {
         self.api_client
             .send_request(
                 Method::DELETE,
-                &URLBuilder::build(&self.api_client.tenant_config)
+                &self
+                    .api_client
+                    .build_url()
+                    .await?
                     .api()
                     .add_tenant()
                     .add_realm_with_override(realm_id.to_string())

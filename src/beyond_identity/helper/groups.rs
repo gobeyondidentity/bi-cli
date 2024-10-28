@@ -1,9 +1,8 @@
+use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::helper::enrollment::get_credentials_for_identity;
 use crate::beyond_identity::helper::{enrollment::Credential, identities::Identity};
 use crate::common::error::BiError;
-use crate::setup::tenants::tenant::TenantConfig;
 
-use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -15,19 +14,28 @@ pub struct Group {
 }
 
 pub async fn delete_group_memberships(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     identity_id: &str,
 ) -> Result<(), BiError> {
-    let groups = fetch_group_memberships(client, tenant_config, identity_id).await?;
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
+    let groups = fetch_group_memberships(api_client, identity_id).await?;
 
     for group in groups {
         let url = format!(
             "{}/v1/tenants/{}/realms/{}/groups/{}:deleteMembers",
-            tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, group.id,
+            realm.api_base_url, tenant.id, realm.id, group.id,
         );
 
-        let response = client
+        let response = api_client
+            .client
             .post(&url)
             .json(&serde_json::json!({
                 "identity_ids": [identity_id]
@@ -51,18 +59,26 @@ pub async fn delete_group_memberships(
 }
 
 pub async fn fetch_group_memberships(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     identity_id: &str,
 ) -> Result<Vec<Group>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut groups = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/identities/{}:listGroups",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id, identity_id
+        realm.api_base_url, tenant.id, realm.id, identity_id
     );
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -84,11 +100,7 @@ pub async fn fetch_group_memberships(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/identities/{}:listGroups?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                identity_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, identity_id, next_page_token
             );
         } else {
             break;
@@ -98,18 +110,24 @@ pub async fn fetch_group_memberships(
     Ok(groups)
 }
 
-pub async fn fetch_all_groups(
-    client: &Client,
-    tenant_config: &TenantConfig,
-) -> Result<Vec<Group>, BiError> {
+pub async fn fetch_all_groups(api_client: &ApiClient) -> Result<Vec<Group>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut groups = Vec::new();
     let mut url = format!(
         "{}/v1/tenants/{}/realms/{}/groups",
-        tenant_config.api_base_url, tenant_config.tenant_id, tenant_config.realm_id
+        realm.api_base_url, tenant.id, realm.id
     );
 
     loop {
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         log::debug!("{} response status: {}", url, status);
@@ -131,10 +149,7 @@ pub async fn fetch_all_groups(
         {
             url = format!(
                 "{}/v1/tenants/{}/realms/{}/groups?page_size=200&page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                next_page_token
+                realm.api_base_url, tenant.id, realm.id, next_page_token
             );
         } else {
             break;
@@ -145,10 +160,18 @@ pub async fn fetch_all_groups(
 }
 
 pub async fn get_identities_from_group(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     group_id: &str,
 ) -> Result<Vec<Identity>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut identities = Vec::new();
     let mut next_page_token: Option<String> = None;
 
@@ -156,22 +179,15 @@ pub async fn get_identities_from_group(
         let url = match &next_page_token {
             Some(token) => format!(
                 "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers?page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                group_id,
-                token
+                realm.api_base_url, tenant.id, realm.id, group_id, token
             ),
             None => format!(
                 "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                group_id
+                realm.api_base_url, tenant.id, realm.id, group_id
             ),
         };
 
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;
@@ -207,10 +223,18 @@ pub async fn get_identities_from_group(
 }
 
 pub async fn get_unenrolled_identities_from_group(
-    client: &Client,
-    tenant_config: &TenantConfig,
+    api_client: &ApiClient,
     group_id: &str,
 ) -> Result<Vec<Identity>, BiError> {
+    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
+        Some((t, r)) => (t, r),
+        None => {
+            return Err(BiError::StringError(
+                "No default tenant/realm set".to_string(),
+            ))
+        }
+    };
+
     let mut identities = Vec::new();
     let mut next_page_token: Option<String> = None;
 
@@ -218,22 +242,15 @@ pub async fn get_unenrolled_identities_from_group(
         let url = match &next_page_token {
             Some(token) => format!(
                 "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers?page_token={}",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                group_id,
-                token
+                realm.api_base_url, tenant.id, realm.id, group_id, token
             ),
             None => format!(
                 "{}/v1/tenants/{}/realms/{}/groups/{}:listMembers",
-                tenant_config.api_base_url,
-                tenant_config.tenant_id,
-                tenant_config.realm_id,
-                group_id
+                realm.api_base_url, tenant.id, realm.id, group_id
             ),
         };
 
-        let response = client.get(&url).send().await?;
+        let response = api_client.client.get(&url).send().await?;
 
         let status = response.status();
         let response_text = response.text().await?;
@@ -256,15 +273,12 @@ pub async fn get_unenrolled_identities_from_group(
         let mut unenrolled_identities = Vec::new();
 
         for i in page_identities {
-            let credentials = get_credentials_for_identity(client, tenant_config, &i.id)
+            let credentials = get_credentials_for_identity(api_client, &i.id)
                 .await
                 .expect("Failed to fetch credentials");
             let enrolled = credentials
                 .into_iter()
-                .filter(|cred| {
-                    cred.realm_id == tenant_config.realm_id
-                        && cred.tenant_id == tenant_config.tenant_id
-                })
+                .filter(|cred| cred.realm_id == realm.id && cred.tenant_id == tenant.id)
                 .collect::<Vec<Credential>>();
             if enrolled.is_empty() {
                 unenrolled_identities.push(i);
