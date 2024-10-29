@@ -15,6 +15,16 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api realms get`↴](#bi-api-realms-get)
 * [`bi api realms patch`↴](#bi-api-realms-patch)
 * [`bi api realms delete`↴](#bi-api-realms-delete)
+* [`bi api groups`↴](#bi-api-groups)
+* [`bi api groups create`↴](#bi-api-groups-create)
+* [`bi api groups list`↴](#bi-api-groups-list)
+* [`bi api groups get`↴](#bi-api-groups-get)
+* [`bi api groups patch`↴](#bi-api-groups-patch)
+* [`bi api groups delete`↴](#bi-api-groups-delete)
+* [`bi api groups add-members`↴](#bi-api-groups-add-members)
+* [`bi api groups delete-members`↴](#bi-api-groups-delete-members)
+* [`bi api groups list-members`↴](#bi-api-groups-list-members)
+* [`bi api groups list-roles`↴](#bi-api-groups-list-roles)
 * [`bi api identities`↴](#bi-api-identities)
 * [`bi api identities create`↴](#bi-api-identities-create)
 * [`bi api identities list`↴](#bi-api-identities-list)
@@ -71,6 +81,7 @@ Commands related to Beyond Identity API
 
 * `tenants` — Tenants
 * `realms` — Realms
+* `groups` — Groups
 * `identities` — Identities
 
 
@@ -182,6 +193,136 @@ Delete realm
 ###### **Options:**
 
 * `--id <ID>`
+
+
+
+## `bi api groups`
+
+Groups
+
+**Usage:** `bi api groups <COMMAND>`
+
+###### **Subcommands:**
+
+* `create` — Create a new group
+* `list` — List groups
+* `get` — Get a group
+* `patch` — Update a group
+* `delete` — Delete a group
+* `add-members` — Add members to a group
+* `delete-members` — Delete members from a group
+* `list-members` — List members for a group
+* `list-roles` — List role memberships for a group
+
+
+
+## `bi api groups create`
+
+Create a new group
+
+**Usage:** `bi api groups create --display-name <DISPLAY_NAME> --description <DESCRIPTION>`
+
+###### **Options:**
+
+* `--display-name <DISPLAY_NAME>`
+* `--description <DESCRIPTION>`
+
+
+
+## `bi api groups list`
+
+List groups
+
+**Usage:** `bi api groups list`
+
+
+
+## `bi api groups get`
+
+Get a group
+
+**Usage:** `bi api groups get --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+
+
+
+## `bi api groups patch`
+
+Update a group
+
+**Usage:** `bi api groups patch [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--display-name <DISPLAY_NAME>`
+* `--description <DESCRIPTION>`
+
+
+
+## `bi api groups delete`
+
+Delete a group
+
+**Usage:** `bi api groups delete --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+
+
+
+## `bi api groups add-members`
+
+Add members to a group
+
+**Usage:** `bi api groups add-members [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--identity-ids <IDENTITY_IDS>`
+
+
+
+## `bi api groups delete-members`
+
+Delete members from a group
+
+**Usage:** `bi api groups delete-members [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--identity-ids <IDENTITY_IDS>`
+
+
+
+## `bi api groups list-members`
+
+List members for a group
+
+**Usage:** `bi api groups list-members --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+
+
+
+## `bi api groups list-roles`
+
+List role memberships for a group
+
+**Usage:** `bi api groups list-roles --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--resource-server-id <RESOURCE_SERVER_ID>`
 
 
 
