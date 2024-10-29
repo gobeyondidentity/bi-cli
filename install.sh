@@ -42,25 +42,39 @@ fi
 
 chmod +x bi
 
-# Determine installation directory and ensure it exists
-if [ -w "/usr/local/bin" ] || mkdir -p "/usr/local/bin" 2>/dev/null; then
+# Try to install in /usr/local/bin if writable
+if [ -w "/usr/local/bin" ]; then
     DESTINATION="/usr/local/bin"
-elif [ -w "$HOME/.local/bin" ] || mkdir -p "$HOME/.local/bin"; then
-    DESTINATION="$HOME/.local/bin"
-else
-    echo "Cannot write to /usr/local/bin or ~/.local/bin"
-    echo "Attempting to use sudo to install to /usr/local/bin"
-
-    if command -v sudo >/dev/null 2>&1; then
-        sudo mkdir -p /usr/local/bin
-        sudo mv bi /usr/local/bin/bi
-        echo "bi installed to /usr/local/bin/bi"
-    else
-        echo "sudo is not installed. Please move the 'bi' binary to a directory in your PATH manually."
-        exit 1
-    fi
+    mv bi "$DESTINATION/bi"
+    echo "bi installed to $DESTINATION/bi"
     exit 0
 fi
 
-mv bi "$DESTINATION/bi" || { echo "Move to $DESTINATION failed"; exit 1; }
+# Try to install with sudo to /usr/local/bin
+if command -v sudo >/dev/null 2>&1; then
+    echo "Attempting to install to /usr/local/bin with sudo..."
+    sudo mkdir -p /usr/local/bin
+    sudo mv bi /usr/local/bin/bi
+    echo "bi installed to /usr/local/bin/bi"
+    exit 0
+fi
+
+# Fall back to $HOME/.local/bin
+DESTINATION="$HOME/.local/bin"
+mkdir -p "$DESTINATION"
+mv bi "$DESTINATION/bi"
 echo "bi installed to $DESTINATION/bi"
+
+# Provide PATH update instructions if necessary
+echo "Note: $DESTINATION may not be in your PATH."
+echo "To add it to your PATH, add the following line to your shell profile:"
+echo ""
+echo 'export PATH="$HOME/.local/bin:$PATH"'
+echo ""
+echo "For Bash, add it to ~/.bashrc:"
+echo "    echo 'export PATH=\"$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+echo ""
+echo "For Zsh, add it to ~/.zshrc:"
+echo "    echo 'export PATH=\"$HOME/.local/bin:\$PATH\"' >> ~/.zshrc"
+echo ""
+echo "Then reload your shell or source the file, e.g., 'source ~/.bashrc' or 'source ~/.zshrc'."
