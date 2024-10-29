@@ -4,13 +4,19 @@ use crate::common::error::BiError;
 
 use directories::ProjectDirs;
 use log::debug;
-use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePool, Sqlite};
-use std::path::Path;
+use sqlx::{
+    migrate::{MigrateDatabase, Migrator},
+    query, query_as,
+    sqlite::SqlitePool,
+    Sqlite,
+};
 
 #[derive(Clone)]
 pub struct Database {
     pool: SqlitePool,
 }
+
+static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 impl Database {
     // Initialize the database, create if not exists, and run migrations
@@ -31,10 +37,7 @@ impl Database {
             .map_err(|e| BiError::StringError(e.to_string()))?;
 
         // Run migrations
-        let migrations_dir = Path::new("migrations");
-        sqlx::migrate::Migrator::new(migrations_dir)
-            .await
-            .map_err(|e| BiError::StringError(e.to_string()))?
+        MIGRATOR
             .run(&pool)
             .await
             .map_err(|e| BiError::StringError(e.to_string()))?;
