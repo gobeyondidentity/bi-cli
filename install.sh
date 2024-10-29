@@ -28,13 +28,17 @@ fi
 
 # Fetch the latest version tag from GitHub API
 VERSION=$(curl -s https://api.github.com/repos/gobeyondidentity/bi-cli/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-
 BINARY_NAME="bi-${VERSION}-${OS}-${ARCH}"
-
 DOWNLOAD_URL="https://github.com/gobeyondidentity/bi-cli/releases/download/${VERSION}/${BINARY_NAME}"
 
 echo "Downloading ${BINARY_NAME} from ${DOWNLOAD_URL}..."
 curl -L -o bi "${DOWNLOAD_URL}"
+
+# Verify download success
+if [ ! -f bi ]; then
+    echo "Download failed or file 'bi' not found."
+    exit 1
+fi
 
 chmod +x bi
 
@@ -49,8 +53,6 @@ else
     echo "Attempting to use sudo to install to /usr/local/bin"
     if command -v sudo >/dev/null 2>&1; then
         sudo mv bi /usr/local/bin/bi
-        sudo chown "$USER" /usr/local/bin/bi
-        sudo chmod +x /usr/local/bin/bi
         echo "bi installed to /usr/local/bin/bi"
     else
         echo "sudo is not installed. Please move the 'bi' binary to a directory in your PATH manually."
@@ -59,7 +61,5 @@ else
     exit 0
 fi
 
-mv bi "$DESTINATION/bi"
-chown "$USER" "$DESTINATION/bi"
-chmod +x "$DESTINATION/bi"
+mv bi "$DESTINATION/bi" || { echo "Move to $DESTINATION failed"; exit 1; }
 echo "bi installed to $DESTINATION/bi"
