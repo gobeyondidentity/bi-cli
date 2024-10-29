@@ -1,3 +1,4 @@
+use crate::beyond_identity::api::groups::command::GroupCommands;
 use crate::beyond_identity::api::identities::command::IdentityCommands;
 use crate::beyond_identity::api::realms::command::RealmCommands;
 use crate::beyond_identity::api::tenants::command::TenantCommands;
@@ -17,6 +18,10 @@ pub enum BeyondIdentityApiCommands {
     /// Realms
     #[clap(subcommand)]
     Realms(RealmCommands),
+
+    /// Groups
+    #[clap(subcommand)]
+    Groups(GroupCommands),
 
     /// Identities
     #[clap(subcommand)]

@@ -1,6 +1,5 @@
 use super::types::{
-    CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, IdentityEnvelope,
-    PatchIdentityRequest,
+    CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, PatchIdentityRequest,
 };
 
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
@@ -18,12 +17,9 @@ use http::Method;
 // ====================================
 
 pub trait IdentitiesApi {
-    async fn create_identity(
-        &self,
-        request: &CreateIdentityRequest,
-    ) -> Result<IdentityEnvelope, BiError>;
+    async fn create_identity(&self, request: &CreateIdentityRequest) -> Result<Identity, BiError>;
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError>;
-    async fn get_identity(&self, identity_id: &str) -> Result<IdentityEnvelope, BiError>;
+    async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError>;
     async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError>;
     async fn list_groups(&self, identity_id: &str) -> Result<Groups, BiError>;
     async fn list_roles(
@@ -31,10 +27,7 @@ pub trait IdentitiesApi {
         identity_id: &str,
         resource_server_id: &str,
     ) -> Result<Roles, BiError>;
-    async fn patch_identity(
-        &self,
-        request: &PatchIdentityRequest,
-    ) -> Result<IdentityEnvelope, BiError>;
+    async fn patch_identity(&self, request: &PatchIdentityRequest) -> Result<Identity, BiError>;
 }
 
 // ====================================
@@ -42,10 +35,7 @@ pub trait IdentitiesApi {
 // ====================================
 
 impl IdentitiesApi for Service {
-    async fn create_identity(
-        &self,
-        request: &CreateIdentityRequest,
-    ) -> Result<IdentityEnvelope, BiError> {
+    async fn create_identity(&self, request: &CreateIdentityRequest) -> Result<Identity, BiError> {
         self.api_client
             .send_request(
                 Method::POST,
@@ -61,7 +51,6 @@ impl IdentitiesApi for Service {
                 Some(request),
             )
             .await
-            .map(|details| IdentityEnvelope { identity: details })
     }
 
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError> {
@@ -82,7 +71,7 @@ impl IdentitiesApi for Service {
             .await
     }
 
-    async fn get_identity(&self, identity_id: &str) -> Result<IdentityEnvelope, BiError> {
+    async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError> {
         self.api_client
             .send_request(
                 Method::GET,
@@ -98,7 +87,6 @@ impl IdentitiesApi for Service {
                 None::<&()>,
             )
             .await
-            .map(|details| IdentityEnvelope { identity: details })
     }
 
     async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError> {
@@ -193,10 +181,7 @@ impl IdentitiesApi for Service {
         })
     }
 
-    async fn patch_identity(
-        &self,
-        request: &PatchIdentityRequest,
-    ) -> Result<IdentityEnvelope, BiError> {
+    async fn patch_identity(&self, request: &PatchIdentityRequest) -> Result<Identity, BiError> {
         self.api_client
             .send_request(
                 Method::PATCH,
@@ -215,6 +200,5 @@ impl IdentitiesApi for Service {
                 Some(request),
             )
             .await
-            .map(|details| IdentityEnvelope { identity: details })
     }
 }

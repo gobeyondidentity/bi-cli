@@ -13,11 +13,6 @@ pub struct Identities {
     pub total_size: usize,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct IdentityEnvelope {
-    pub identity: Identity,
-}
-
 #[derive(Args, Clone, Debug, Serialize, Deserialize)]
 pub struct Identity {
     #[clap(skip)]
