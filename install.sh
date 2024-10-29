@@ -42,16 +42,17 @@ fi
 
 chmod +x bi
 
-# Determine installation directory
-if [ -w "/usr/local/bin" ]; then
+# Determine installation directory and ensure it exists
+if [ -w "/usr/local/bin" ] || mkdir -p "/usr/local/bin" 2>/dev/null; then
     DESTINATION="/usr/local/bin"
-elif [ -w "$HOME/.local/bin" ]; then
+elif [ -w "$HOME/.local/bin" ] || mkdir -p "$HOME/.local/bin"; then
     DESTINATION="$HOME/.local/bin"
-    mkdir -p "$DESTINATION"
 else
     echo "Cannot write to /usr/local/bin or ~/.local/bin"
     echo "Attempting to use sudo to install to /usr/local/bin"
+
     if command -v sudo >/dev/null 2>&1; then
+        sudo mkdir -p /usr/local/bin
         sudo mv bi /usr/local/bin/bi
         echo "bi installed to /usr/local/bin/bi"
     else
