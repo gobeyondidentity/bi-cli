@@ -20,16 +20,7 @@ pub struct AuthorizationMiddleware {
 }
 
 impl AuthorizationMiddleware {
-    pub fn new(db: Database, client: ClientWithMiddleware) -> Self {
-        Self {
-            db,
-            client,
-            tenant: None,
-            realm: None,
-        }
-    }
-
-    pub fn new_with_override(
+    pub fn new(
         db: Database,
         client: ClientWithMiddleware,
         tenant: Option<Tenant>,

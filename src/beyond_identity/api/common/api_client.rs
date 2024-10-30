@@ -37,7 +37,7 @@ impl ApiClient {
             .with(RespectRateLimitMiddleware)
             .build();
 
-        let auth_middleware = AuthorizationMiddleware::new_with_override(
+        let auth_middleware = AuthorizationMiddleware::new(
             db.clone(),
             rate_limit_middleware,
             tenant.clone(),

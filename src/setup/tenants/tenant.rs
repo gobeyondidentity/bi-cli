@@ -6,6 +6,7 @@ use crate::common::database::Database;
 use crate::common::error::BiError;
 use crate::setup::tenants::application::get_management_api_application;
 
+use futures::future::join_all;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
@@ -130,6 +131,8 @@ pub async fn provision_tenant(
             .await?;
     }
 
+    _ = display(db).await?;
+
     Ok((tenant.clone(), realm.clone()))
 }
 
@@ -229,35 +232,44 @@ async fn display(
             }
         };
 
+        let fetched_data = join_all(tenants_with_realms.iter().flat_map(|(tenant, realms)| {
+            realms.iter().map(move |realm| {
+                let tenant = tenant.clone();
+                let realm = realm.clone();
+                async move {
+                    let result = get_fully_resolved_tenant_and_realm(&tenant, &realm).await;
+                    (tenant, realm, result)
+                }
+            })
+        }))
+        .await;
+
         let mut display = vec![];
         let mut index = 1;
 
-        for (tenant, realms) in tenants_with_realms.iter() {
-            for realm in realms {
-                let (api_tenant, api_realm) =
-                    get_fully_resolved_tenant_and_realm(tenant, realm).await?;
-                let is_default = default_tenant.id == tenant.id && default_realm.id == realm.id;
-                let environment = match realm.api_base_url.split('.').last().unwrap_or_default() {
-                    "run" => "[r]".to_string(),
-                    "xyz" => "[s]".to_string(),
-                    "dev" => "[d]".to_string(),
-                    "com" => "".to_string(),
-                    _ => "[?]".to_string(),
-                };
-                display.push(RealmDisplay {
-                    index: if is_default {
-                        format!("{}* {}", index, environment)
-                    } else {
-                        format!("{}  {}", index, environment)
-                    },
-                    tenant_name: api_tenant.display_name.clone(),
-                    tenant_id: tenant.id.clone(),
-                    realm_name: api_realm.display_name.clone(),
-                    realm_id: realm.id.clone(),
-                });
+        for (tenant, realm, result) in fetched_data {
+            let (api_tenant, api_realm) = result?;
+            let is_default = default_tenant.id == tenant.id && default_realm.id == realm.id;
+            let environment = match realm.api_base_url.split('.').last().unwrap_or_default() {
+                "run" => "[r]".to_string(),
+                "xyz" => "[s]".to_string(),
+                "dev" => "[d]".to_string(),
+                "com" => "".to_string(),
+                _ => "[?]".to_string(),
+            };
+            display.push(RealmDisplay {
+                index: if is_default {
+                    format!("{}* {}", index, environment)
+                } else {
+                    format!("{}  {}", index, environment)
+                },
+                tenant_name: api_tenant.display_name.clone(),
+                tenant_id: tenant.id.clone(),
+                realm_name: api_realm.display_name.clone(),
+                realm_id: realm.id.clone(),
+            });
 
-                index += 1;
-            }
+            index += 1;
         }
 
         let mut table = Table::new(display);
