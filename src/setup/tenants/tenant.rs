@@ -1,13 +1,17 @@
-use crate::common::database::models::Realm;
-use crate::common::database::models::Tenant;
+use crate::beyond_identity::api;
+use crate::beyond_identity::api::realms::api::RealmsApi;
+use crate::beyond_identity::api::{common::service::Service, tenants::api::TenantsApi};
+use crate::common::database;
 use crate::common::database::Database;
 use crate::common::error::BiError;
 use crate::setup::tenants::application::get_management_api_application;
 
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use log::debug;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
+use tabled::{settings::Style, Table, Tabled};
 use url::Url;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,7 +23,7 @@ pub async fn provision_tenant(
     client: &Client,
     db: &Database,
     token: &str,
-) -> Result<(Tenant, Realm), BiError> {
+) -> Result<(database::models::Tenant, database::models::Realm), BiError> {
     let mut validation = Validation::new(Algorithm::RS256);
     validation.insecure_disable_signature_validation();
     validation.validate_aud = false;
@@ -84,11 +88,11 @@ pub async fn provision_tenant(
         .client_secret
         .expect("Failed to get client secret of management API application");
 
-    let tenant = Tenant {
+    let tenant = database::models::Tenant {
         id: tenant_id.clone(),
     };
 
-    let realm = Realm {
+    let realm = database::models::Realm {
         id: realm_id.clone(),
         tenant_id: tenant_id.clone(),
         application_id,
@@ -125,66 +129,18 @@ pub async fn provision_tenant(
 }
 
 pub async fn list_tenants_ui(db: &Database) -> Result<(), BiError> {
-    // Fetch all tenants with their corresponding realms
-    let tenants_with_realms = db.get_all_tenants_with_realms().await?;
-    if tenants_with_realms.is_empty() {
-        println!("No tenants found.");
-    } else {
-        println!("List of Tenants:");
-
-        // Fetch the current default tenant and realm
-        let default_tenant_realm = db.get_default_tenant_and_realm().await?;
-
-        for (index, (tenant, realms)) in tenants_with_realms.iter().enumerate() {
-            for realm in realms {
-                // Determine if this tenant/realm is the default
-                let default_marker =
-                    if let Some((default_tenant, default_realm)) = &default_tenant_realm {
-                        if default_tenant.id == tenant.id && default_realm.id == realm.id {
-                            "(Default)"
-                        } else {
-                            ""
-                        }
-                    } else {
-                        ""
-                    };
-
-                println!(
-                    "{}: Tenant ID: {}, Realm ID: {} {}",
-                    index + 1,
-                    tenant.id,
-                    realm.id,
-                    default_marker
-                );
-            }
-        }
-    }
+    _ = display(db).await?;
     Ok(())
 }
 
 pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
-    // Retrieve all tenants with realms from the database
-    let tenants_with_realms = db.get_all_tenants_with_realms().await?;
-    if tenants_with_realms.is_empty() {
-        println!("No tenants to delete.");
-        return Ok(());
-    }
-
-    // Display tenants and their corresponding realms for selection
-    println!("Select a tenant/realm pair to delete:");
-    for (index, (tenant, realms)) in tenants_with_realms.iter().enumerate() {
-        for realm in realms {
-            println!(
-                "{}: Tenant ID: {}, Realm ID: {}",
-                index + 1,
-                tenant.id,
-                realm.id
-            );
-        }
-    }
+    let tenants_with_realms = match display(db).await? {
+        Some(x) => x,
+        None => return Ok(()),
+    };
 
     // Get user input for the selection
-    print!("Enter the number of the tenant/realm to delete: ");
+    print!("Enter the number of the tenant/realm to remove: ");
     io::stdout().flush().unwrap();
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
@@ -198,10 +154,7 @@ pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
 
             // Call the delete function
             match db.delete_tenant_realm_pair(&tenant.id, &realm.id).await {
-                Ok(_) => println!(
-                    "Tenant with Tenant ID: {}, Realm ID: {} deleted.",
-                    tenant.id, realm.id
-                ),
+                Ok(_) => _ = display(db).await?,
                 Err(e) => println!("Error deleting tenant/realm: {}", e),
             }
         }
@@ -212,25 +165,10 @@ pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
 }
 
 pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
-    // Fetch all tenants with realms from the database
-    let tenants_with_realms = db.get_all_tenants_with_realms().await?;
-
-    if tenants_with_realms.is_empty() {
-        println!("No tenants available to set as default.");
-        return Ok(());
-    }
-
-    println!("Select a tenant to set as default:");
-    for (index, (tenant, realms)) in tenants_with_realms.iter().enumerate() {
-        for realm in realms {
-            println!(
-                "{}: Tenant ID: {}, Realm ID: {}",
-                index + 1,
-                tenant.id,
-                realm.id
-            );
-        }
-    }
+    let tenants_with_realms = match display(db).await? {
+        Some(x) => x,
+        None => return Ok(()),
+    };
 
     print!("Enter the number of the tenant to set as default: ");
     io::stdout().flush().unwrap();
@@ -245,10 +183,7 @@ pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
                 .set_default_tenant_and_realm(&tenant.id, &realm[0].id)
                 .await
             {
-                Ok(_) => println!(
-                    "Tenant with Tenant ID: {}, Realm ID: {} set as default.",
-                    tenant.id, realm[0].id
-                ),
+                Ok(_) => _ = display(db).await?,
                 Err(e) => println!("Error setting default tenant: {}", e),
             }
         }
@@ -256,4 +191,94 @@ pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
     }
 
     Ok(())
+}
+
+#[derive(Tabled)]
+struct RealmDisplay {
+    index: String,
+    tenant_name: String,
+    tenant_id: String,
+    realm_name: String,
+    realm_id: String,
+    status: String,
+}
+
+async fn display(
+    db: &Database,
+) -> Result<Option<Vec<(database::models::Tenant, Vec<database::models::Realm>)>>, BiError> {
+    // Fetch all tenants with their corresponding realms
+    let tenants_with_realms = db.get_all_tenants_with_realms().await?;
+    if tenants_with_realms.is_empty() {
+        println!("No tenants found.");
+        return Ok(None);
+    } else {
+        // Fetch the current default tenant and realm
+        let (default_tenant, default_realm) = match db.get_default_tenant_and_realm().await? {
+            Some((t, r)) => (t, r),
+            None => {
+                return Err(BiError::StringError(
+                    "No default tenant/realm set".to_string(),
+                ))
+            }
+        };
+
+        let mut display = vec![];
+        let mut index = 1;
+
+        for (i, (tenant, realms)) in tenants_with_realms.iter().enumerate() {
+            for realm in realms {
+                let (api_tenant, api_realm) =
+                    get_fully_resolved_tenant_and_realm(tenant, realm).await?;
+                display.push(RealmDisplay {
+                    index: index.to_string(),
+                    tenant_name: api_tenant.display_name,
+                    tenant_id: tenant.id.clone(),
+                    realm_name: api_realm.display_name,
+                    realm_id: realm.id.clone(),
+                    status: if default_tenant.id == tenant.id && default_realm.id == realm.id {
+                        "Default".to_string()
+                    } else {
+                        "".to_string()
+                    },
+                });
+                index += 1;
+            }
+            // Insert an empty row for visual separation between tenants
+            if i < tenants_with_realms.len() - 1 {
+                debug!("Pushing empty row");
+                display.push(RealmDisplay {
+                    index: "".to_string(),
+                    tenant_name: "".to_string(),
+                    tenant_id: "".to_string(),
+                    realm_name: "".to_string(),
+                    realm_id: "".to_string(),
+                    status: "".to_string(),
+                });
+            }
+        }
+
+        // Create and display the table
+        let mut table = Table::new(display);
+        table.with(Style::rounded());
+        println!("{}", table);
+
+        return Ok(Some(tenants_with_realms));
+    }
+}
+
+async fn get_fully_resolved_tenant_and_realm(
+    tenant: &database::models::Tenant,
+    realm: &database::models::Realm,
+) -> Result<(api::tenants::types::Tenant, api::realms::types::Realm), BiError> {
+    let api_tenant = Service::new_with_override(tenant.clone(), realm.clone())
+        .await
+        .get_tenant()
+        .await?;
+
+    let api_realm = Service::new_with_override(tenant.clone(), realm.clone())
+        .await
+        .get_realm(&realm.id)
+        .await?;
+
+    return Ok((api_tenant, api_realm));
 }

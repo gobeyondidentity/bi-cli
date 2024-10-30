@@ -15,10 +15,20 @@ use url::Url;
 pub struct ApiClient {
     pub client: ClientWithMiddleware,
     pub db: Database,
+    tenant: Option<Tenant>,
+    realm: Option<Realm>,
 }
 
 impl ApiClient {
     pub async fn new() -> Self {
+        Self::initialize(None, None).await
+    }
+
+    pub async fn new_with_override(tenant: Tenant, realm: Realm) -> Self {
+        Self::initialize(Some(tenant), Some(realm)).await
+    }
+
+    async fn initialize(tenant: Option<Tenant>, realm: Option<Realm>) -> Self {
         let db = Database::initialize().await.unwrap();
 
         let http_client = Client::new();
@@ -27,7 +37,12 @@ impl ApiClient {
             .with(RespectRateLimitMiddleware)
             .build();
 
-        let auth_middleware = AuthorizationMiddleware::new(db.clone(), rate_limit_middleware);
+        let auth_middleware = AuthorizationMiddleware::new_with_override(
+            db.clone(),
+            rate_limit_middleware,
+            tenant.clone(),
+            realm.clone(),
+        );
 
         let client = ClientBuilder::new(http_client)
             .with(auth_middleware)
@@ -35,16 +50,26 @@ impl ApiClient {
             .with(RespectRateLimitMiddleware)
             .build();
 
-        Self { client, db }
+        Self {
+            client,
+            db,
+            tenant,
+            realm,
+        }
     }
 
     // Initializes the URLBuilder
     pub async fn build_url(&self) -> Result<URLBuilder, BiError> {
-        let (tenant, realm) = self
-            .db
-            .get_default_tenant_and_realm()
-            .await?
-            .ok_or_else(|| BiError::StringError("No default tenant/realm set".to_string()))?;
+        // Get tenant and realm, using defaults if not provided
+        let (tenant, realm) = match (self.tenant.clone(), self.realm.clone()) {
+            (Some(t), Some(r)) => (t.clone(), r.clone()),
+            _ => self
+                .db
+                .get_default_tenant_and_realm()
+                .await?
+                .map(|(t, r)| (t, r))
+                .ok_or_else(|| BiError::StringError("No default tenant/realm set".to_string()))?,
+        };
 
         Ok(URLBuilder::build(tenant, realm))
     }

@@ -16,7 +16,7 @@ pub struct Database {
     pool: SqlitePool,
 }
 
-static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
+static MIGRATOR: Migrator = sqlx::migrate!();
 
 impl Database {
     // Initialize the database, create if not exists, and run migrations

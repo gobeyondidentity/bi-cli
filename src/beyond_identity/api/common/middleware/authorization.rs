@@ -1,4 +1,6 @@
 use crate::beyond_identity::api::common::api_client::URLBuilder;
+use crate::common::database::models::Realm;
+use crate::common::database::models::Tenant;
 use crate::common::database::models::Token;
 use crate::common::database::Database;
 use crate::common::error::BiError;
@@ -13,11 +15,32 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub struct AuthorizationMiddleware {
     db: Database,
     client: ClientWithMiddleware,
+    tenant: Option<Tenant>,
+    realm: Option<Realm>,
 }
 
 impl AuthorizationMiddleware {
     pub fn new(db: Database, client: ClientWithMiddleware) -> Self {
-        Self { db, client }
+        Self {
+            db,
+            client,
+            tenant: None,
+            realm: None,
+        }
+    }
+
+    pub fn new_with_override(
+        db: Database,
+        client: ClientWithMiddleware,
+        tenant: Option<Tenant>,
+        realm: Option<Realm>,
+    ) -> Self {
+        Self {
+            db,
+            client,
+            tenant,
+            realm,
+        }
     }
 }
 
@@ -29,7 +52,7 @@ impl Middleware for AuthorizationMiddleware {
         extensions: &mut Extensions,
         next: Next<'_>,
     ) -> MiddlewareResult<Response> {
-        let token = token(&self.db, &self.client)
+        let token = token(&self.db, &self.client, &self.tenant, &self.realm)
             .await
             .map_err(|e| reqwest_middleware::Error::Middleware(e.into()))?;
 
@@ -48,14 +71,20 @@ struct ApiTokenResponse {
     expires_in: u64,
 }
 
-async fn token(db: &Database, client: &Client) -> Result<String, BiError> {
-    let (tenant, realm) = match db.get_default_tenant_and_realm().await? {
-        Some((t, r)) => (t, r),
-        None => {
-            return Err(BiError::StringError(
-                "No default tenant/realm set".to_string(),
-            ))
-        }
+async fn token(
+    db: &Database,
+    client: &Client,
+    tenant: &Option<Tenant>,
+    realm: &Option<Realm>,
+) -> Result<String, BiError> {
+    // Get tenant and realm, using defaults if not provided
+    let (tenant, realm) = match (tenant, realm) {
+        (Some(t), Some(r)) => (t.clone(), r.clone()),
+        _ => db
+            .get_default_tenant_and_realm()
+            .await?
+            .map(|(t, r)| (t, r))
+            .ok_or_else(|| BiError::StringError("No default tenant/realm set".to_string()))?,
     };
 
     if let Some(token) = db.get_token(&tenant.id, &realm.id).await? {
@@ -70,24 +99,16 @@ async fn token(db: &Database, client: &Client) -> Result<String, BiError> {
         }
     }
 
-    if let Some(default) = db.get_default_tenant_and_realm().await? {
-        let default_tenant = default.0;
-        let default_realm = default.1;
-        if let Some(token) = db.get_token(&default_tenant.id, &default_realm.id).await? {
-            let current_time = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+    if let Some(token) = db.get_token(&tenant.id, &realm.id).await? {
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
-            if token.expires_at >= 0 && (token.expires_at as u64) > current_time {
-                log::debug!("Using stored bearer token for all requests");
-                return Ok(token.access_token);
-            }
+        if token.expires_at >= 0 && (token.expires_at as u64) > current_time {
+            log::debug!("Using stored bearer token for all requests");
+            return Ok(token.access_token);
         }
-    } else {
-        return Err(BiError::StringError(
-            "No default tenant/realm set".to_string(),
-        ));
     }
 
     log::debug!("No valid token found. Fetching a new one.");
