@@ -7,11 +7,16 @@ use crate::common::error::BiError;
 use crate::setup::tenants::application::get_management_api_application;
 
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
-use log::debug;
 use reqwest_middleware::ClientWithMiddleware as Client;
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
-use tabled::{settings::Style, Table, Tabled};
+use tabled::settings::object::Rows;
+use tabled::settings::themes::Colorization;
+use tabled::settings::{Color, Merge};
+use tabled::{
+    settings::style::{BorderSpanCorrection, Style},
+    Table, Tabled,
+};
 use url::Url;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -139,6 +144,8 @@ pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
         None => return Ok(()),
     };
 
+    let tenants_with_realms = flatten(&tenants_with_realms)?;
+
     // Get user input for the selection
     print!("Enter the number of the tenant/realm to remove: ");
     io::stdout().flush().unwrap();
@@ -149,10 +156,7 @@ pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
     match input {
         Ok(num) if num > 0 && num <= tenants_with_realms.len() => {
             // Find selected tenant and realm
-            let (tenant, realms) = &tenants_with_realms[num - 1];
-            let realm = &realms[0]; // Selecting the first realm for this example
-
-            // Call the delete function
+            let (tenant, realm) = &tenants_with_realms[num - 1];
             match db.delete_tenant_realm_pair(&tenant.id, &realm.id).await {
                 Ok(_) => _ = display(db).await?,
                 Err(e) => println!("Error deleting tenant/realm: {}", e),
@@ -170,6 +174,8 @@ pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
         None => return Ok(()),
     };
 
+    let tenants_with_realms = flatten(&tenants_with_realms)?;
+
     print!("Enter the number of the tenant to set as default: ");
     io::stdout().flush().unwrap();
     let mut input = String::new();
@@ -179,10 +185,7 @@ pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
     match input {
         Ok(num) if num > 0 && num <= tenants_with_realms.len() => {
             let (tenant, realm) = &tenants_with_realms[num - 1];
-            match db
-                .set_default_tenant_and_realm(&tenant.id, &realm[0].id)
-                .await
-            {
+            match db.set_default_tenant_and_realm(&tenant.id, &realm.id).await {
                 Ok(_) => _ = display(db).await?,
                 Err(e) => println!("Error setting default tenant: {}", e),
             }
@@ -195,12 +198,16 @@ pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
 
 #[derive(Tabled)]
 struct RealmDisplay {
+    #[tabled(rename = "Index")]
     index: String,
+    #[tabled(rename = "Tenant Name")]
     tenant_name: String,
+    #[tabled(rename = "Tenant ID")]
     tenant_id: String,
+    #[tabled(rename = "Realm Name")]
     realm_name: String,
+    #[tabled(rename = "Realm ID")]
     realm_id: String,
-    status: String,
 }
 
 async fn display(
@@ -225,44 +232,62 @@ async fn display(
         let mut display = vec![];
         let mut index = 1;
 
-        for (i, (tenant, realms)) in tenants_with_realms.iter().enumerate() {
+        for (tenant, realms) in tenants_with_realms.iter() {
             for realm in realms {
                 let (api_tenant, api_realm) =
                     get_fully_resolved_tenant_and_realm(tenant, realm).await?;
+                let is_default = default_tenant.id == tenant.id && default_realm.id == realm.id;
+                let environment = match realm.api_base_url.split('.').last().unwrap_or_default() {
+                    "run" => "[r]".to_string(),
+                    "xyz" => "[s]".to_string(),
+                    "dev" => "[d]".to_string(),
+                    "com" => "".to_string(),
+                    _ => "[?]".to_string(),
+                };
                 display.push(RealmDisplay {
-                    index: index.to_string(),
-                    tenant_name: api_tenant.display_name,
-                    tenant_id: tenant.id.clone(),
-                    realm_name: api_realm.display_name,
-                    realm_id: realm.id.clone(),
-                    status: if default_tenant.id == tenant.id && default_realm.id == realm.id {
-                        "Default".to_string()
+                    index: if is_default {
+                        format!("{}* {}", index, environment)
                     } else {
-                        "".to_string()
+                        format!("{}  {}", index, environment)
                     },
+                    tenant_name: api_tenant.display_name.clone(),
+                    tenant_id: tenant.id.clone(),
+                    realm_name: api_realm.display_name.clone(),
+                    realm_id: realm.id.clone(),
                 });
+
                 index += 1;
-            }
-            // Insert an empty row for visual separation between tenants
-            if i < tenants_with_realms.len() - 1 {
-                debug!("Pushing empty row");
-                display.push(RealmDisplay {
-                    index: "".to_string(),
-                    tenant_name: "".to_string(),
-                    tenant_id: "".to_string(),
-                    realm_name: "".to_string(),
-                    realm_id: "".to_string(),
-                    status: "".to_string(),
-                });
             }
         }
 
-        // Create and display the table
         let mut table = Table::new(display);
-        table.with(Style::rounded());
-        println!("{}", table);
+        table.with(Style::extended());
+        table.with(Merge::vertical());
+        table.with(BorderSpanCorrection);
 
-        return Ok(Some(tenants_with_realms));
+        // Define colors
+        let color_rolling = Color::BG_YELLOW | Color::FG_BLACK;
+        let color_staging = Color::BG_GREEN | Color::FG_BLACK;
+        let color_development = Color::BG_RED | Color::FG_BLACK;
+        let color_default = Color::default();
+
+        let mut row_index = 1; // Start from 1 to skip header row
+
+        for (_, realms) in tenants_with_realms.iter() {
+            for realm in realms {
+                let row_color = match realm.api_base_url.split('.').last().unwrap_or_default() {
+                    "run" => color_rolling.clone(),
+                    "xyz" => color_staging.clone(),
+                    "dev" => color_development.clone(),
+                    _ => color_default.clone(),
+                };
+                table.with(Colorization::exact([row_color], Rows::single(row_index)));
+                row_index += 1;
+            }
+        }
+
+        println!("{}", table);
+        Ok(Some(tenants_with_realms))
     }
 }
 
@@ -281,4 +306,16 @@ async fn get_fully_resolved_tenant_and_realm(
         .await?;
 
     return Ok((api_tenant, api_realm));
+}
+
+fn flatten(
+    input: &Vec<(database::models::Tenant, Vec<database::models::Realm>)>,
+) -> Result<Vec<(database::models::Tenant, database::models::Realm)>, BiError> {
+    let mut flattened = Vec::new();
+    for (tenant, realms) in input {
+        for realm in realms {
+            flattened.push((tenant.clone(), realm.clone()));
+        }
+    }
+    Ok(flattened)
 }
