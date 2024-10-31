@@ -1,3 +1,5 @@
+use std::usize;
+
 use super::middleware::authorization::AuthorizationMiddleware;
 use super::middleware::logging::LoggingMiddleware;
 use super::middleware::rate_limit::RespectRateLimitMiddleware;
@@ -108,6 +110,7 @@ impl ApiClient {
         url: &str,
         body: Option<&T>,
         items_key: &str,
+        limit: Option<usize>,
     ) -> Result<Vec<U>, BiError>
     where
         T: Serialize,
@@ -115,14 +118,19 @@ impl ApiClient {
     {
         let mut final_results = Vec::new();
         let mut next_page_token: Option<String> = None;
+        let mut remaining_limit = limit.unwrap_or(usize::MAX);
 
         loop {
+            if remaining_limit == 0 {
+                return Ok(final_results);
+            }
+
             // Construct the full URL, including pagination if applicable
             let mut full_url = url.to_string();
             let mut query_params = vec![];
 
-            // Default to maximum page size (this is likely higher than what the server accepts)
-            query_params.push(format!("page_size={}", 500));
+            let page_size = remaining_limit.min(500);
+            query_params.push(format!("page_size={}", page_size));
 
             // Add next_page_token if available
             if let Some(ref token) = next_page_token {
@@ -144,6 +152,7 @@ impl ApiClient {
 
             if let Some(items) = response_json.get(items_key) {
                 let mut page_results: Vec<U> = serde_json::from_value(items.clone())?;
+                remaining_limit = remaining_limit.saturating_sub(page_results.len());
                 final_results.append(&mut page_results);
             }
 

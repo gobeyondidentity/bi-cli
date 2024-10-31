@@ -20,12 +20,18 @@ pub trait IdentitiesApi {
     async fn create_identity(&self, request: &CreateIdentityRequest) -> Result<Identity, BiError>;
     async fn delete_identity(&self, identity_id: &str) -> Result<serde_json::Value, BiError>;
     async fn get_identity(&self, identity_id: &str) -> Result<Identity, BiError>;
-    async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError>;
-    async fn list_groups(&self, identity_id: &str) -> Result<Groups, BiError>;
+    async fn list_identities(
+        &self,
+        filter: Option<Filter>,
+        limit: Option<usize>,
+    ) -> Result<Identities, BiError>;
+    async fn list_groups(&self, identity_id: &str, limit: Option<usize>)
+        -> Result<Groups, BiError>;
     async fn list_roles(
         &self,
         identity_id: &str,
         resource_server_id: &str,
+        limit: Option<usize>,
     ) -> Result<Roles, BiError>;
     async fn patch_identity(&self, request: &PatchIdentityRequest) -> Result<Identity, BiError>;
 }
@@ -89,7 +95,11 @@ impl IdentitiesApi for Service {
             .await
     }
 
-    async fn list_identities(&self, filter: Option<Filter>) -> Result<Identities, BiError> {
+    async fn list_identities(
+        &self,
+        filter: Option<Filter>,
+        limit: Option<usize>,
+    ) -> Result<Identities, BiError> {
         let url = self
             .api_client
             .build_url()
@@ -111,6 +121,7 @@ impl IdentitiesApi for Service {
                 &url,
                 None::<&()>,
                 IdentitiesFieldName::Identities.name(),
+                limit,
             )
             .await?;
 
@@ -121,7 +132,11 @@ impl IdentitiesApi for Service {
     }
 
     #[named]
-    async fn list_groups(&self, identity_id: &str) -> Result<Groups, BiError> {
+    async fn list_groups(
+        &self,
+        identity_id: &str,
+        limit: Option<usize>,
+    ) -> Result<Groups, BiError> {
         let url = self
             .api_client
             .build_url()
@@ -140,6 +155,7 @@ impl IdentitiesApi for Service {
                 &url,
                 None::<&()>,
                 GroupsFieldName::Groups.name(),
+                limit,
             )
             .await?;
 
@@ -154,6 +170,7 @@ impl IdentitiesApi for Service {
         &self,
         identity_id: &str,
         resource_server_id: &str,
+        limit: Option<usize>,
     ) -> Result<Roles, BiError> {
         let url = self
             .api_client
@@ -172,7 +189,13 @@ impl IdentitiesApi for Service {
 
         let roles: Vec<Role> = self
             .api_client
-            .send_request_paginated(Method::GET, &url, None::<&()>, RolesFieldName::Roles.name())
+            .send_request_paginated(
+                Method::GET,
+                &url,
+                None::<&()>,
+                RolesFieldName::Roles.name(),
+                limit,
+            )
             .await?;
 
         Ok(Roles {

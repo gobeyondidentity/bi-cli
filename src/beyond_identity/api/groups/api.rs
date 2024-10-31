@@ -20,7 +20,7 @@ use http::Method;
 
 pub trait GroupsApi {
     async fn create_group(&self, request: &CreateGroupRequest) -> Result<Group, BiError>;
-    async fn list_groups(&self) -> Result<Groups, BiError>;
+    async fn list_groups(&self, limit: Option<usize>) -> Result<Groups, BiError>;
     async fn get_group(&self, group_id: &str) -> Result<Group, BiError>;
     async fn patch_group(&self, request: &PatchGroupRequest) -> Result<Group, BiError>;
     async fn delete_group(&self, group_id: &str) -> Result<serde_json::Value, BiError>;
@@ -34,8 +34,17 @@ pub trait GroupsApi {
         group_id: &str,
         request: &DeleteMembersRequest,
     ) -> Result<Group, BiError>;
-    async fn list_members(&self, group_id: &str) -> Result<Identities, BiError>;
-    async fn list_roles(&self, group_id: &str, resource_server_id: &str) -> Result<Roles, BiError>;
+    async fn list_members(
+        &self,
+        group_id: &str,
+        limit: Option<usize>,
+    ) -> Result<Identities, BiError>;
+    async fn list_roles(
+        &self,
+        group_id: &str,
+        resource_server_id: &str,
+        limit: Option<usize>,
+    ) -> Result<Roles, BiError>;
 }
 
 // ====================================
@@ -61,7 +70,7 @@ impl GroupsApi for Service {
             .await
     }
 
-    async fn list_groups(&self) -> Result<Groups, BiError> {
+    async fn list_groups(&self, limit: Option<usize>) -> Result<Groups, BiError> {
         let url = self
             .api_client
             .build_url()
@@ -79,6 +88,7 @@ impl GroupsApi for Service {
                 &url,
                 None::<&()>,
                 GroupsFieldName::Groups.name(),
+                limit,
             )
             .await?;
 
@@ -191,7 +201,11 @@ impl GroupsApi for Service {
     }
 
     #[named]
-    async fn list_members(&self, group_id: &str) -> Result<Identities, BiError> {
+    async fn list_members(
+        &self,
+        group_id: &str,
+        limit: Option<usize>,
+    ) -> Result<Identities, BiError> {
         let url = self
             .api_client
             .build_url()
@@ -210,6 +224,7 @@ impl GroupsApi for Service {
                 &url,
                 None::<&()>,
                 IdentitiesFieldName::Identities.name(),
+                limit,
             )
             .await?;
 
@@ -220,7 +235,12 @@ impl GroupsApi for Service {
     }
 
     #[named]
-    async fn list_roles(&self, group_id: &str, resource_server_id: &str) -> Result<Roles, BiError> {
+    async fn list_roles(
+        &self,
+        group_id: &str,
+        resource_server_id: &str,
+        limit: Option<usize>,
+    ) -> Result<Roles, BiError> {
         let url = self
             .api_client
             .build_url()
@@ -238,7 +258,13 @@ impl GroupsApi for Service {
 
         let roles: Vec<Role> = self
             .api_client
-            .send_request_paginated(Method::GET, &url, None::<&()>, RolesFieldName::Roles.name())
+            .send_request_paginated(
+                Method::GET,
+                &url,
+                None::<&()>,
+                RolesFieldName::Roles.name(),
+                limit,
+            )
             .await?;
 
         Ok(Roles {

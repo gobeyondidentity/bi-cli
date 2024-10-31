@@ -54,15 +54,17 @@ impl Executable for CreateIdentityRequest {
 pub struct List {
     #[clap(long)]
     filter: Option<String>,
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
 }
 
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_identities(Filter::new(
-            self.filter.clone(),
-            IdentityFilterField::from_str,
-        )?))
+        output(Service::new().await.list_identities(
+            Filter::new(self.filter.clone(), IdentityFilterField::from_str)?,
+            self.limit,
+        ))
         .await
     }
 }
@@ -120,12 +122,14 @@ impl Executable for Delete {
 pub struct ListGroups {
     #[clap(long)]
     id: String,
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
 }
 
 #[async_trait]
 impl Executable for ListGroups {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_groups(&self.id)).await
+        output(Service::new().await.list_groups(&self.id, self.limit)).await
     }
 }
 
@@ -139,6 +143,8 @@ pub struct ListRoles {
     id: String,
     #[clap(long)]
     resource_server_id: String,
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
 }
 
 #[async_trait]
@@ -147,7 +153,7 @@ impl Executable for ListRoles {
         output(
             Service::new()
                 .await
-                .list_roles(&self.id, &self.resource_server_id),
+                .list_roles(&self.id, &self.resource_server_id, self.limit),
         )
         .await
     }

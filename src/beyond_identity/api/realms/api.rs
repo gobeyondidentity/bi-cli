@@ -11,7 +11,7 @@ use http::Method;
 
 pub trait RealmsApi {
     async fn create_realm(&self, request: &CreateRealmRequest) -> Result<Realm, BiError>;
-    async fn list_realms(&self) -> Result<Realms, BiError>;
+    async fn list_realms(&self, limit: Option<usize>) -> Result<Realms, BiError>;
     async fn get_realm(&self, realm_id: &str) -> Result<Realm, BiError>;
     async fn patch_realm(&self, request: &PatchRealmRequest) -> Result<Realm, BiError>;
     async fn delete_realm(&self, realm_id: &str) -> Result<serde_json::Value, BiError>;
@@ -39,7 +39,7 @@ impl RealmsApi for Service {
             .await
     }
 
-    async fn list_realms(&self) -> Result<Realms, BiError> {
+    async fn list_realms(&self, limit: Option<usize>) -> Result<Realms, BiError> {
         let url = self
             .api_client
             .build_url()
@@ -56,6 +56,7 @@ impl RealmsApi for Service {
                 &url,
                 None::<&()>,
                 RealmsFieldName::Realms.name(),
+                limit,
             )
             .await?;
 

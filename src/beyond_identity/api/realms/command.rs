@@ -50,12 +50,15 @@ impl Executable for CreateRealmRequest {
 // ====================================
 
 #[derive(Debug, Clone, Args)]
-pub struct List;
+pub struct List {
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
+}
 
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_realms()).await
+        output(Service::new().await.list_realms(self.limit)).await
     }
 }
 

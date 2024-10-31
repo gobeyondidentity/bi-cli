@@ -56,12 +56,15 @@ impl Executable for CreateGroupRequest {
 // ====================================
 
 #[derive(Args, Debug, Clone)]
-pub struct List;
+pub struct List {
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
+}
 
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_groups()).await
+        output(Service::new().await.list_groups(self.limit)).await
     }
 }
 
@@ -156,12 +159,14 @@ impl Executable for DeleteMembers {
 pub struct ListMembers {
     #[clap(long)]
     id: String,
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
 }
 
 #[async_trait]
 impl Executable for ListMembers {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_members(&self.id)).await
+        output(Service::new().await.list_members(&self.id, self.limit)).await
     }
 }
 
@@ -175,6 +180,8 @@ pub struct ListRoles {
     id: String,
     #[clap(long)]
     resource_server_id: String,
+    #[clap(long, short = 'n')]
+    limit: Option<usize>,
 }
 
 #[async_trait]
@@ -183,7 +190,7 @@ impl Executable for ListRoles {
         output(
             Service::new()
                 .await
-                .list_roles(&self.id, &self.resource_server_id),
+                .list_roles(&self.id, &self.resource_server_id, self.limit),
         )
         .await
     }
