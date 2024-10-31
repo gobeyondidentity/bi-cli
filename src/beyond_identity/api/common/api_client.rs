@@ -22,15 +22,7 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
-    pub async fn new() -> Self {
-        Self::initialize(None, None).await
-    }
-
-    pub async fn new_with_override(tenant: Tenant, realm: Realm) -> Self {
-        Self::initialize(Some(tenant), Some(realm)).await
-    }
-
-    async fn initialize(tenant: Option<Tenant>, realm: Option<Realm>) -> Self {
+    pub async fn new(tenant: Option<Tenant>, realm: Option<Realm>) -> Self {
         let db = Database::initialize().await.unwrap();
 
         let http_client = Client::new();

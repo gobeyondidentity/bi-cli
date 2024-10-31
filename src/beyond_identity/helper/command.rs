@@ -13,7 +13,6 @@ use super::identities::{
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::delete_role_memberships;
 
-use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::service::Service;
 use crate::beyond_identity::api::identities::api::IdentitiesApi;
 use crate::common::command::ambassador_impl_Executable;
@@ -81,7 +80,7 @@ pub struct ReviewUnenrolled;
 #[async_trait]
 impl Executable for CreateAdminAccount {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         let identity = create_admin_account(&api_client, self.email.to_string())
             .await
             .expect("Failed to create admin account");
@@ -93,7 +92,7 @@ impl Executable for CreateAdminAccount {
 #[async_trait]
 impl Executable for SendEnrollmentEmail {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         let mut identities: Vec<Identity> = Vec::new();
 
         if self.all {
@@ -169,7 +168,7 @@ impl Executable for SendEnrollmentEmail {
 #[async_trait]
 impl Executable for DeleteAllIdentities {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         if self.force {
             if self.all {
                 delete_all_identities(&api_client)
@@ -235,6 +234,7 @@ impl Executable for DeleteAllIdentities {
 
         for identity in &selected_identities {
             Service::new()
+                .build()
                 .await
                 .delete_identity(&identity.id)
                 .await
@@ -248,7 +248,7 @@ impl Executable for DeleteAllIdentities {
 #[async_trait]
 impl Executable for ReviewUnenrolled {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         let unenrolled_identities = get_unenrolled_identities(&api_client)
             .await
             .expect("Failed to fetch unenrolled identities");

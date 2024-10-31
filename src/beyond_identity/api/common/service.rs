@@ -7,16 +7,34 @@ pub struct Service {
     pub api_client: ApiClient,
 }
 
+pub struct ServiceBuilder {
+    tenant: Option<Tenant>,
+    realm: Option<Realm>,
+}
+
 impl Service {
-    pub async fn new() -> Self {
-        Self {
-            api_client: ApiClient::new().await,
+    pub fn new() -> ServiceBuilder {
+        ServiceBuilder {
+            tenant: None,
+            realm: None,
         }
     }
+}
 
-    pub async fn new_with_override(tenant: Tenant, realm: Realm) -> Self {
-        Self {
-            api_client: ApiClient::new_with_override(tenant, realm).await,
+impl ServiceBuilder {
+    pub fn tenant(mut self, tenant: Tenant) -> ServiceBuilder {
+        self.tenant = Some(tenant);
+        self
+    }
+
+    pub fn realm(mut self, realm: Realm) -> ServiceBuilder {
+        self.realm = Some(realm);
+        self
+    }
+
+    pub async fn build(self) -> Service {
+        Service {
+            api_client: ApiClient::new(self.tenant, self.realm).await,
         }
     }
 }

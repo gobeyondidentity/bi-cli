@@ -2,7 +2,7 @@ use super::tenant::{delete_tenant_ui, list_tenants_ui, provision_tenant, set_def
 
 use crate::{
     beyond_identity::api::common::{
-        api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware,
+        middleware::rate_limit::RespectRateLimitMiddleware, service::Service,
     },
     common::{
         command::{ambassador_impl_Executable, Executable},
@@ -55,7 +55,7 @@ pub struct Remove;
 #[async_trait]
 impl Executable for Provision {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         _ = provision_tenant(
             &RespectRateLimitMiddleware::new_client(),
             &api_client.db,
@@ -70,7 +70,7 @@ impl Executable for Provision {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         Ok(list_tenants_ui(&api_client.db).await?)
     }
 }
@@ -78,7 +78,7 @@ impl Executable for List {
 #[async_trait]
 impl Executable for SetDefault {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         Ok(set_default_tenant_ui(&api_client.db).await?)
     }
 }
@@ -86,7 +86,7 @@ impl Executable for SetDefault {
 #[async_trait]
 impl Executable for Remove {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         Ok(delete_tenant_ui(&api_client.db).await?)
     }
 }

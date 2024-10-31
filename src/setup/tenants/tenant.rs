@@ -307,12 +307,18 @@ async fn get_fully_resolved_tenant_and_realm(
     tenant: &database::models::Tenant,
     realm: &database::models::Realm,
 ) -> Result<(api::tenants::types::Tenant, api::realms::types::Realm), BiError> {
-    let api_tenant = Service::new_with_override(tenant.clone(), realm.clone())
+    let api_tenant = Service::new()
+        .tenant(tenant.clone())
+        .realm(realm.clone())
+        .build()
         .await
         .get_tenant()
         .await?;
 
-    let api_realm = Service::new_with_override(tenant.clone(), realm.clone())
+    let api_realm = Service::new()
+        .tenant(tenant.clone())
+        .realm(realm.clone())
+        .build()
         .await
         .get_realm(&realm.id)
         .await?;

@@ -1,11 +1,10 @@
 use super::fast_migrate;
 
+use crate::beyond_identity::api::common::service::Service;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::database::models::OneloginConfig;
 use crate::{
-    beyond_identity::api::common::{
-        api_client::ApiClient, middleware::rate_limit::RespectRateLimitMiddleware,
-    },
+    beyond_identity::api::common::middleware::rate_limit::RespectRateLimitMiddleware,
     common::{command::Executable, error::BiError},
 };
 
@@ -54,7 +53,7 @@ pub struct Setup {
 #[async_trait]
 impl Executable for Setup {
     async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         if let Ok(Some(c)) = api_client.db.get_onelogin_config().await {
             if !self.force {
                 println!("Already configured: {:?}", c);
@@ -86,7 +85,7 @@ impl Executable for FastMigrate {
         let onelogin_client = ClientBuilder::new(http_client.clone())
             .with(RespectRateLimitMiddleware)
             .build();
-        let api_client = ApiClient::new().await;
+        let api_client = Service::new().build().await.api_client;
         let onelogin_config = api_client.db.get_onelogin_config().await?.expect("Failed to load Onelogin Configuration. Make sure to setup Onelogin before running this command.");
 
         let onelogin_applications =

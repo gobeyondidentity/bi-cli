@@ -47,7 +47,7 @@ pub enum GroupCommands {
 #[async_trait]
 impl Executable for CreateGroupRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.create_group(self)).await
+        output(Service::new().build().await.create_group(self)).await
     }
 }
 
@@ -64,7 +64,7 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_groups(self.limit)).await
+        output(Service::new().build().await.list_groups(self.limit)).await
     }
 }
 
@@ -81,7 +81,7 @@ pub struct Get {
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.get_group(&self.id)).await
+        output(Service::new().build().await.get_group(&self.id)).await
     }
 }
 
@@ -92,7 +92,7 @@ impl Executable for Get {
 #[async_trait]
 impl Executable for PatchGroupRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.patch_group(self)).await
+        output(Service::new().build().await.patch_group(self)).await
     }
 }
 
@@ -109,7 +109,7 @@ pub struct Delete {
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.delete_group(&self.id)).await
+        output(Service::new().build().await.delete_group(&self.id)).await
     }
 }
 
@@ -128,7 +128,13 @@ pub struct AddMembers {
 #[async_trait]
 impl Executable for AddMembers {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.add_members(&self.id, &self.request)).await
+        output(
+            Service::new()
+                .build()
+                .await
+                .add_members(&self.id, &self.request),
+        )
+        .await
     }
 }
 
@@ -147,7 +153,13 @@ pub struct DeleteMembers {
 #[async_trait]
 impl Executable for DeleteMembers {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.delete_members(&self.id, &self.request)).await
+        output(
+            Service::new()
+                .build()
+                .await
+                .delete_members(&self.id, &self.request),
+        )
+        .await
     }
 }
 
@@ -166,7 +178,13 @@ pub struct ListMembers {
 #[async_trait]
 impl Executable for ListMembers {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.list_members(&self.id, self.limit)).await
+        output(
+            Service::new()
+                .build()
+                .await
+                .list_members(&self.id, self.limit),
+        )
+        .await
     }
 }
 
@@ -187,11 +205,11 @@ pub struct ListRoles {
 #[async_trait]
 impl Executable for ListRoles {
     async fn execute(&self) -> Result<(), BiError> {
-        output(
-            Service::new()
-                .await
-                .list_roles(&self.id, &self.resource_server_id, self.limit),
-        )
+        output(Service::new().build().await.list_roles(
+            &self.id,
+            &self.resource_server_id,
+            self.limit,
+        ))
         .await
     }
 }

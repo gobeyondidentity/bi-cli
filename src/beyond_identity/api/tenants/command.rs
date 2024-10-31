@@ -33,7 +33,7 @@ pub struct Get;
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.get_tenant()).await
+        output(Service::new().build().await.get_tenant()).await
     }
 }
 
@@ -50,11 +50,16 @@ pub struct Patch {
 #[async_trait]
 impl Executable for Patch {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().await.patch_tenant(&PatchTenantRequest {
-            tenant: PatchTenant {
-                display_name: Some(self.display_name.to_string()),
-            },
-        }))
+        output(
+            Service::new()
+                .build()
+                .await
+                .patch_tenant(&PatchTenantRequest {
+                    tenant: PatchTenant {
+                        display_name: Some(self.display_name.to_string()),
+                    },
+                }),
+        )
         .await
     }
 }

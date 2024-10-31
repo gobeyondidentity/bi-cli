@@ -124,6 +124,7 @@ pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError
                     .expect("Failed to delete role memberships");
             }
             Service::new()
+                .build()
                 .await
                 .delete_identity(&identity.id)
                 .await
@@ -200,6 +201,7 @@ pub async fn delete_unenrolled_identities(api_client: &ApiClient) -> Result<(), 
                         .expect("Failed to delete role memberships");
                 }
                 Service::new()
+                    .build()
                     .await
                     .delete_identity(&identity.id)
                     .await
@@ -278,6 +280,7 @@ pub async fn delete_norole_identities(api_client: &ApiClient) -> Result<(), BiEr
                         .expect("Failed to delete role memberships");
                 }
                 Service::new()
+                    .build()
                     .await
                     .delete_identity(&identity.id)
                     .await
