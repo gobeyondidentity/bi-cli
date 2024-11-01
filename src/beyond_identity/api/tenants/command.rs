@@ -2,7 +2,7 @@ use super::api::TenantsApi;
 use super::types::{PatchTenant, PatchTenantRequest};
 
 use crate::beyond_identity::api::common::serialize::output;
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::TenantsService;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::command::Executable;
 use crate::common::error::BiError;
@@ -33,7 +33,7 @@ pub struct Get;
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.get_tenant()).await
+        output(TenantsService::new().build().await.get_tenant()).await
     }
 }
 
@@ -51,7 +51,7 @@ pub struct Patch {
 impl Executable for Patch {
     async fn execute(&self) -> Result<(), BiError> {
         output(
-            Service::new()
+            TenantsService::new()
                 .build()
                 .await
                 .patch_tenant(&PatchTenantRequest {

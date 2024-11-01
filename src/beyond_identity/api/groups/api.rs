@@ -2,7 +2,7 @@ use super::types::{
     AddMembersRequest, CreateGroupRequest, DeleteMembersRequest, PatchGroupRequest,
 };
 
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::GroupsService;
 use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
 use crate::beyond_identity::api::identities::types::Identity;
 use crate::beyond_identity::api::identities::types::{Identities, IdentitiesFieldName};
@@ -51,7 +51,7 @@ pub trait GroupsApi {
 // Groups API Implementation
 // ====================================
 
-impl GroupsApi for Service {
+impl GroupsApi for GroupsService {
     async fn create_group(&self, request: &CreateGroupRequest) -> Result<Group, BiError> {
         self.api_client
             .send_request(

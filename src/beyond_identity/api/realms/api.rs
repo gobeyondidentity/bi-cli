@@ -1,6 +1,6 @@
 use super::types::{CreateRealmRequest, PatchRealmRequest, Realm, Realms, RealmsFieldName};
 
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::RealmsService;
 use crate::common::error::BiError;
 
 use http::Method;
@@ -21,7 +21,7 @@ pub trait RealmsApi {
 // Realms API Implementation
 // ====================================
 
-impl RealmsApi for Service {
+impl RealmsApi for RealmsService {
     async fn create_realm(&self, request: &CreateRealmRequest) -> Result<Realm, BiError> {
         self.api_client
             .send_request(

@@ -3,7 +3,7 @@ use super::types::CreateRealmRequest;
 use super::types::PatchRealmRequest;
 
 use crate::beyond_identity::api::common::serialize::output;
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::RealmsService;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::command::Executable;
 use crate::common::error::BiError;
@@ -41,7 +41,7 @@ pub enum RealmCommands {
 #[async_trait]
 impl Executable for CreateRealmRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.create_realm(self)).await
+        output(RealmsService::new().build().await.create_realm(self)).await
     }
 }
 
@@ -58,7 +58,7 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.list_realms(self.limit)).await
+        output(RealmsService::new().build().await.list_realms(self.limit)).await
     }
 }
 
@@ -75,7 +75,7 @@ pub struct Get {
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.get_realm(&self.id)).await
+        output(RealmsService::new().build().await.get_realm(&self.id)).await
     }
 }
 
@@ -86,7 +86,7 @@ impl Executable for Get {
 #[async_trait]
 impl Executable for PatchRealmRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.patch_realm(self)).await
+        output(RealmsService::new().build().await.patch_realm(self)).await
     }
 }
 
@@ -103,6 +103,6 @@ pub struct Delete {
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.delete_realm(&self.id)).await
+        output(RealmsService::new().build().await.delete_realm(&self.id)).await
     }
 }

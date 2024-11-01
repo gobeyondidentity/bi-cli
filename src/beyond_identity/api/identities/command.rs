@@ -3,7 +3,7 @@ use super::{api::IdentitiesApi, types::CreateIdentityRequest};
 
 use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::serialize::output;
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::IdentitiesService;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::command::Executable;
 use crate::common::error::BiError;
@@ -42,7 +42,7 @@ pub enum IdentityCommands {
 #[async_trait]
 impl Executable for CreateIdentityRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.create_identity(self)).await
+        output(IdentitiesService::new().build().await.create_identity(self)).await
     }
 }
 
@@ -61,7 +61,7 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.list_identities(
+        output(IdentitiesService::new().build().await.list_identities(
             Filter::new(self.filter.clone(), IdentityFilterField::from_str)?,
             self.limit,
         ))
@@ -82,7 +82,13 @@ pub struct Get {
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.get_identity(&self.id)).await
+        output(
+            IdentitiesService::new()
+                .build()
+                .await
+                .get_identity(&self.id),
+        )
+        .await
     }
 }
 
@@ -93,7 +99,7 @@ impl Executable for Get {
 #[async_trait]
 impl Executable for PatchIdentityRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.patch_identity(self)).await
+        output(IdentitiesService::new().build().await.patch_identity(self)).await
     }
 }
 
@@ -110,7 +116,13 @@ pub struct Delete {
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.delete_identity(&self.id)).await
+        output(
+            IdentitiesService::new()
+                .build()
+                .await
+                .delete_identity(&self.id),
+        )
+        .await
     }
 }
 
@@ -130,7 +142,7 @@ pub struct ListGroups {
 impl Executable for ListGroups {
     async fn execute(&self) -> Result<(), BiError> {
         output(
-            Service::new()
+            IdentitiesService::new()
                 .build()
                 .await
                 .list_groups(&self.id, self.limit),
@@ -156,7 +168,7 @@ pub struct ListRoles {
 #[async_trait]
 impl Executable for ListRoles {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.list_roles(
+        output(IdentitiesService::new().build().await.list_roles(
             &self.id,
             &self.resource_server_id,
             self.limit,

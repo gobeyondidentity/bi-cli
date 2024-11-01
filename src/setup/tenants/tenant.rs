@@ -1,6 +1,7 @@
 use crate::beyond_identity::api;
+use crate::beyond_identity::api::common::service::{RealmsService, TenantsService};
 use crate::beyond_identity::api::realms::api::RealmsApi;
-use crate::beyond_identity::api::{common::service::Service, tenants::api::TenantsApi};
+use crate::beyond_identity::api::tenants::api::TenantsApi;
 use crate::common::database;
 use crate::common::database::Database;
 use crate::common::error::BiError;
@@ -307,7 +308,7 @@ async fn get_fully_resolved_tenant_and_realm(
     tenant: &database::models::Tenant,
     realm: &database::models::Realm,
 ) -> Result<(api::tenants::types::Tenant, api::realms::types::Realm), BiError> {
-    let api_tenant = Service::new()
+    let api_tenant = TenantsService::new()
         .tenant(tenant.clone())
         .realm(realm.clone())
         .build()
@@ -315,7 +316,7 @@ async fn get_fully_resolved_tenant_and_realm(
         .get_tenant()
         .await?;
 
-    let api_realm = Service::new()
+    let api_realm = RealmsService::new()
         .tenant(tenant.clone())
         .realm(realm.clone())
         .build()

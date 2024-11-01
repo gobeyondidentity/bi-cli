@@ -4,7 +4,7 @@ use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::{delete_role_memberships, fetch_role_memberships};
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::IdentitiesService;
 use crate::beyond_identity::api::identities::api::IdentitiesApi;
 use crate::common::error::BiError;
 
@@ -123,7 +123,7 @@ pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError
                     .await
                     .expect("Failed to delete role memberships");
             }
-            Service::new()
+            IdentitiesService::new()
                 .build()
                 .await
                 .delete_identity(&identity.id)
@@ -200,7 +200,7 @@ pub async fn delete_unenrolled_identities(api_client: &ApiClient) -> Result<(), 
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                Service::new()
+                IdentitiesService::new()
                     .build()
                     .await
                     .delete_identity(&identity.id)
@@ -279,7 +279,7 @@ pub async fn delete_norole_identities(api_client: &ApiClient) -> Result<(), BiEr
                         .await
                         .expect("Failed to delete role memberships");
                 }
-                Service::new()
+                IdentitiesService::new()
                     .build()
                     .await
                     .delete_identity(&identity.id)

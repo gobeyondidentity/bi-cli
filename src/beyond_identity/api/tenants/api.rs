@@ -1,6 +1,6 @@
 use super::types::{PatchTenantRequest, Tenant};
 
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::TenantsService;
 use crate::common::error::BiError;
 
 use http::Method;
@@ -18,7 +18,7 @@ pub trait TenantsApi {
 // Tenants API Implementation
 // ====================================
 
-impl TenantsApi for Service {
+impl TenantsApi for TenantsService {
     async fn get_tenant(&self) -> Result<Tenant, BiError> {
         self.api_client
             .send_request(

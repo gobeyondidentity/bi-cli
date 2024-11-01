@@ -4,7 +4,7 @@ use super::types::{
 };
 
 use crate::beyond_identity::api::common::serialize::output;
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::GroupsService;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::command::Executable;
 use crate::common::error::BiError;
@@ -47,7 +47,7 @@ pub enum GroupCommands {
 #[async_trait]
 impl Executable for CreateGroupRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.create_group(self)).await
+        output(GroupsService::new().build().await.create_group(self)).await
     }
 }
 
@@ -64,7 +64,7 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.list_groups(self.limit)).await
+        output(GroupsService::new().build().await.list_groups(self.limit)).await
     }
 }
 
@@ -81,7 +81,7 @@ pub struct Get {
 #[async_trait]
 impl Executable for Get {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.get_group(&self.id)).await
+        output(GroupsService::new().build().await.get_group(&self.id)).await
     }
 }
 
@@ -92,7 +92,7 @@ impl Executable for Get {
 #[async_trait]
 impl Executable for PatchGroupRequest {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.patch_group(self)).await
+        output(GroupsService::new().build().await.patch_group(self)).await
     }
 }
 
@@ -109,7 +109,7 @@ pub struct Delete {
 #[async_trait]
 impl Executable for Delete {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.delete_group(&self.id)).await
+        output(GroupsService::new().build().await.delete_group(&self.id)).await
     }
 }
 
@@ -129,7 +129,7 @@ pub struct AddMembers {
 impl Executable for AddMembers {
     async fn execute(&self) -> Result<(), BiError> {
         output(
-            Service::new()
+            GroupsService::new()
                 .build()
                 .await
                 .add_members(&self.id, &self.request),
@@ -154,7 +154,7 @@ pub struct DeleteMembers {
 impl Executable for DeleteMembers {
     async fn execute(&self) -> Result<(), BiError> {
         output(
-            Service::new()
+            GroupsService::new()
                 .build()
                 .await
                 .delete_members(&self.id, &self.request),
@@ -179,7 +179,7 @@ pub struct ListMembers {
 impl Executable for ListMembers {
     async fn execute(&self) -> Result<(), BiError> {
         output(
-            Service::new()
+            GroupsService::new()
                 .build()
                 .await
                 .list_members(&self.id, self.limit),
@@ -205,7 +205,7 @@ pub struct ListRoles {
 #[async_trait]
 impl Executable for ListRoles {
     async fn execute(&self) -> Result<(), BiError> {
-        output(Service::new().build().await.list_roles(
+        output(GroupsService::new().build().await.list_roles(
             &self.id,
             &self.resource_server_id,
             self.limit,

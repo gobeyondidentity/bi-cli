@@ -3,7 +3,7 @@ use super::types::{
 };
 
 use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
-use crate::beyond_identity::api::common::service::Service;
+use crate::beyond_identity::api::common::service::IdentitiesService;
 use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
 use crate::beyond_identity::api::roles::types::{Role, RoleFieldName, Roles, RolesFieldName};
 use crate::common::error::BiError;
@@ -40,7 +40,7 @@ pub trait IdentitiesApi {
 // Identities API Implementation
 // ====================================
 
-impl IdentitiesApi for Service {
+impl IdentitiesApi for IdentitiesService {
     async fn create_identity(&self, request: &CreateIdentityRequest) -> Result<Identity, BiError> {
         self.api_client
             .send_request(
