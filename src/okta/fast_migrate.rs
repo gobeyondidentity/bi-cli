@@ -1,5 +1,7 @@
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::helper::identities;
+use crate::beyond_identity::api::common::service::IdentitiesService;
+use crate::beyond_identity::api::identities::api::IdentitiesApi;
+use crate::beyond_identity::api::identities::types::Identity;
 use crate::beyond_identity::helper::sso_configs;
 use crate::common::database::models::OktaConfig;
 use crate::common::error::BiError;
@@ -284,8 +286,8 @@ pub fn select_applications(applications: &[OktaApplication]) -> Vec<OktaApplicat
 
 fn filter_identities(
     okta_users: &[OktaUser],
-    beyond_identity_identities: &[identities::Identity],
-) -> Vec<identities::Identity> {
+    beyond_identity_identities: &[Identity],
+) -> Vec<Identity> {
     let okta_user_emails: Vec<&str> = okta_users
         .iter()
         .filter_map(|user| user.profile.email.as_deref())
@@ -330,8 +332,12 @@ pub async fn create_sso_config_and_assign_identities(
     )
     .await?;
 
-    let beyond_identity_identities =
-        identities::fetch_beyond_identity_identities(&api_client).await?;
+    let beyond_identity_identities = IdentitiesService::new()
+        .build()
+        .await
+        .list_identities(None, None)
+        .await?
+        .identities;
     let filtered_identities = filter_identities(
         &okta_application.embedded.as_ref().unwrap().users,
         &beyond_identity_identities,

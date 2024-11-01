@@ -3,19 +3,18 @@ use super::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
     select_identities, send_enrollment_email,
 };
-use super::groups::{
-    delete_group_memberships, fetch_all_groups, get_identities_from_group,
-    get_unenrolled_identities_from_group, Group,
-};
+use super::groups::{delete_group_memberships, get_unenrolled_identities_from_group};
 use super::identities::{
-    delete_all_identities, delete_norole_identities, delete_unenrolled_identities, Identity,
+    delete_all_identities, delete_norole_identities, delete_unenrolled_identities,
 };
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::delete_role_memberships;
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::api::common::service::IdentitiesService;
+use crate::beyond_identity::api::common::service::{GroupsService, IdentitiesService};
+use crate::beyond_identity::api::groups::api::GroupsApi;
 use crate::beyond_identity::api::identities::api::IdentitiesApi;
+use crate::beyond_identity::api::identities::types::Identity;
 use crate::common::command::ambassador_impl_Executable;
 use crate::common::{command::Executable, error::BiError};
 
@@ -109,9 +108,12 @@ impl Executable for SendEnrollmentEmail {
         }
 
         if self.groups {
-            let groups: Vec<Group> = fetch_all_groups(&api_client)
+            let groups = GroupsService::new()
+                .build()
                 .await
-                .expect("Failed to fetch groups");
+                .list_groups(None)
+                .await?
+                .groups;
 
             if groups.is_empty() {
                 println!("No groups found.");
@@ -125,9 +127,12 @@ impl Executable for SendEnrollmentEmail {
                     .await
                     .expect("Failed to fetch unenrolled identities from group");
             } else {
-                identities = get_identities_from_group(&api_client, &group.id)
+                identities = GroupsService::new()
+                    .build()
                     .await
-                    .expect("Failed to fetch identities from group");
+                    .list_members(&group.id, None)
+                    .await?
+                    .identities;
             }
         }
 
@@ -223,7 +228,7 @@ impl Executable for DeleteAllIdentities {
             .expect("Failed to fetch resource servers");
 
         for identity in &selected_identities {
-            delete_group_memberships(&api_client, &identity.id)
+            delete_group_memberships(&identity.id)
                 .await
                 .expect("Failed to delete role memberships");
             for rs in &resource_servers {

@@ -1,4 +1,5 @@
-use crate::beyond_identity::{api::common::api_client::ApiClient, helper::identities};
+use crate::beyond_identity::api::common::api_client::ApiClient;
+use crate::beyond_identity::api::identities::types::Identity;
 use crate::common::error::BiError;
 
 use regex::Regex;
@@ -108,7 +109,7 @@ fn sanitize_label(label: &str) -> String {
 pub async fn assign_identities_to_sso_config(
     api_client: &ApiClient,
     sso_config: &SsoConfigBookmark,
-    identities: &[identities::Identity],
+    identities: &[Identity],
 ) -> Result<(), BiError> {
     let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
         Some((t, r)) => (t, r),

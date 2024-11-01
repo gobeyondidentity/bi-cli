@@ -1,5 +1,6 @@
-use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::helper::identities;
+use crate::beyond_identity::api::common::{api_client::ApiClient, service::IdentitiesService};
+use crate::beyond_identity::api::identities::api::IdentitiesApi;
+use crate::beyond_identity::api::identities::types::Identity;
 use crate::beyond_identity::helper::sso_configs;
 use crate::common::database::models::OneloginConfig;
 use crate::common::error::BiError;
@@ -226,8 +227,8 @@ pub fn select_applications(applications: &[OneLoginApplication]) -> Vec<OneLogin
 
 fn filter_identities(
     onelogin_users: &[OneLoginUser],
-    beyond_identity_identities: &[identities::Identity],
-) -> Vec<identities::Identity> {
+    beyond_identity_identities: &[Identity],
+) -> Vec<Identity> {
     let onelogin_user_emails: Vec<&str> = onelogin_users
         .iter()
         .filter_map(|user| user.email.as_deref())
@@ -255,8 +256,12 @@ pub async fn create_sso_config_and_assign_identities(
     let sso_config =
         sso_configs::create_sso_config(&api_client, name, login_link, icon_url).await?;
 
-    let beyond_identity_identities =
-        identities::fetch_beyond_identity_identities(&api_client).await?;
+    let beyond_identity_identities = IdentitiesService::new()
+        .build()
+        .await
+        .list_identities(None, None)
+        .await?
+        .identities;
     let assigned_users = onelogin_application.assigned_users.as_ref();
     let filtered_identities = filter_identities(assigned_users, &beyond_identity_identities);
 

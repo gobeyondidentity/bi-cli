@@ -1,8 +1,10 @@
-use super::identities::{fetch_beyond_identity_identities, Identity};
 use super::resource_servers::fetch_beyond_identity_resource_servers;
 use super::roles::{fetch_beyond_identity_roles, fetch_role_memberships};
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
+use crate::beyond_identity::api::common::service::IdentitiesService;
+use crate::beyond_identity::api::identities::api::IdentitiesApi;
+use crate::beyond_identity::api::identities::types::Identity;
 use crate::common::error::BiError;
 
 pub async fn create_admin_account(
@@ -91,7 +93,12 @@ pub async fn create_admin_account(
 }
 
 pub async fn get_identities_without_role(api_client: &ApiClient) -> Result<Vec<Identity>, BiError> {
-    let identities = fetch_beyond_identity_identities(api_client).await?;
+    let identities = IdentitiesService::new()
+        .build()
+        .await
+        .list_identities(None, None)
+        .await?
+        .identities;
     let resource_servers = fetch_beyond_identity_resource_servers(api_client).await?;
 
     let mut identities_without_roles = vec![];

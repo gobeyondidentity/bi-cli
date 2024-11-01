@@ -1,15 +1,7 @@
-use crate::{beyond_identity::api::common::api_client::ApiClient, common::error::BiError};
-
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Role {
-    pub id: String,
-    pub realm_id: String,
-    pub tenant_id: String,
-    pub resource_server_id: String,
-    pub display_name: String,
-}
+use crate::{
+    beyond_identity::api::{common::api_client::ApiClient, roles::types::Role},
+    common::error::BiError,
+};
 
 pub async fn delete_role_memberships(
     api_client: &ApiClient,

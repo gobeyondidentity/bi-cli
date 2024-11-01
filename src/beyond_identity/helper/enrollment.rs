@@ -1,7 +1,6 @@
-use super::groups::Group;
-
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::helper::identities::Identity;
+use crate::beyond_identity::api::groups::types::Group;
+use crate::beyond_identity::api::identities::types::Identity;
 use crate::common::error::BiError;
 
 use serde::{Deserialize, Serialize};
