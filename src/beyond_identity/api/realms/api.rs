@@ -28,7 +28,7 @@ impl RealmsApi for RealmsService {
                 Method::POST,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -42,7 +42,7 @@ impl RealmsApi for RealmsService {
     async fn list_realms(&self, limit: Option<usize>) -> Result<Realms, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -63,7 +63,7 @@ impl RealmsApi for RealmsService {
                 Method::GET,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -80,7 +80,7 @@ impl RealmsApi for RealmsService {
                 Method::PATCH,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -97,7 +97,7 @@ impl RealmsApi for RealmsService {
                 Method::DELETE,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()

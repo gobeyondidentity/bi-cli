@@ -25,7 +25,7 @@ impl TenantsApi for TenantsService {
                 Method::GET,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -41,7 +41,7 @@ impl TenantsApi for TenantsService {
                 Method::PATCH,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()

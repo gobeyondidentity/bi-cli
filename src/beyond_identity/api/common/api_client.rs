@@ -55,7 +55,7 @@ impl ApiClient {
     }
 
     // Initializes the URLBuilder
-    pub async fn build_url(&self) -> Result<URLBuilder, BiError> {
+    pub async fn builder(&self) -> Result<URLBuilder, BiError> {
         // Get tenant and realm, using defaults if not provided
         let (tenant, realm) = match (self.tenant.clone(), self.realm.clone()) {
             (Some(t), Some(r)) => (t.clone(), r.clone()),

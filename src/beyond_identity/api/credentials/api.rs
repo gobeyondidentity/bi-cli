@@ -41,7 +41,7 @@ impl CredentialsApi for CredentialsService {
     ) -> Result<Credentials, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -74,7 +74,7 @@ impl CredentialsApi for CredentialsService {
                 Method::GET,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -102,7 +102,7 @@ impl CredentialsApi for CredentialsService {
                 Method::POST,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()

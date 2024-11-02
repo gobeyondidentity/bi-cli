@@ -47,7 +47,7 @@ impl IdentitiesApi for IdentitiesService {
                 Method::POST,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -65,7 +65,7 @@ impl IdentitiesApi for IdentitiesService {
                 Method::DELETE,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -83,7 +83,7 @@ impl IdentitiesApi for IdentitiesService {
                 Method::GET,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -102,7 +102,7 @@ impl IdentitiesApi for IdentitiesService {
     ) -> Result<Identities, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -133,7 +133,7 @@ impl IdentitiesApi for IdentitiesService {
     ) -> Result<Groups, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -159,7 +159,7 @@ impl IdentitiesApi for IdentitiesService {
     ) -> Result<Roles, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -186,7 +186,7 @@ impl IdentitiesApi for IdentitiesService {
                 Method::PATCH,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()

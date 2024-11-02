@@ -58,7 +58,7 @@ impl GroupsApi for GroupsService {
                 Method::POST,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -73,7 +73,7 @@ impl GroupsApi for GroupsService {
     async fn list_groups(&self, limit: Option<usize>) -> Result<Groups, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -95,7 +95,7 @@ impl GroupsApi for GroupsService {
                 Method::GET,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -113,7 +113,7 @@ impl GroupsApi for GroupsService {
                 Method::PATCH,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -131,7 +131,7 @@ impl GroupsApi for GroupsService {
                 Method::DELETE,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -154,7 +154,7 @@ impl GroupsApi for GroupsService {
                 Method::POST,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -178,7 +178,7 @@ impl GroupsApi for GroupsService {
                 Method::POST,
                 &self
                     .api_client
-                    .build_url()
+                    .builder()
                     .await?
                     .api()
                     .add_tenant()
@@ -199,7 +199,7 @@ impl GroupsApi for GroupsService {
     ) -> Result<Identities, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
@@ -228,7 +228,7 @@ impl GroupsApi for GroupsService {
     ) -> Result<Roles, BiError> {
         let url = self
             .api_client
-            .build_url()
+            .builder()
             .await?
             .api()
             .add_tenant()
