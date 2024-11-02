@@ -53,3 +53,4 @@ create_service_with_builder!(TenantsService);
 create_service_with_builder!(RealmsService);
 create_service_with_builder!(GroupsService);
 create_service_with_builder!(IdentitiesService);
+create_service_with_builder!(CredentialsService);

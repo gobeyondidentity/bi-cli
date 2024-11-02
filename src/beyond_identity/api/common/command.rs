@@ -1,3 +1,4 @@
+use crate::beyond_identity::api::credentials::command::CredentialCommands;
 use crate::beyond_identity::api::groups::command::GroupCommands;
 use crate::beyond_identity::api::identities::command::IdentityCommands;
 use crate::beyond_identity::api::realms::command::RealmCommands;
@@ -26,4 +27,8 @@ pub enum BeyondIdentityApiCommands {
     /// Identities
     #[clap(subcommand)]
     Identities(IdentityCommands),
+
+    /// Credentials
+    #[clap(subcommand)]
+    Credentials(CredentialCommands),
 }

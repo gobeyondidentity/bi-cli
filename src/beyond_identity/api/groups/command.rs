@@ -14,7 +14,7 @@ use clap::{Args, Subcommand};
 use serde::Serialize;
 
 // ====================================
-// Identities Commands
+// Groups Commands
 // ====================================
 
 #[derive(Subcommand, Debug, Clone, ambassador::Delegate)]

@@ -33,6 +33,10 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api identities delete`↴](#bi-api-identities-delete)
 * [`bi api identities list-groups`↴](#bi-api-identities-list-groups)
 * [`bi api identities list-roles`↴](#bi-api-identities-list-roles)
+* [`bi api credentials`↴](#bi-api-credentials)
+* [`bi api credentials list`↴](#bi-api-credentials-list)
+* [`bi api credentials get`↴](#bi-api-credentials-get)
+* [`bi api credentials revoke`↴](#bi-api-credentials-revoke)
 * [`bi setup`↴](#bi-setup)
 * [`bi setup tenants`↴](#bi-setup-tenants)
 * [`bi setup tenants provision`↴](#bi-setup-tenants-provision)
@@ -83,6 +87,7 @@ Commands related to Beyond Identity API
 * `realms` — Realms
 * `groups` — Groups
 * `identities` — Identities
+* `credentials` — Credentials
 
 
 
@@ -155,7 +160,11 @@ Create realm
 
 List realms
 
-**Usage:** `bi api realms list`
+**Usage:** `bi api realms list [OPTIONS]`
+
+###### **Options:**
+
+* `-n`, `--limit <LIMIT>`
 
 
 
@@ -233,7 +242,11 @@ Create a new group
 
 List groups
 
-**Usage:** `bi api groups list`
+**Usage:** `bi api groups list [OPTIONS]`
+
+###### **Options:**
+
+* `-n`, `--limit <LIMIT>`
 
 
 
@@ -305,11 +318,12 @@ Delete members from a group
 
 List members for a group
 
-**Usage:** `bi api groups list-members --id <ID>`
+**Usage:** `bi api groups list-members [OPTIONS] --id <ID>`
 
 ###### **Options:**
 
 * `--id <ID>`
+* `-n`, `--limit <LIMIT>`
 
 
 
@@ -317,12 +331,13 @@ List members for a group
 
 List role memberships for a group
 
-**Usage:** `bi api groups list-roles --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
+**Usage:** `bi api groups list-roles [OPTIONS] --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
 
 ###### **Options:**
 
 * `--id <ID>`
 * `--resource-server-id <RESOURCE_SERVER_ID>`
+* `-n`, `--limit <LIMIT>`
 
 
 
@@ -374,6 +389,7 @@ List identities
 ###### **Options:**
 
 * `--filter <FILTER>`
+* `-n`, `--limit <LIMIT>`
 
 
 
@@ -431,11 +447,12 @@ Delete an identity
 
 List an identity's groups
 
-**Usage:** `bi api identities list-groups --id <ID>`
+**Usage:** `bi api identities list-groups [OPTIONS] --id <ID>`
 
 ###### **Options:**
 
 * `--id <ID>`
+* `-n`, `--limit <LIMIT>`
 
 
 
@@ -443,12 +460,66 @@ List an identity's groups
 
 List an identity's roles
 
-**Usage:** `bi api identities list-roles --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
+**Usage:** `bi api identities list-roles [OPTIONS] --id <ID> --resource-server-id <RESOURCE_SERVER_ID>`
 
 ###### **Options:**
 
 * `--id <ID>`
 * `--resource-server-id <RESOURCE_SERVER_ID>`
+* `-n`, `--limit <LIMIT>`
+
+
+
+## `bi api credentials`
+
+Credentials
+
+**Usage:** `bi api credentials <COMMAND>`
+
+###### **Subcommands:**
+
+* `list` — List credentials
+* `get` — Get a credential
+* `revoke` — Revoke a credential
+
+
+
+## `bi api credentials list`
+
+List credentials
+
+**Usage:** `bi api credentials list [OPTIONS] --identity-id <IDENTITY_ID>`
+
+###### **Options:**
+
+* `--identity-id <IDENTITY_ID>`
+* `-n`, `--limit <LIMIT>`
+
+
+
+## `bi api credentials get`
+
+Get a credential
+
+**Usage:** `bi api credentials get --id <ID> --identity-id <IDENTITY_ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--identity-id <IDENTITY_ID>`
+
+
+
+## `bi api credentials revoke`
+
+Revoke a credential
+
+**Usage:** `bi api credentials revoke --id <ID> --identity-id <IDENTITY_ID>`
+
+###### **Options:**
+
+* `--id <ID>`
+* `--identity-id <IDENTITY_ID>`
 
 
 
