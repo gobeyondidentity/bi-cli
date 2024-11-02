@@ -75,12 +75,7 @@ pub async fn provision_tenant(
         .ok_or(BiError::StringError("Invalid application ID".to_string()))?
         .to_string();
 
-    // Extract base URLs from the issuer URL
-    let host = parsed_url
-        .host_str()
-        .ok_or(BiError::StringError("Invalid URL host".to_string()))?;
-
-    let auth_base_url = format!("https://{}", host);
+    let auth_base_url = parsed_url.origin().ascii_serialization();
     let api_base_url = auth_base_url.replace("auth", "api");
 
     let management_api_application =
