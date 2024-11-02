@@ -4,10 +4,10 @@ use super::types::{
 
 use crate::beyond_identity::api::common::service::GroupsService;
 use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
+use crate::beyond_identity::api::identities::types::Identities;
 use crate::beyond_identity::api::identities::types::Identity;
-use crate::beyond_identity::api::identities::types::{Identities, IdentitiesFieldName};
+use crate::beyond_identity::api::roles::types::Roles;
 use crate::beyond_identity::api::roles::types::{Role, RoleFieldName};
-use crate::beyond_identity::api::roles::types::{Roles, RolesFieldName};
 use crate::common::error::BiError;
 
 use convert_case::{Case, Casing};
@@ -81,21 +81,12 @@ impl GroupsApi for GroupsService {
             .add_path(vec![GroupsFieldName::Groups.name()])
             .to_string()?;
 
-        let groups: Vec<Group> = self
+        let (groups, total_size) = self
             .api_client
-            .send_request_paginated(
-                Method::GET,
-                &url,
-                None::<&()>,
-                GroupsFieldName::Groups.name(),
-                limit,
-            )
+            .send_request_paginated::<_, Group>(Method::GET, &url, None::<&()>, limit)
             .await?;
 
-        Ok(Groups {
-            groups: groups.clone(),
-            total_size: groups.len(),
-        })
+        Ok(Groups { groups, total_size })
     }
 
     async fn get_group(&self, group_id: &str) -> Result<Group, BiError> {
@@ -217,20 +208,14 @@ impl GroupsApi for GroupsService {
             .add_custom_method(&function_name!().to_case(Case::Camel))
             .to_string()?;
 
-        let identities: Vec<Identity> = self
+        let (identities, total_size) = self
             .api_client
-            .send_request_paginated(
-                Method::GET,
-                &url,
-                None::<&()>,
-                IdentitiesFieldName::Identities.name(),
-                limit,
-            )
+            .send_request_paginated::<_, Identity>(Method::GET, &url, None::<&()>, limit)
             .await?;
 
         Ok(Identities {
-            identities: identities.clone(),
-            total_size: identities.len(),
+            identities,
+            total_size,
         })
     }
 
@@ -256,20 +241,11 @@ impl GroupsApi for GroupsService {
             )
             .to_string()?;
 
-        let roles: Vec<Role> = self
+        let (roles, total_size) = self
             .api_client
-            .send_request_paginated(
-                Method::GET,
-                &url,
-                None::<&()>,
-                RolesFieldName::Roles.name(),
-                limit,
-            )
+            .send_request_paginated::<_, Role>(Method::GET, &url, None::<&()>, limit)
             .await?;
 
-        Ok(Roles {
-            roles: roles.clone(),
-            total_size: roles.len(),
-        })
+        Ok(Roles { roles, total_size })
     }
 }

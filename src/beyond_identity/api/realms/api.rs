@@ -49,21 +49,12 @@ impl RealmsApi for RealmsService {
             .add_path(vec![RealmsFieldName::Realms.name()])
             .to_string()?;
 
-        let realms: Vec<Realm> = self
+        let (realms, total_size) = self
             .api_client
-            .send_request_paginated(
-                Method::GET,
-                &url,
-                None::<&()>,
-                RealmsFieldName::Realms.name(),
-                limit,
-            )
+            .send_request_paginated::<_, Realm>(Method::GET, &url, None::<&()>, limit)
             .await?;
 
-        Ok(Realms {
-            realms: realms.clone(),
-            total_size: realms.len(),
-        })
+        Ok(Realms { realms, total_size })
     }
 
     async fn get_realm(&self, realm_id: &str) -> Result<Realm, BiError> {

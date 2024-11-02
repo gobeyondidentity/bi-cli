@@ -11,7 +11,9 @@ use crate::common::{database::Database, error::BiError};
 use http::Method;
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::{self, Deserializer, MapAccess};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::fmt;
 use url::Url;
 
 pub struct ApiClient {
@@ -101,9 +103,8 @@ impl ApiClient {
         method: Method,
         url: &str,
         body: Option<&T>,
-        items_key: &str,
         limit: Option<usize>,
-    ) -> Result<Vec<U>, BiError>
+    ) -> Result<(Vec<U>, usize), BiError>
     where
         T: Serialize,
         U: DeserializeOwned,
@@ -111,10 +112,12 @@ impl ApiClient {
         let mut final_results = Vec::new();
         let mut next_page_token: Option<String> = None;
         let mut remaining_limit = limit.unwrap_or(usize::MAX);
+        // This will be set on first page response
+        let mut total_size: usize = 0;
 
         loop {
             if remaining_limit == 0 {
-                return Ok(final_results);
+                return Ok((final_results, total_size));
             }
 
             // Construct the full URL, including pagination if applicable
@@ -139,19 +142,17 @@ impl ApiClient {
                 }
             }
 
-            let response_json: serde_json::Value =
+            let response: PaginatedResponse<U> =
                 self.send_request(method.clone(), &full_url, body).await?;
 
-            if let Some(items) = response_json.get(items_key) {
-                let mut page_results: Vec<U> = serde_json::from_value(items.clone())?;
-                remaining_limit = remaining_limit.saturating_sub(page_results.len());
-                final_results.append(&mut page_results);
+            total_size = response.total_size;
+
+            if response.items.len() > 0 {
+                remaining_limit = remaining_limit.saturating_sub(response.items.len());
+                final_results.extend(response.items);
             }
 
-            // Check for a next page token
-            next_page_token = response_json
-                .get("next_page_token")
-                .and_then(|token| token.as_str().map(String::from));
+            next_page_token = response.next_page_token;
 
             // Break if there's no next page
             if next_page_token.is_none() {
@@ -159,7 +160,73 @@ impl ApiClient {
             }
         }
 
-        Ok(final_results)
+        Ok((final_results, total_size))
+    }
+}
+
+#[derive(Debug)]
+struct PaginatedResponse<T> {
+    items: Vec<T>,
+    total_size: usize,
+    next_page_token: Option<String>,
+}
+
+impl<'de, T> Deserialize<'de> for PaginatedResponse<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<PaginatedResponse<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor<T>(std::marker::PhantomData<T>);
+
+        impl<'de, T> serde::de::Visitor<'de> for Visitor<T>
+        where
+            T: Deserialize<'de>,
+        {
+            type Value = PaginatedResponse<T>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a paginated response")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<PaginatedResponse<T>, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut items = None;
+                let mut total_size = None;
+                let mut next_page_token = None;
+
+                while let Some(key) = map.next_key::<&str>()? {
+                    match key {
+                        "total_size" => total_size = Some(map.next_value()?),
+                        "next_page_token" => next_page_token = map.next_value()?,
+                        _ if items.is_none() => {
+                            let value: Result<Vec<T>, _> = map.next_value();
+                            if let Ok(v) = value {
+                                items = Some(v);
+                            } else {
+                                let _: serde::de::IgnoredAny = map.next_value()?;
+                            }
+                        }
+                        _ => {
+                            let _: serde::de::IgnoredAny = map.next_value()?;
+                        }
+                    }
+                }
+
+                Ok(PaginatedResponse {
+                    items: items
+                        .ok_or_else(|| de::Error::custom("No items array found in response"))?,
+                    total_size: total_size.ok_or_else(|| de::Error::missing_field("total_size"))?,
+                    next_page_token,
+                })
+            }
+        }
+
+        deserializer.deserialize_map(Visitor(std::marker::PhantomData))
     }
 }
 

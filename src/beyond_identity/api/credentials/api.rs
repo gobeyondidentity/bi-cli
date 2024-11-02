@@ -53,20 +53,14 @@ impl CredentialsApi for CredentialsService {
             ])
             .to_string()?;
 
-        let credentials: Vec<Credential> = self
+        let (credentials, total_size) = self
             .api_client
-            .send_request_paginated(
-                Method::GET,
-                &url,
-                None::<&()>,
-                &CredentialsFieldName::Credentials.name(),
-                limit,
-            )
+            .send_request_paginated::<_, Credential>(Method::GET, &url, None::<&()>, limit)
             .await?;
 
         Ok(Credentials {
-            credentials: credentials.clone(),
-            total_size: credentials.len(),
+            credentials,
+            total_size,
         })
     }
 
