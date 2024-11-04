@@ -57,7 +57,7 @@ pub async fn provision_tenant(
 
     // Parse the URL and extract tenant_id, realm_id, application_id
     let parsed_url = Url::parse(&issuer_url).map_err(BiError::InvalidUrl)?;
-
+    
     let segments: Vec<&str> = parsed_url
         .path_segments()
         .map_or(vec![], |segments| segments.collect());
@@ -74,9 +74,12 @@ pub async fn provision_tenant(
         .get(6)
         .ok_or(BiError::StringError("Invalid application ID".to_string()))?
         .to_string();
-
     let auth_base_url = parsed_url.origin().ascii_serialization();
-    let api_base_url = auth_base_url.replace("auth", "api");
+    let api_base_url = if auth_base_url.contains("localhost") {
+        auth_base_url.replace("localhost:8021", "localhost:8023")
+    } else {
+        auth_base_url.replace("auth", "api")
+    };
 
     let management_api_application =
         get_management_api_application(client, &api_base_url, &tenant_id, &realm_id, token).await?;
