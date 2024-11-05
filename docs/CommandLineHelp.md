@@ -656,7 +656,23 @@ List identities
 
 ###### **Options:**
 
-* `--filter <FILTER>`
+* `--filter <FILTER>` — Supports filtering identities based on specific fields.
+
+   Acceptable fields:
+
+   - `id`: The unique identifier for the identity
+
+   - `display_name`: The display name of the identity
+
+   - `traits.username`: The username trait of the identity
+
+   - `traits.external_id`: The external ID trait of the identity
+
+   - `traits.primary_email_address`: The primary email address trait of the identity
+
+   Example:
+
+   --filter "traits.username eq \"john.doe\" and traits.primary_email_address co \"example.com\""
 * `-n`, `--limit <LIMIT>`
 
 

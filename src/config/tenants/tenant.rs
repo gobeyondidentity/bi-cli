@@ -57,7 +57,7 @@ pub async fn provision_tenant(
 
     // Parse the URL and extract tenant_id, realm_id, application_id
     let parsed_url = Url::parse(&issuer_url).map_err(BiError::InvalidUrl)?;
-    
+
     let segments: Vec<&str> = parsed_url
         .path_segments()
         .map_or(vec![], |segments| segments.collect());

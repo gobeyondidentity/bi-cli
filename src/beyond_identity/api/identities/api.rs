@@ -1,8 +1,9 @@
+use super::command::ListFieldName;
 use super::types::{
     CreateIdentityRequest, Identities, IdentitiesFieldName, Identity, PatchIdentityRequest,
 };
 
-use crate::beyond_identity::api::common::filter::{Filter, FilterFieldName};
+use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::service::IdentitiesService;
 use crate::beyond_identity::api::groups::types::{Group, Groups};
 use crate::beyond_identity::api::roles::types::{Role, RoleFieldName, Roles};
@@ -109,8 +110,8 @@ impl IdentitiesApi for IdentitiesService {
             .add_realm()
             .add_path(vec![IdentitiesFieldName::Identities.name()])
             .add_query_param(
-                &FilterFieldName::Filter.name(),
-                filter.as_ref().map(|f| f.filter.as_ref()),
+                &ListFieldName::Filter.name(),
+                filter.as_ref().map(|f| f.0.as_ref()),
             )
             .to_string()?;
 

@@ -1,4 +1,4 @@
-use super::types::{IdentityFilterField, PatchIdentityRequest};
+use super::types::PatchIdentityRequest;
 use super::{api::IdentitiesApi, types::CreateIdentityRequest};
 
 use crate::beyond_identity::api::common::filter::Filter;
@@ -10,7 +10,7 @@ use crate::common::error::BiError;
 
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
-use std::str::FromStr;
+use field_types::FieldName;
 
 // ====================================
 // Identities Commands
@@ -50,8 +50,25 @@ impl Executable for CreateIdentityRequest {
 // Identities List
 // ====================================
 
-#[derive(Args, Debug, Clone)]
+#[derive(Args, Debug, Clone, FieldName)]
 pub struct List {
+    /// Supports filtering identities based on specific fields.
+    ///
+    /// Acceptable fields:
+    ///
+    ///   - `id`: The unique identifier for the identity
+    ///
+    ///   - `display_name`: The display name of the identity
+    ///
+    ///   - `traits.username`: The username trait of the identity
+    ///
+    ///   - `traits.external_id`: The external ID trait of the identity
+    ///
+    ///   - `traits.primary_email_address`: The primary email address trait of the identity
+    ///
+    /// Example:
+    ///
+    ///   --filter "traits.username eq \"john.doe\" and traits.primary_email_address co \"example.com\""
     #[clap(long)]
     filter: Option<String>,
     #[clap(long, short = 'n')]
@@ -61,10 +78,12 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(IdentitiesService::new().build().await.list_identities(
-            Filter::new(self.filter.clone(), IdentityFilterField::from_str)?,
-            self.limit,
-        ))
+        output(
+            IdentitiesService::new()
+                .build()
+                .await
+                .list_identities(Filter::new(self.filter.clone())?, self.limit),
+        )
         .await
     }
 }

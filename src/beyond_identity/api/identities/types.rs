@@ -1,7 +1,6 @@
 use clap::{Args, ValueEnum};
 use field_types::FieldName;
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
 
 // ====================================
 // Identity Structures and Types
@@ -74,16 +73,6 @@ pub enum Type {
 pub enum Status {
     Active,
     Suspended,
-}
-
-#[derive(Debug, Clone, EnumString, Display)]
-pub enum IdentityFilterField {
-    #[strum(serialize = "traits.username")]
-    Username,
-    #[strum(serialize = "display_name")]
-    DisplayName,
-    #[strum(serialize = "traits.primary_email_address")]
-    PrimaryEmailAddress,
 }
 
 #[derive(Args, Clone, Debug, Serialize)]
