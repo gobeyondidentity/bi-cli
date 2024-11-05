@@ -52,7 +52,8 @@ impl Executable for CreateIdentityRequest {
 
 #[derive(Args, Debug, Clone, FieldName)]
 pub struct List {
-    /// Supports filtering identities based on specific fields.
+    /// Supports filtering identities based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2.
+    /// https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
     ///
     /// Acceptable fields:
     ///
