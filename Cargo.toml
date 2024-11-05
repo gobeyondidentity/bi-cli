@@ -1,6 +1,6 @@
 [package]
 name = "bi"
-version = "0.0.20"
+version = "0.0.21"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -27,7 +27,6 @@ anyhow = "1.0.89"
 url = "2.5.3"
 jsonwebtoken = "9.3.0"
 strum = "0.26"
-strum_macros = "0.26"
 field_types = "1.1.0"
 function_name = "0.3.0"
 convert_case = "0.6.0"
@@ -42,3 +41,4 @@ directories = "5.0.1"
 tabled = "0.16.0"
 futures = "0.3.31"
 paste = "1.0.15"
+scim-filter = "0.2.2"
