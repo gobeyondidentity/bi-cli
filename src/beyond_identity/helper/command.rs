@@ -21,6 +21,7 @@ use crate::common::{command::Executable, error::BiError};
 use async_trait::async_trait;
 use clap::{ArgGroup, Args, Subcommand};
 
+/// Helper commands for managing administrative and user-related actions within Beyond Identity.
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum BeyondIdentityHelperCommands {

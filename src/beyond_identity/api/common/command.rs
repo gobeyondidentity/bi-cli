@@ -9,6 +9,7 @@ use crate::common::error::BiError;
 
 use clap::Subcommand;
 
+/// Commands for interacting with various Beyond Identity API resources.
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum BeyondIdentityApiCommands {

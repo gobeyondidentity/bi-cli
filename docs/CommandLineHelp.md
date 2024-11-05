@@ -5,6 +5,27 @@ This document contains the help content for the `bi` command-line program.
 **Command Overview:**
 
 * [`bi`↴](#bi)
+* [`bi config`↴](#bi-config)
+* [`bi config tenants`↴](#bi-config-tenants)
+* [`bi config tenants add`↴](#bi-config-tenants-add)
+* [`bi config tenants list`↴](#bi-config-tenants-list)
+* [`bi config tenants default`↴](#bi-config-tenants-default)
+* [`bi config tenants default set`↴](#bi-config-tenants-default-set)
+* [`bi config tenants default get`↴](#bi-config-tenants-default-get)
+* [`bi config tenants remove`↴](#bi-config-tenants-remove)
+* [`bi config ai`↴](#bi-config-ai)
+* [`bi config ai provider`↴](#bi-config-ai-provider)
+* [`bi config ai provider set`↴](#bi-config-ai-provider-set)
+* [`bi config ai provider get`↴](#bi-config-ai-provider-get)
+* [`bi config ai default`↴](#bi-config-ai-default)
+* [`bi config ai default set`↴](#bi-config-ai-default-set)
+* [`bi config ai default get`↴](#bi-config-ai-default-get)
+* [`bi config okta`↴](#bi-config-okta)
+* [`bi config okta set`↴](#bi-config-okta-set)
+* [`bi config okta get`↴](#bi-config-okta-get)
+* [`bi config onelogin`↴](#bi-config-onelogin)
+* [`bi config onelogin set`↴](#bi-config-onelogin-set)
+* [`bi config onelogin get`↴](#bi-config-onelogin-get)
 * [`bi api`↴](#bi-api)
 * [`bi api tenants`↴](#bi-api-tenants)
 * [`bi api tenants get`↴](#bi-api-tenants-get)
@@ -37,22 +58,16 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api credentials list`↴](#bi-api-credentials-list)
 * [`bi api credentials get`↴](#bi-api-credentials-get)
 * [`bi api credentials revoke`↴](#bi-api-credentials-revoke)
-* [`bi setup`↴](#bi-setup)
-* [`bi setup tenants`↴](#bi-setup-tenants)
-* [`bi setup tenants provision`↴](#bi-setup-tenants-provision)
-* [`bi setup tenants list`↴](#bi-setup-tenants-list)
-* [`bi setup tenants set-default`↴](#bi-setup-tenants-set-default)
-* [`bi setup tenants remove`↴](#bi-setup-tenants-remove)
 * [`bi helper`↴](#bi-helper)
 * [`bi helper create-admin-account`↴](#bi-helper-create-admin-account)
 * [`bi helper delete-all-identities`↴](#bi-helper-delete-all-identities)
 * [`bi helper send-enrollment-email`↴](#bi-helper-send-enrollment-email)
 * [`bi helper review-unenrolled`↴](#bi-helper-review-unenrolled)
+* [`bi ai`↴](#bi-ai)
+* [`bi ai ask`↴](#bi-ai-ask)
 * [`bi okta`↴](#bi-okta)
-* [`bi okta setup`↴](#bi-okta-setup)
 * [`bi okta fast-migrate`↴](#bi-okta-fast-migrate)
 * [`bi onelogin`↴](#bi-onelogin)
-* [`bi onelogin setup`↴](#bi-onelogin-setup)
 * [`bi onelogin fast-migrate`↴](#bi-onelogin-fast-migrate)
 
 ## `bi`
@@ -63,11 +78,12 @@ Official Beyond Identity command-line interface.
 
 ###### **Subcommands:**
 
-* `api` — Commands related to Beyond Identity API
-* `setup` — Commands related to Beyond Identity API
-* `helper` — Commands related to Beyond Identity API helper functions
-* `okta` — Commands related to Okta
-* `onelogin` — Commands related to OneLogin
+* `config` — Manage CLI tool configuration settings
+* `api` — Interact with Beyond Identity API endpoints
+* `helper` — Access helper functions for Beyond Identity API operations
+* `ai` — Helper tool to generate example commands for CLI operations
+* `okta` — Commands solely for fast migration off of Okta
+* `onelogin` — Commands solely for fast migration off of OneLogin
 
 ###### **Options:**
 
@@ -75,9 +91,261 @@ Official Beyond Identity command-line interface.
 
 
 
+## `bi config`
+
+Manage CLI tool configuration settings
+
+**Usage:** `bi config <COMMAND>`
+
+###### **Subcommands:**
+
+* `tenants` — Configure a tenant using an API token to interact with the Beyond Identity API
+* `ai` — Commands for configuring the AI helper tool
+* `okta` — Configure Okta settings to enable the CLI tool to interact with Okta APIs
+* `onelogin` — Configure Onelogin settings to enable the CLI tool to interact with Onelogin APIs
+
+
+
+## `bi config tenants`
+
+Configure a tenant using an API token to interact with the Beyond Identity API
+
+**Usage:** `bi config tenants <COMMAND>`
+
+###### **Subcommands:**
+
+* `add` — Provision an existing tenant using the provided API token
+* `list` — Display a list of all configured tenants
+* `default` — Configure and view the default tenant/realm
+* `remove` — Remove a tenant from the configured list
+
+
+
+## `bi config tenants add`
+
+Provision an existing tenant using the provided API token
+
+**Usage:** `bi config tenants add --token <TOKEN>`
+
+###### **Options:**
+
+* `--token <TOKEN>` — The API token associated with the tenant/realm you would like to add
+
+
+
+## `bi config tenants list`
+
+Display a list of all configured tenants
+
+**Usage:** `bi config tenants list`
+
+
+
+## `bi config tenants default`
+
+Configure and view the default tenant/realm
+
+**Usage:** `bi config tenants default <COMMAND>`
+
+###### **Subcommands:**
+
+* `set` — Set the default tenant/realm
+* `get` — Get the default tenant/realm
+
+
+
+## `bi config tenants default set`
+
+Set the default tenant/realm
+
+**Usage:** `bi config tenants default set`
+
+
+
+## `bi config tenants default get`
+
+Get the default tenant/realm
+
+**Usage:** `bi config tenants default get`
+
+
+
+## `bi config tenants remove`
+
+Remove a tenant from the configured list
+
+**Usage:** `bi config tenants remove`
+
+
+
+## `bi config ai`
+
+Commands for configuring the AI helper tool
+
+**Usage:** `bi config ai <COMMAND>`
+
+###### **Subcommands:**
+
+* `provider` — Configure settings related to an AI provider
+* `default` — Configure and view the default AI provider
+
+
+
+## `bi config ai provider`
+
+Configure settings related to an AI provider
+
+**Usage:** `bi config ai provider <COMMAND>`
+
+###### **Subcommands:**
+
+* `set` — Set AI provider configuration
+* `get` — Get AI provider configuration
+
+
+
+## `bi config ai provider set`
+
+Set AI provider configuration
+
+**Usage:** `bi config ai provider set [OPTIONS] --provider <PROVIDER> --api-key <API_KEY>`
+
+###### **Options:**
+
+* `--provider <PROVIDER>` — AI Provider
+
+  Possible values: `openai`, `anthropic`
+
+* `--api-key <API_KEY>` — API Key
+* `--force` — Flag to allow force reconfiguration
+
+
+
+## `bi config ai provider get`
+
+Get AI provider configuration
+
+**Usage:** `bi config ai provider get --provider <PROVIDER>`
+
+###### **Options:**
+
+* `--provider <PROVIDER>` — AI Provider
+
+  Possible values: `openai`, `anthropic`
+
+
+
+
+## `bi config ai default`
+
+Configure and view the default AI provider
+
+**Usage:** `bi config ai default <COMMAND>`
+
+###### **Subcommands:**
+
+* `set` — Configure the default AI provider
+* `get` — Display the current default AI provider
+
+
+
+## `bi config ai default set`
+
+Configure the default AI provider
+
+**Usage:** `bi config ai default set --provider <PROVIDER>`
+
+###### **Options:**
+
+* `--provider <PROVIDER>`
+
+  Possible values: `openai`, `anthropic`
+
+
+
+
+## `bi config ai default get`
+
+Display the current default AI provider
+
+**Usage:** `bi config ai default get`
+
+
+
+## `bi config okta`
+
+Configure Okta settings to enable the CLI tool to interact with Okta APIs
+
+**Usage:** `bi config okta <COMMAND>`
+
+###### **Subcommands:**
+
+* `set` — Configure Okta integration settings
+* `get` — Display current Okta integration settings
+
+
+
+## `bi config okta set`
+
+Configure Okta integration settings
+
+**Usage:** `bi config okta set [OPTIONS] --domain <DOMAIN> --api-key <API_KEY>`
+
+###### **Options:**
+
+* `--domain <DOMAIN>` — Okta domain
+* `--api-key <API_KEY>` — Okta API key
+* `--force` — Flag to allow force reconfiguration
+
+
+
+## `bi config okta get`
+
+Display current Okta integration settings
+
+**Usage:** `bi config okta get`
+
+
+
+## `bi config onelogin`
+
+Configure Onelogin settings to enable the CLI tool to interact with Onelogin APIs
+
+**Usage:** `bi config onelogin <COMMAND>`
+
+###### **Subcommands:**
+
+* `set` — Configure OneLogin integration settings
+* `get` — Display current OneLogin integration settings
+
+
+
+## `bi config onelogin set`
+
+Configure OneLogin integration settings
+
+**Usage:** `bi config onelogin set [OPTIONS] --domain <DOMAIN> --client-id <CLIENT_ID> --client-secret <CLIENT_SECRET>`
+
+###### **Options:**
+
+* `--domain <DOMAIN>` — Onelogin domain
+* `--client-id <CLIENT_ID>` — Onelogin client id
+* `--client-secret <CLIENT_SECRET>` — Onelogin client secret
+* `--force` — Flag to allow force reconfiguration
+
+
+
+## `bi config onelogin get`
+
+Display current OneLogin integration settings
+
+**Usage:** `bi config onelogin get`
+
+
+
 ## `bi api`
 
-Commands related to Beyond Identity API
+Interact with Beyond Identity API endpoints
 
 **Usage:** `bi api <COMMAND>`
 
@@ -523,72 +791,9 @@ Revoke a credential
 
 
 
-## `bi setup`
-
-Commands related to Beyond Identity API
-
-**Usage:** `bi setup <COMMAND>`
-
-###### **Subcommands:**
-
-* `tenants` — Tenant management actions
-
-
-
-## `bi setup tenants`
-
-Tenant management actions
-
-**Usage:** `bi setup tenants <COMMAND>`
-
-###### **Subcommands:**
-
-* `provision` — Provisions an existing tenant using the provided API token
-* `list` — Display a list of all currently provisioned tenants
-* `set-default` — Set a specific teannt as the default
-* `remove` — Remove a tenant from the list of provisioned tenants
-
-
-
-## `bi setup tenants provision`
-
-Provisions an existing tenant using the provided API token
-
-**Usage:** `bi setup tenants provision --token <TOKEN>`
-
-###### **Options:**
-
-* `--token <TOKEN>`
-
-
-
-## `bi setup tenants list`
-
-Display a list of all currently provisioned tenants
-
-**Usage:** `bi setup tenants list`
-
-
-
-## `bi setup tenants set-default`
-
-Set a specific teannt as the default
-
-**Usage:** `bi setup tenants set-default`
-
-
-
-## `bi setup tenants remove`
-
-Remove a tenant from the list of provisioned tenants
-
-**Usage:** `bi setup tenants remove`
-
-
-
 ## `bi helper`
 
-Commands related to Beyond Identity API helper functions
+Access helper functions for Beyond Identity API operations
 
 **Usage:** `bi helper <COMMAND>`
 
@@ -650,36 +855,45 @@ Get a list of identities who have not enrolled yet (identities without a passkey
 
 
 
+## `bi ai`
+
+Helper tool to generate example commands for CLI operations
+
+**Usage:** `bi ai <COMMAND>`
+
+###### **Subcommands:**
+
+* `ask` — Ask the AI helper tool for assistance in generating CLI commands
+
+
+
+## `bi ai ask`
+
+Ask the AI helper tool for assistance in generating CLI commands
+
+**Usage:** `bi ai ask <INPUT>`
+
+###### **Arguments:**
+
+* `<INPUT>` — The question or command you need assistance with
+
+
+
 ## `bi okta`
 
-Commands related to Okta
+Commands solely for fast migration off of Okta
 
 **Usage:** `bi okta <COMMAND>`
 
 ###### **Subcommands:**
 
-* `setup` — Setup allows you to provision an Okta tenant to be used for subsequent commands
-* `fast-migrate` — Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta
-
-
-
-## `bi okta setup`
-
-Setup allows you to provision an Okta tenant to be used for subsequent commands
-
-**Usage:** `bi okta setup [OPTIONS] --domain <DOMAIN> --api-key <API_KEY>`
-
-###### **Options:**
-
-* `--domain <DOMAIN>` — Okta domain
-* `--api-key <API_KEY>` — Okta API key
-* `--force` — Flag to allow force reconfiguration
+* `fast-migrate` — Automatically migrate all Okta applications to Beyond Identity SSO and assign users based on existing Okta assignments. Each application tile in Beyond Identity will act as an opaque redirect to Okta
 
 
 
 ## `bi okta fast-migrate`
 
-Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta
+Automatically migrate all Okta applications to Beyond Identity SSO and assign users based on existing Okta assignments. Each application tile in Beyond Identity will act as an opaque redirect to Okta
 
 **Usage:** `bi okta fast-migrate`
 
@@ -687,35 +901,19 @@ Automatically populates Beyond Identities SSO with all of your Okta applications
 
 ## `bi onelogin`
 
-Commands related to OneLogin
+Commands solely for fast migration off of OneLogin
 
 **Usage:** `bi onelogin <COMMAND>`
 
 ###### **Subcommands:**
 
-* `setup` — Setup allows you to provision a Onelogin tenant to be used for subsequent commands
-* `fast-migrate` — Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin
-
-
-
-## `bi onelogin setup`
-
-Setup allows you to provision a Onelogin tenant to be used for subsequent commands
-
-**Usage:** `bi onelogin setup [OPTIONS] --domain <DOMAIN> --client-id <CLIENT_ID> --client-secret <CLIENT_SECRET>`
-
-###### **Options:**
-
-* `--domain <DOMAIN>` — Onelogin domain
-* `--client-id <CLIENT_ID>` — Onelogin client id
-* `--client-secret <CLIENT_SECRET>` — Onelogin client secret
-* `--force` — Flag to allow force reconfiguration
+* `fast-migrate` — Automatically migrate all OneLogin applications to Beyond Identity SSO and assign users based on existing OneLogin assignments. Each application tile in Beyond Identity will act as an opaque redirect to Onelogin
 
 
 
 ## `bi onelogin fast-migrate`
 
-Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin
+Automatically migrate all OneLogin applications to Beyond Identity SSO and assign users based on existing OneLogin assignments. Each application tile in Beyond Identity will act as an opaque redirect to Onelogin
 
 **Usage:** `bi onelogin fast-migrate`
 

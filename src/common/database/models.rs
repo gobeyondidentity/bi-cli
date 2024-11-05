@@ -1,3 +1,4 @@
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
@@ -19,23 +20,40 @@ pub struct Realm {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
-pub struct OktaConfig {
-    pub domain: String,
-    pub api_key: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
-pub struct OneloginConfig {
-    pub domain: String,
-    pub client_id: String,
-    pub client_secret: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 pub struct Token {
     pub access_token: String,
     pub expires_at: i64,
     pub tenant_id: String,
     pub realm_id: String,
     pub application_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OktaConfig {
+    pub domain: String,
+    pub api_key: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OneloginConfig {
+    pub domain: String,
+    pub client_id: String,
+    pub client_secret: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OpenaiConfig {
+    pub api_key: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AnthropicConfig {
+    pub api_key: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, ValueEnum)]
+#[serde(rename_all = "lowercase")]
+pub enum AiProvider {
+    Openai,
+    Anthropic,
 }

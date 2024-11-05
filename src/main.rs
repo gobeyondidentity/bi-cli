@@ -1,23 +1,22 @@
+mod ai;
 mod beyond_identity;
 mod common;
+mod config;
 mod okta;
 mod onelogin;
-mod setup;
 
+use ai::command::AiCommands;
 use async_trait::async_trait;
-use beyond_identity::{
-    api::common::command::BeyondIdentityApiCommands, helper::command::BeyondIdentityHelperCommands,
-};
+use beyond_identity::api::common::command::BeyondIdentityApiCommands;
+use beyond_identity::helper::command::BeyondIdentityHelperCommands;
 use clap::{Args, Parser, Subcommand};
 use clap_markdown::MarkdownOptions;
-use common::{
-    command::{ambassador_impl_Executable, Executable},
-    error::BiError,
-};
+use common::command::{ambassador_impl_Executable, Executable};
+use common::error::BiError;
+use config::command::ConfigCommands;
 use log::LevelFilter;
 use okta::command::OktaCommands;
 use onelogin::command::OneloginCommands;
-use setup::tenants::command::SetupCommands;
 
 #[derive(Parser)]
 #[clap(
@@ -26,7 +25,7 @@ use setup::tenants::command::SetupCommands;
     version = env!("CARGO_PKG_VERSION"), // Dynamically pulls the version from Cargo.toml
     long_about = None
 )]
-struct Cli {
+pub struct Cli {
     #[clap(subcommand)]
     command: Commands,
     #[clap(short, long)]
@@ -36,27 +35,31 @@ struct Cli {
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 enum Commands {
-    /// Commands related to Beyond Identity API
+    /// Manage CLI tool configuration settings
+    #[clap(subcommand)]
+    Config(ConfigCommands),
+
+    /// Interact with Beyond Identity API endpoints
     #[clap(subcommand)]
     Api(BeyondIdentityApiCommands),
 
-    /// Commands related to Beyond Identity API
-    #[clap(subcommand)]
-    Setup(SetupCommands),
-
-    /// Commands related to Beyond Identity API helper functions
+    /// Access helper functions for Beyond Identity API operations
     #[clap(subcommand)]
     Helper(BeyondIdentityHelperCommands),
 
-    /// Commands related to Okta
+    /// Helper tool to generate example commands for CLI operations
+    #[clap(subcommand)]
+    Ai(AiCommands),
+
+    /// Commands solely for fast migration off of Okta
     #[clap(subcommand)]
     Okta(OktaCommands),
 
-    /// Commands related to OneLogin
+    /// Commands solely for fast migration off of OneLogin
     #[clap(subcommand)]
     Onelogin(OneloginCommands),
 
-    /// Generate Markdown
+    /// Generate Markdown documentation (hidden)
     #[clap(hide = true)]
     GenerateMarkdown(GenerateMarkdownCommand),
 }
@@ -100,8 +103,8 @@ async fn main() {
     };
     env_logger::Builder::new().filter(None, log_level).init();
 
-    cli.command
-        .execute()
-        .await
-        .expect("Failed to execute command");
+    match cli.command.execute().await {
+        Ok(_) => (),
+        Err(e) => eprintln!("{}", e.to_string()),
+    }
 }

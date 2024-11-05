@@ -3,7 +3,6 @@ use super::fast_migrate;
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::middleware::rate_limit::RespectRateLimitMiddleware;
 use crate::common::command::ambassador_impl_Executable;
-use crate::common::database::models::OktaConfig;
 use crate::common::{command::Executable, error::BiError};
 
 use async_trait::async_trait;
@@ -15,53 +14,13 @@ use reqwest_middleware::ClientBuilder;
 // Okta Commands
 // ====================================
 
+/// Commands for facilitating migration from Okta to Beyond Identity.
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum OktaCommands {
-    /// Setup allows you to provision an Okta tenant to be used for subsequent commands.
-    Setup(Setup),
-
-    /// Automatically populates Beyond Identities SSO with all of your Okta applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in Okta. Note that each tile you see in Beyond Identity will be an opaque redirect to Okta.
+    /// Automatically migrate all Okta applications to Beyond Identity SSO and assign users based on existing Okta assignments.
+    /// Each application tile in Beyond Identity will act as an opaque redirect to Okta.
     FastMigrate(FastMigrate),
-}
-
-#[derive(Args)]
-pub struct Setup {
-    /// Okta domain
-    #[clap(long)]
-    domain: String,
-
-    /// Okta API key
-    #[clap(long)]
-    api_key: String,
-
-    /// Flag to allow force reconfiguration
-    #[clap(long)]
-    force: bool,
-}
-
-// ====================================
-// Okta Setup
-// ====================================
-
-#[async_trait]
-impl Executable for Setup {
-    async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new(None, None).await;
-        if let Ok(Some(c)) = api_client.db.get_okta_config().await {
-            if !self.force {
-                println!("Already configured: {:?}", c);
-                return Ok(());
-            } else {
-                println!("Forcing reconfiguration...");
-            }
-        }
-        let okta_config = OktaConfig {
-            domain: self.domain.to_string(),
-            api_key: self.api_key.to_string(),
-        };
-        Ok(api_client.db.set_okta_config(okta_config).await?)
-    }
 }
 
 // ====================================

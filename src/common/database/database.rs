@@ -1,14 +1,17 @@
-use super::models::{OktaConfig, OneloginConfig, Realm, Tenant, Token};
+use super::models::{
+    AiProvider, AnthropicConfig, OktaConfig, OneloginConfig, OpenaiConfig, Realm, Tenant, Token,
+};
 
 use crate::common::error::BiError;
 
 use directories::ProjectDirs;
 use log::debug;
+use serde::{Deserialize, Serialize};
 use sqlx::{
     migrate::{MigrateDatabase, Migrator},
     query, query_as,
     sqlite::SqlitePool,
-    Sqlite,
+    Row, Sqlite,
 };
 
 #[derive(Clone)]
@@ -17,6 +20,12 @@ pub struct Database {
 }
 
 static MIGRATOR: Migrator = sqlx::migrate!();
+
+const OKTA_CONFIG_KEY: &str = "okta_config";
+const ONELOGIN_CONFIG_KEY: &str = "onelogin_config";
+const OPENAI_CONFIG_KEY: &str = "openai_config";
+const ANTHROPIC_CONFIG_KEY: &str = "anthropic_config";
+const DEFAULT_AI_PROVIDER_KEY: &str = "default_ai_provider";
 
 impl Database {
     // Initialize the database, create if not exists, and run migrations
@@ -42,6 +51,10 @@ impl Database {
             .await
             .map_err(|e| BiError::StringError(e.to_string()))?;
 
+        for migration in MIGRATOR.migrations.iter() {
+            debug!("Detected migration: {:?}", migration);
+        }
+
         debug!("Database and migrations initialized successfully.");
         Ok(Database { pool })
     }
@@ -57,48 +70,6 @@ impl Database {
         let db_path = db_dir.join("sqlite.db");
         let db_url = format!("sqlite://{}", db_path.display());
         Ok(db_url)
-    }
-
-    // Get okta config from db
-    pub async fn get_okta_config(&self) -> Result<Option<OktaConfig>, BiError> {
-        let okta_config = query_as::<_, OktaConfig>("SELECT * FROM okta_config WHERE id = 1")
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| BiError::StringError(e.to_string()))?;
-        Ok(okta_config)
-    }
-
-    // Set okta config in db. There can only be one set at a time.
-    pub async fn set_okta_config(&self, config: OktaConfig) -> Result<(), BiError> {
-        query("INSERT OR REPLACE INTO okta_config (id, domain, api_key) VALUES (1, ?, ?)")
-            .bind(&config.domain)
-            .bind(&config.api_key)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| BiError::StringError(e.to_string()))?;
-        Ok(())
-    }
-
-    // Get onelogin config from db
-    pub async fn get_onelogin_config(&self) -> Result<Option<OneloginConfig>, BiError> {
-        let onelogin_config =
-            query_as::<_, OneloginConfig>("SELECT * FROM onelogin_config WHERE id = 1")
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| BiError::StringError(e.to_string()))?;
-        Ok(onelogin_config)
-    }
-
-    // Set onelogin config in db. There can only be one set at a time.
-    pub async fn set_onelogin_config(&self, config: OneloginConfig) -> Result<(), BiError> {
-        query("INSERT OR REPLACE INTO onelogin_config (id, domain, client_id, client_secret) VALUES (1, ?, ?, ?)")
-                .bind(&config.domain)
-                .bind(&config.client_id)
-                .bind(&config.client_secret)
-                .execute(&self.pool)
-                .await
-                .map_err(|e| BiError::StringError(e.to_string()))?;
-        Ok(())
     }
 
     // Get all tenants with their corresponding realms
@@ -284,6 +255,92 @@ impl Database {
             .await
             .map_err(|e| BiError::StringError(e.to_string()))?;
 
+        Ok(())
+    }
+
+    // Get okta config from db
+    pub async fn get_okta_config(&self) -> Result<Option<OktaConfig>, BiError> {
+        self.get_config(OKTA_CONFIG_KEY).await
+    }
+
+    // Set okta config in db
+    pub async fn set_okta_config(&self, config: OktaConfig) -> Result<(), BiError> {
+        self.set_config(OKTA_CONFIG_KEY, &config).await
+    }
+
+    // Get onelogin config from db
+    pub async fn get_onelogin_config(&self) -> Result<Option<OneloginConfig>, BiError> {
+        self.get_config(ONELOGIN_CONFIG_KEY).await
+    }
+
+    // Set onelogin config in db
+    pub async fn set_onelogin_config(&self, config: OneloginConfig) -> Result<(), BiError> {
+        self.set_config(ONELOGIN_CONFIG_KEY, &config).await
+    }
+
+    // Get openai config from db
+    pub async fn get_openai_config(&self) -> Result<Option<OpenaiConfig>, BiError> {
+        self.get_config(OPENAI_CONFIG_KEY).await
+    }
+
+    // Set openai config in db
+    pub async fn set_openai_config(&self, config: OpenaiConfig) -> Result<(), BiError> {
+        self.set_config(OPENAI_CONFIG_KEY, &config).await
+    }
+
+    // Get anthropic config from db
+    pub async fn get_anthropic_config(&self) -> Result<Option<AnthropicConfig>, BiError> {
+        self.get_config(ANTHROPIC_CONFIG_KEY).await
+    }
+
+    // Set anthropic config in db
+    pub async fn set_anthropic_config(&self, config: AnthropicConfig) -> Result<(), BiError> {
+        self.set_config(ANTHROPIC_CONFIG_KEY, &config).await
+    }
+
+    // Get default AI provider
+    pub async fn get_default_ai_provider(&self) -> Result<Option<AiProvider>, BiError> {
+        self.get_config(DEFAULT_AI_PROVIDER_KEY).await
+    }
+
+    // Set default AI provider
+    pub async fn set_default_ai_provider(&self, provider: AiProvider) -> Result<(), BiError> {
+        self.set_config(DEFAULT_AI_PROVIDER_KEY, &provider).await
+    }
+
+    // Helper function to get a configuration from the settings table
+    async fn get_config<T: for<'de> Deserialize<'de>>(
+        &self,
+        key: &str,
+    ) -> Result<Option<T>, BiError> {
+        let row = query("SELECT value FROM settings WHERE key = ?")
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| BiError::StringError(e.to_string()))?;
+
+        if let Some(row) = row {
+            let value: String = row
+                .try_get("value")
+                .map_err(|e| BiError::StringError(e.to_string()))?;
+            let config: T =
+                serde_json::from_str(&value).map_err(|e| BiError::StringError(e.to_string()))?;
+            Ok(Some(config))
+        } else {
+            Ok(None)
+        }
+    }
+
+    // Helper function to set a configuration in the settings table
+    async fn set_config<T: Serialize>(&self, key: &str, config: &T) -> Result<(), BiError> {
+        let value =
+            serde_json::to_string(config).map_err(|e| BiError::StringError(e.to_string()))?;
+        query("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
+            .bind(key)
+            .bind(value)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| BiError::StringError(e.to_string()))?;
         Ok(())
     }
 }

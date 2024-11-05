@@ -5,7 +5,7 @@ use crate::beyond_identity::api::tenants::api::TenantsApi;
 use crate::common::database;
 use crate::common::database::Database;
 use crate::common::error::BiError;
-use crate::setup::tenants::application::get_management_api_application;
+use crate::config::tenants::application::get_management_api_application;
 
 use futures::future::join_all;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};

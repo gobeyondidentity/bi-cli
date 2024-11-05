@@ -2,7 +2,6 @@ use super::fast_migrate;
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::common::command::ambassador_impl_Executable;
-use crate::common::database::models::OneloginConfig;
 use crate::{
     beyond_identity::api::common::middleware::rate_limit::RespectRateLimitMiddleware,
     common::{command::Executable, error::BiError},
@@ -17,58 +16,13 @@ use reqwest_middleware::ClientBuilder;
 // Onelogin Commands
 // ====================================
 
+/// Commands for facilitating migration from OneLogin to Beyond Identity.
 #[derive(Subcommand, ambassador::Delegate)]
 #[delegate(Executable)]
 pub enum OneloginCommands {
-    /// Setup allows you to provision a Onelogin tenant to be used for subsequent commands.
-    Setup(Setup),
-
-    /// Automatically populates Beyond Identities SSO with all of your OneLogin applications. Additionally, it will automatically assign all of your Beyond Identity users to the correct application based on assignments in OneLogin. Note that each tile you see in Beyond Identity will be an opaque redirect to OneLogin.
+    /// Automatically migrate all OneLogin applications to Beyond Identity SSO and assign users based on existing OneLogin assignments.
+    /// Each application tile in Beyond Identity will act as an opaque redirect to Onelogin.
     FastMigrate(FastMigrate),
-}
-
-// ====================================
-// Onelogin Setup
-// ====================================
-
-#[derive(Args)]
-pub struct Setup {
-    /// Onelogin domain
-    #[clap(long)]
-    domain: String,
-
-    /// Onelogin client id
-    #[clap(long)]
-    client_id: String,
-
-    /// Onelogin client secret
-    #[clap(long)]
-    client_secret: String,
-
-    /// Flag to allow force reconfiguration
-    #[arg(long)]
-    force: bool,
-}
-
-#[async_trait]
-impl Executable for Setup {
-    async fn execute(&self) -> Result<(), BiError> {
-        let api_client = ApiClient::new(None, None).await;
-        if let Ok(Some(c)) = api_client.db.get_onelogin_config().await {
-            if !self.force {
-                println!("Already configured: {:?}", c);
-                return Ok(());
-            } else {
-                println!("Forcing reconfiguration...");
-            }
-        }
-        let onelogin_config = OneloginConfig {
-            domain: self.domain.to_string(),
-            client_id: self.client_id.to_string(),
-            client_secret: self.client_secret.to_string(),
-        };
-        Ok(api_client.db.set_onelogin_config(onelogin_config).await?)
-    }
 }
 
 // ====================================

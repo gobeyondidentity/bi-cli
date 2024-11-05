@@ -33,7 +33,7 @@ function_name = "0.3.0"
 convert_case = "0.6.0"
 clap-markdown = "0.1.4"
 ambassador = "0.4.1"
-sqlx = { version = "0.8", features = [
+sqlx = { version = "0.8.2", features = [
     "sqlite",
     "runtime-tokio",
     "tls-native-tls",
