@@ -3,6 +3,7 @@ use super::types::{
     AddMembersRequest, CreateGroupRequest, DeleteMembersRequest, PatchGroupRequest,
 };
 
+use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::serialize::output;
 use crate::beyond_identity::api::common::service::GroupsService;
 use crate::common::command::ambassador_impl_Executable;
@@ -11,6 +12,7 @@ use crate::common::error::BiError;
 
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
+use field_types::FieldName;
 use serde::Serialize;
 
 // ====================================
@@ -55,8 +57,22 @@ impl Executable for CreateGroupRequest {
 // Groups List
 // ====================================
 
-#[derive(Args, Debug, Clone)]
+#[derive(Args, Debug, Clone, FieldName)]
 pub struct List {
+    /// Supports filtering groups based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2.
+    /// https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
+    ///
+    /// Acceptable fields:
+    ///
+    ///   - `id`: The unique identifier for the group
+    ///
+    ///   - `display_name`: The display name of the group
+    ///
+    /// Example:
+    ///
+    ///   ---filter "display_name eq \"Engineering\" and id eq \"8c449e76b1a826ef\""
+    #[clap(long)]
+    filter: Option<String>,
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -64,7 +80,13 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(GroupsService::new().build().await.list_groups(self.limit)).await
+        output(
+            GroupsService::new()
+                .build()
+                .await
+                .list_groups(Filter::new(self.filter.clone())?, self.limit),
+        )
+        .await
     }
 }
 

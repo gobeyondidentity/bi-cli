@@ -1,5 +1,6 @@
 use super::api::CredentialsApi;
 
+use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::serialize::output;
 use crate::beyond_identity::api::common::service::CredentialsService;
 use crate::common::command::ambassador_impl_Executable;
@@ -8,6 +9,7 @@ use crate::common::error::BiError;
 
 use async_trait::async_trait;
 use clap::{Args, Subcommand};
+use field_types::FieldName;
 
 // ====================================
 // Credentials Commands
@@ -28,10 +30,24 @@ pub enum CredentialCommands {
 // Credentials List
 // ====================================
 
-#[derive(Args, Debug, Clone)]
+#[derive(Args, Debug, Clone, FieldName)]
 pub struct List {
     #[clap(long)]
     identity_id: String,
+    /// Supports filtering credentials based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2.
+    /// https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
+    ///
+    /// Acceptable fields:
+    ///
+    ///   - `state`: The state of the credential. Possible values are [ACTIVE, REVOKED]
+    ///
+    ///   - `jwk_thumbprint`: The JWK thumbprint of the credential (base64 URL encoded)
+    ///
+    /// Example:
+    ///
+    ///   --filter "state eq \"ACTIVE\" and jwk_thumbprint eq \"8BYAqUrR07T_idW89mXkr6hCEIDX6r92coJiXhDWXOA\""
+    #[clap(long)]
+    filter: Option<String>,
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -39,12 +55,11 @@ pub struct List {
 #[async_trait]
 impl Executable for List {
     async fn execute(&self) -> Result<(), BiError> {
-        output(
-            CredentialsService::new()
-                .build()
-                .await
-                .list_credentials(&self.identity_id, self.limit),
-        )
+        output(CredentialsService::new().build().await.list_credentials(
+            &self.identity_id,
+            Filter::new(self.filter.clone())?,
+            self.limit,
+        ))
         .await
     }
 }

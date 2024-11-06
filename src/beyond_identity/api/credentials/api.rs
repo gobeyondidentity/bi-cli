@@ -1,5 +1,7 @@
+use super::command::ListFieldName;
 use super::types::{Credential, Credentials, CredentialsFieldName};
 
+use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::service::CredentialsService;
 use crate::beyond_identity::api::identities::types::IdentitiesFieldName;
 use crate::common::error::BiError;
@@ -15,6 +17,7 @@ pub trait CredentialsApi {
     async fn list_credentials(
         &self,
         identity_id: &str,
+        filter: Option<Filter>,
         limit: Option<usize>,
     ) -> Result<Credentials, BiError>;
     async fn get_credential(
@@ -37,6 +40,7 @@ impl CredentialsApi for CredentialsService {
     async fn list_credentials(
         &self,
         identity_id: &str,
+        filter: Option<Filter>,
         limit: Option<usize>,
     ) -> Result<Credentials, BiError> {
         let url = self
@@ -51,6 +55,10 @@ impl CredentialsApi for CredentialsService {
                 identity_id,
                 CredentialsFieldName::Credentials.name(),
             ])
+            .add_query_param(
+                &ListFieldName::Filter.name(),
+                filter.as_ref().map(|f| f.0.as_ref()),
+            )
             .to_string()?;
 
         let (credentials, total_size) = self

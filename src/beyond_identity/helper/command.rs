@@ -112,7 +112,7 @@ impl Executable for SendEnrollmentEmail {
             let groups = GroupsService::new()
                 .build()
                 .await
-                .list_groups(None)
+                .list_groups(None, None)
                 .await?
                 .groups;
 

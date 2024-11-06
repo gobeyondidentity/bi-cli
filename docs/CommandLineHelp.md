@@ -432,6 +432,17 @@ List realms
 
 ###### **Options:**
 
+* `--filter <FILTER>` — Supports filtering realms based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2. https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
+
+   Acceptable fields:
+
+   - `id`: The unique identifier for the realm
+
+   - `display_name`: The display name of the realm
+
+   Example:
+
+   ---filter "display_name eq \"Production Realm\" or id eq \"8c449e76b1a826ef\""
 * `-n`, `--limit <LIMIT>`
 
 
@@ -514,6 +525,17 @@ List groups
 
 ###### **Options:**
 
+* `--filter <FILTER>` — Supports filtering groups based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2. https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
+
+   Acceptable fields:
+
+   - `id`: The unique identifier for the group
+
+   - `display_name`: The display name of the group
+
+   Example:
+
+   ---filter "display_name eq \"Engineering\" and id eq \"8c449e76b1a826ef\""
 * `-n`, `--limit <LIMIT>`
 
 
@@ -777,6 +799,17 @@ List credentials
 ###### **Options:**
 
 * `--identity-id <IDENTITY_ID>`
+* `--filter <FILTER>` — Supports filtering credentials based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2. https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
+
+   Acceptable fields:
+
+   - `state`: The state of the credential. Possible values are [ACTIVE, REVOKED]
+
+   - `jwk_thumbprint`: The JWK thumbprint of the credential (base64 URL encoded)
+
+   Example:
+
+   --filter "state eq \"ACTIVE\" and jwk_thumbprint eq \"8BYAqUrR07T_idW89mXkr6hCEIDX6r92coJiXhDWXOA\""
 * `-n`, `--limit <LIMIT>`
 
 

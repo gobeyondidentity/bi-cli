@@ -1,7 +1,9 @@
+use super::command::ListFieldName;
 use super::types::{
     AddMembersRequest, CreateGroupRequest, DeleteMembersRequest, PatchGroupRequest,
 };
 
+use crate::beyond_identity::api::common::filter::Filter;
 use crate::beyond_identity::api::common::service::GroupsService;
 use crate::beyond_identity::api::groups::types::{Group, Groups, GroupsFieldName};
 use crate::beyond_identity::api::identities::types::Identities;
@@ -20,7 +22,11 @@ use http::Method;
 
 pub trait GroupsApi {
     async fn create_group(&self, request: &CreateGroupRequest) -> Result<Group, BiError>;
-    async fn list_groups(&self, limit: Option<usize>) -> Result<Groups, BiError>;
+    async fn list_groups(
+        &self,
+        filter: Option<Filter>,
+        limit: Option<usize>,
+    ) -> Result<Groups, BiError>;
     async fn get_group(&self, group_id: &str) -> Result<Group, BiError>;
     async fn patch_group(&self, request: &PatchGroupRequest) -> Result<Group, BiError>;
     async fn delete_group(&self, group_id: &str) -> Result<serde_json::Value, BiError>;
@@ -70,7 +76,11 @@ impl GroupsApi for GroupsService {
             .await
     }
 
-    async fn list_groups(&self, limit: Option<usize>) -> Result<Groups, BiError> {
+    async fn list_groups(
+        &self,
+        filter: Option<Filter>,
+        limit: Option<usize>,
+    ) -> Result<Groups, BiError> {
         let url = self
             .api_client
             .builder()
@@ -79,6 +89,10 @@ impl GroupsApi for GroupsService {
             .add_tenant()
             .add_realm()
             .add_path(vec![GroupsFieldName::Groups.name()])
+            .add_query_param(
+                &ListFieldName::Filter.name(),
+                filter.as_ref().map(|f| f.0.as_ref()),
+            )
             .to_string()?;
 
         let (groups, total_size) = self
