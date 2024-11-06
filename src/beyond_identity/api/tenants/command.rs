@@ -43,6 +43,7 @@ impl Executable for Get {
 
 #[derive(Debug, Clone, Args)]
 pub struct Patch {
+    /// Display name for the tenant
     #[clap(long)]
     display_name: String,
 }

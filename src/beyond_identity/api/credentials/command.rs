@@ -32,8 +32,10 @@ pub enum CredentialCommands {
 
 #[derive(Args, Debug, Clone, FieldName)]
 pub struct List {
+    /// Identity ID associated with the credential
     #[clap(long)]
     identity_id: String,
+
     /// Supports filtering credentials based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2.
     /// https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
     ///
@@ -48,6 +50,8 @@ pub struct List {
     ///   --filter "state eq \"ACTIVE\" and jwk_thumbprint eq \"8BYAqUrR07T_idW89mXkr6hCEIDX6r92coJiXhDWXOA\""
     #[clap(long)]
     filter: Option<String>,
+
+    /// Limits the number of credentials returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -70,8 +74,11 @@ impl Executable for List {
 
 #[derive(Args, Debug, Clone)]
 pub struct Get {
+    /// ID of the Credential to retrieve
     #[clap(long)]
     id: String,
+
+    /// Identity ID associated with the credential
     #[clap(long)]
     identity_id: String,
 }
@@ -95,8 +102,11 @@ impl Executable for Get {
 
 #[derive(Args, Debug, Clone)]
 pub struct Revoke {
+    /// ID of the Credential to retrieve
     #[clap(long)]
     id: String,
+
+    /// Identity ID associated with the credential
     #[clap(long)]
     identity_id: String,
 }

@@ -72,6 +72,8 @@ pub struct List {
     ///   --filter "traits.username eq \"john.doe\" and traits.primary_email_address co \"example.com\""
     #[clap(long)]
     filter: Option<String>,
+
+    /// Limits the number of identities returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -95,6 +97,7 @@ impl Executable for List {
 
 #[derive(Args, Debug, Clone)]
 pub struct Get {
+    /// ID of the Identity to retrieve
     #[clap(long)]
     id: String,
 }
@@ -129,6 +132,7 @@ impl Executable for PatchIdentityRequest {
 
 #[derive(Args, Debug, Clone)]
 pub struct Delete {
+    /// ID of the Identity to delete
     #[clap(long)]
     id: String,
 }
@@ -152,8 +156,11 @@ impl Executable for Delete {
 
 #[derive(Args, Debug, Clone)]
 pub struct ListGroups {
+    /// ID of the Identity to list groups for
     #[clap(long)]
     id: String,
+
+    /// Limits the number of groups returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -177,10 +184,15 @@ impl Executable for ListGroups {
 
 #[derive(Args, Debug, Clone)]
 pub struct ListRoles {
+    /// ID of the Identity to list roles for
     #[clap(long)]
     id: String,
+
+    /// ID of the Resource server used to filter roles
     #[clap(long)]
     resource_server_id: String,
+
+    /// Limits the number of roles returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }

@@ -73,6 +73,8 @@ pub struct List {
     ///   ---filter "display_name eq \"Engineering\" and id eq \"8c449e76b1a826ef\""
     #[clap(long)]
     filter: Option<String>,
+
+    /// Limits the number of groups returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -96,6 +98,7 @@ impl Executable for List {
 
 #[derive(Args, Debug, Clone)]
 pub struct Get {
+    /// ID of the Group to retrieve
     #[clap(long)]
     id: String,
 }
@@ -124,6 +127,7 @@ impl Executable for PatchGroupRequest {
 
 #[derive(Args, Debug, Clone)]
 pub struct Delete {
+    /// ID of the Group to delete
     #[clap(long)]
     id: String,
 }
@@ -141,6 +145,7 @@ impl Executable for Delete {
 
 #[derive(Args, Debug, Clone, Serialize)]
 pub struct AddMembers {
+    /// ID of the Group to add members to
     #[clap(long)]
     id: String,
     #[clap(flatten)]
@@ -166,8 +171,10 @@ impl Executable for AddMembers {
 
 #[derive(Args, Debug, Clone)]
 pub struct DeleteMembers {
+    /// ID of the Group to delete members from
     #[clap(long)]
     id: String,
+
     #[clap(flatten)]
     request: DeleteMembersRequest,
 }
@@ -191,8 +198,11 @@ impl Executable for DeleteMembers {
 
 #[derive(Args, Debug, Clone)]
 pub struct ListMembers {
+    /// ID of the Group to list members for
     #[clap(long)]
     id: String,
+
+    /// Limits the number of members returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -216,10 +226,15 @@ impl Executable for ListMembers {
 
 #[derive(Args, Debug, Clone)]
 pub struct ListRoles {
+    /// ID of the Group to list role memberships for
     #[clap(long)]
     id: String,
+
+    /// ID of the Resource server used to filter roles
     #[clap(long)]
     resource_server_id: String,
+
+    /// Limits the number of roles returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }

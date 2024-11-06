@@ -67,6 +67,8 @@ pub struct List {
     ///   ---filter "display_name eq \"Production Realm\" or id eq \"8c449e76b1a826ef\""
     #[clap(long)]
     filter: Option<String>,
+
+    /// Limits the number of realms returned
     #[clap(long, short = 'n')]
     limit: Option<usize>,
 }
@@ -90,6 +92,7 @@ impl Executable for List {
 
 #[derive(Debug, Clone, Args)]
 pub struct Get {
+    /// ID of the Realm to retrieve
     #[clap(long)]
     id: String,
 }
@@ -118,6 +121,7 @@ impl Executable for PatchRealmRequest {
 
 #[derive(Args, Debug, Clone)]
 pub struct Delete {
+    /// ID of the Realm to delete
     #[clap(long)]
     id: String,
 }

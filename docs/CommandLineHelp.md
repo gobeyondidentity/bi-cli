@@ -388,7 +388,7 @@ Update tenant
 
 ###### **Options:**
 
-* `--display-name <DISPLAY_NAME>`
+* `--display-name <DISPLAY_NAME>` — Display name for the tenant
 
 
 
@@ -443,7 +443,7 @@ List realms
    Example:
 
    ---filter "display_name eq \"Production Realm\" or id eq \"8c449e76b1a826ef\""
-* `-n`, `--limit <LIMIT>`
+* `-n`, `--limit <LIMIT>` — Limits the number of realms returned
 
 
 
@@ -455,7 +455,7 @@ Get realm
 
 ###### **Options:**
 
-* `--id <ID>`
+* `--id <ID>` — ID of the Realm to retrieve
 
 
 
@@ -480,7 +480,7 @@ Delete realm
 
 ###### **Options:**
 
-* `--id <ID>`
+* `--id <ID>` — ID of the Realm to delete
 
 
 
@@ -536,7 +536,7 @@ List groups
    Example:
 
    ---filter "display_name eq \"Engineering\" and id eq \"8c449e76b1a826ef\""
-* `-n`, `--limit <LIMIT>`
+* `-n`, `--limit <LIMIT>` — Limits the number of groups returned
 
 
 
@@ -548,7 +548,7 @@ Get a group
 
 ###### **Options:**
 
-* `--id <ID>`
+* `--id <ID>` — ID of the Group to retrieve
 
 
 
@@ -574,7 +574,7 @@ Delete a group
 
 ###### **Options:**
 
-* `--id <ID>`
+* `--id <ID>` — ID of the Group to delete
 
 
 
@@ -586,8 +586,8 @@ Add members to a group
 
 ###### **Options:**
 
-* `--id <ID>`
-* `--identity-ids <IDENTITY_IDS>`
+* `--id <ID>` — ID of the Group to add members to
+* `--identity-ids <IDENTITY_IDS>` — A list of identity IDs to add as members to the group
 
 
 
@@ -599,8 +599,8 @@ Delete members from a group
 
 ###### **Options:**
 
-* `--id <ID>`
-* `--identity-ids <IDENTITY_IDS>`
+* `--id <ID>` — ID of the Group to delete members from
+* `--identity-ids <IDENTITY_IDS>` — A list of identity IDs to delete from the group
 
 
 
@@ -612,8 +612,8 @@ List members for a group
 
 ###### **Options:**
 
-* `--id <ID>`
-* `-n`, `--limit <LIMIT>`
+* `--id <ID>` — ID of the Group to list members for
+* `-n`, `--limit <LIMIT>` — Limits the number of members returned
 
 
 
@@ -625,9 +625,9 @@ List role memberships for a group
 
 ###### **Options:**
 
-* `--id <ID>`
-* `--resource-server-id <RESOURCE_SERVER_ID>`
-* `-n`, `--limit <LIMIT>`
+* `--id <ID>` — ID of the Group to list role memberships for
+* `--resource-server-id <RESOURCE_SERVER_ID>` — ID of the Resource server used to filter roles
+* `-n`, `--limit <LIMIT>` — Limits the number of roles returned
 
 
 
@@ -695,7 +695,7 @@ List identities
    Example:
 
    --filter "traits.username eq \"john.doe\" and traits.primary_email_address co \"example.com\""
-* `-n`, `--limit <LIMIT>`
+* `-n`, `--limit <LIMIT>` — Limits the number of identities returned
 
 
 
@@ -707,7 +707,7 @@ Get an identity
 
 ###### **Options:**
 
-* `--id <ID>`
+* `--id <ID>` — ID of the Identity to retrieve
 
 
 
@@ -745,7 +745,7 @@ Delete an identity
 
 ###### **Options:**
 
-* `--id <ID>`
+* `--id <ID>` — ID of the Identity to delete
 
 
 
@@ -757,8 +757,8 @@ List an identity's groups
 
 ###### **Options:**
 
-* `--id <ID>`
-* `-n`, `--limit <LIMIT>`
+* `--id <ID>` — ID of the Identity to list groups for
+* `-n`, `--limit <LIMIT>` — Limits the number of groups returned
 
 
 
@@ -770,9 +770,9 @@ List an identity's roles
 
 ###### **Options:**
 
-* `--id <ID>`
-* `--resource-server-id <RESOURCE_SERVER_ID>`
-* `-n`, `--limit <LIMIT>`
+* `--id <ID>` — ID of the Identity to list roles for
+* `--resource-server-id <RESOURCE_SERVER_ID>` — ID of the Resource server used to filter roles
+* `-n`, `--limit <LIMIT>` — Limits the number of roles returned
 
 
 
@@ -798,7 +798,7 @@ List credentials
 
 ###### **Options:**
 
-* `--identity-id <IDENTITY_ID>`
+* `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential
 * `--filter <FILTER>` — Supports filtering credentials based on specific fields. Filters follow the SCIM grammar from RFC-7644 Section 3.4.2.2. https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
 
    Acceptable fields:
@@ -810,7 +810,7 @@ List credentials
    Example:
 
    --filter "state eq \"ACTIVE\" and jwk_thumbprint eq \"8BYAqUrR07T_idW89mXkr6hCEIDX6r92coJiXhDWXOA\""
-* `-n`, `--limit <LIMIT>`
+* `-n`, `--limit <LIMIT>` — Limits the number of credentials returned
 
 
 
@@ -822,8 +822,8 @@ Get a credential
 
 ###### **Options:**
 
-* `--id <ID>`
-* `--identity-id <IDENTITY_ID>`
+* `--id <ID>` — ID of the Credential to retrieve
+* `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential
 
 
 
@@ -835,8 +835,8 @@ Revoke a credential
 
 ###### **Options:**
 
-* `--id <ID>`
-* `--identity-id <IDENTITY_ID>`
+* `--id <ID>` — ID of the Credential to retrieve
+* `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential
 
 
 

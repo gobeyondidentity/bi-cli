@@ -71,12 +71,14 @@ pub struct PatchGroup {
 
 #[derive(Args, Clone, Debug, Serialize)]
 pub struct AddMembersRequest {
+    /// A list of identity IDs to add as members to the group
     #[clap(long, use_value_delimiter = true, num_args(0..))]
     pub identity_ids: Vec<String>,
 }
 
 #[derive(Args, Clone, Debug, Serialize)]
 pub struct DeleteMembersRequest {
+    /// A list of identity IDs to delete from the group
     #[clap(long, use_value_delimiter = true, num_args(0..))]
     pub identity_ids: Vec<String>,
 }
