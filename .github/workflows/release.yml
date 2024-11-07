@@ -129,8 +129,8 @@ jobs:
         include:
           - name: linux-amd64
             runner: ubuntu-latest
-          - name: linux-arm64
-            runner: ubuntu-latest
+          # - name: linux-arm64
+          #   runner: ubuntu-latest
           - name: win-amd64
             runner: windows-latest
           - name: win-arm64
