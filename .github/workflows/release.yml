@@ -98,7 +98,7 @@ jobs:
           if [[ "${ARCHIVE_SUFFIX}" == "tar.gz" ]]; then
             tar -czvf "./${BIN_RELEASE_VERSIONED}" -C "$(dirname "${BIN_OUTPUT}")" "$(basename "${BIN_OUTPUT}")"
           else
-            zip "./${BIN_RELEASE_VERSIONED}" "${BIN_OUTPUT}"
+            zip -j "./${BIN_RELEASE_VERSIONED}" "${BIN_OUTPUT}"
           fi
 
           # Output for later steps
