@@ -1,6 +1,6 @@
 [package]
 name = "bi"
-version = "0.0.24"
+version = "0.0.25"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -38,7 +38,7 @@ ambassador = "0.4.1"
 sqlx = { version = "0.8.2", features = [
     "sqlite",
     "runtime-tokio",
-    "tls-native-tls",
+    "tls-rustls",
 ] }
 directories = "5.0.1"
 tabled = "0.16.0"
