@@ -39,25 +39,29 @@ For Windows users, follow these steps:
 
 1. Download the executable:
 
-- Go to the Releases page.
-- Download bi-vx.x.x-win-amd64.exe.
+- Go to the [Releases](https://github.com/gobeyondidentity/bi-cli/releases) page.
+- Download the latest release for your architecture (`arm64` or `x86_64`).
+- Unzip the downloaded file and move the `bi` binary to a preferred directory, e.g., C:\Program Files\bi.
 
 2. Run bi:
 
 - Open Command Prompt or PowerShell.
 - Change directory to where the executable is located.
-- Type .\bi-vx.x.x-win-amd64.exe to verify the installation.
+- Type `.\bi.exe --version` to verify the installation.
 
 3. Add to PATH (Optional):
 
-- Move the downloaded .exe file to a preferred directory, e.g., C:\Program Files\bi.
-- Add this directory to your system's PATH:
+- To add the directory where the `bi` executable is located to your system's PATH:
   - Press Win + X and select System.
   - Click on Advanced system settings.
   - Click Environment Variables.
   - Under System variables, scroll to Path and click Edit.
   - Click New and add the path to your bi executable.
   - Click OK to close all dialogs.
+  - Restart Command Prompt or PowerShell to ensure changes take effect.
+
+4. Verify PATH addition (Optional):
+  - Open Command Prompt or PowerShell and type `bi --version` to confirm `bi` runs globally.
 
 ## Usage
 
