@@ -186,3 +186,35 @@ jobs:
           asset_path: ./${{ steps.set_vars.outputs.BIN_RELEASE_VERSIONED }}
           asset_name: ${{ steps.set_vars.outputs.BIN_RELEASE_VERSIONED }}
           asset_content_type: application/octet-stream
+
+  update_scoop_manifest:
+    needs: [upload_assets]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          fetch-depth: 0
+
+      - name: Switch to Main Branch
+        run: |
+          git checkout main
+
+      - name: Install Dependencies
+        run: sudo apt-get install -y curl
+
+      - name: Run Script to Generate Scoop Manifest
+        run: |
+          chmod +x scoop/generate-scoop-manifest.sh
+          scoop/generate-scoop-manifest.sh ${{ github.ref_name }}
+
+      - name: Commit and Push Updated Scoop Manifest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add scoop/bi.json
+          git commit -m "chore(scoop): Update Scoop manifest for version ${{ github.ref_name }}"
+          git push origin main
