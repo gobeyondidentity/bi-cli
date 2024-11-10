@@ -1,0 +1,31 @@
+{
+    "version": "0.0.26",
+    "description": "A CLI tool for Beyond Identity",
+    "homepage": "https://github.com/gobeyondidentity/bi-cli",
+    "license": "Apache-2.0",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/gobeyondidentity/bi-cli/releases/download/v0.0.26/bi_v0.0.26_Windows_x86_64.zip",
+            "hash": "02d14360c27b9c00c4f14eb4d8f2ae736b4c1d8c805f9b3a72aaedd54a51508b"
+        },
+        "arm64": {
+            "url": "https://github.com/gobeyondidentity/bi-cli/releases/download/v0.0.26/bi_v0.0.26_Windows_arm64.zip",
+            "hash": "5753a49dcbcdbbd4d4687f2bde233003b9f72f97ec0438e963c0b19038584900"
+        }
+    },
+    "bin": "bi.exe",
+    "checkver": {
+        "url": "https://github.com/gobeyondidentity/bi-cli/releases",
+        "re": "/releases/tag/v([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/gobeyondidentity/bi-cli/releases/download/v$version/bi_v$version_Windows_x86_64.zip"
+            },
+            "arm64": {
+                "url": "https://github.com/gobeyondidentity/bi-cli/releases/download/v$version/bi_v$version_Windows_arm64.zip"
+            }
+        }
+    }
+}
