@@ -7,17 +7,25 @@ Official Beyond Identity command-line interface.
 ## Table of Contents
 
 1. [Installation](#installation)
-   - [macOS and Linux](#macos-and-linux)
-   - [Windows](#windows)
+
+- [macOS and Linux](#macos-and-linux)
+  - [Install Script](#install-script)
+  - [Manual Installation](#manual-installation-macos-and-linux)
+- [Windows](#windows)
+  - [Using Scoop](#using-scoop)
+  - [Manual Installation](#manual-installation-windows)
+
 2. [Usage](#usage)
 
 ## Installation
 
 ### macOS and Linux
 
-You can install bi using the provided install.sh script.
+#### Install Script
 
-#### Using cURL
+You can install `bi` using the provided `install.sh` script.
+
+**Using cURL**
 
 Open your terminal and run:
 
@@ -25,44 +33,127 @@ Open your terminal and run:
 curl -fsSL https://raw.githubusercontent.com/gobeyondidentity/bi-cli/main/install.sh | sh
 ```
 
-#### Using wget
+**Using wget**
 
-If you prefer wget, run:
+If you prefer `wget`, run:
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/gobeyondidentity/bi-cli/main/install.sh | sh
 ```
 
+#### Manual Installation (macOS and Linux)
+
+<details><summary><strong>Step-by-step Instructions</strong></summary>
+
+<br>
+
+If you prefer to install `bi` manually:
+
+1. **Download the Binary:**
+
+- Visit the [Releases](https://github.com/gobeyondidentity/bi-cli/releases) page.
+- Download the latest release for your operating system and architecture (`arm64` or `x86_64`).
+
+2. **Extract the Binary:**
+
+- Extract the contents of the tarball to a directory of your choice.
+
+3. **Make the Binary Executable:**
+
+- Open your terminal and navigate to the download directory.
+- Run:
+
+  ```bash
+  chmod +x bi
+  ```
+
+4. **Move the Binary to a Directory in your PATH:**
+
+- For example:
+
+  ```bash
+  sudo mv bi /usr/local/bin/
+  ```
+
+5. **Verify the Installation:**
+
+- Run:
+
+  ```bash
+  bi --version
+  ```
+
+  to confirm that `bi` is installed and accessible from your terminal.
+
+</details>
+
 ### Windows
 
-For Windows users, follow these steps:
+#### Using Scoop
 
-1. Download the executable:
+You can install `bi` on Windows using [Scoop](https://scoop.sh/), a command-line installer for Windows.
+
+1. **Add the `bi` Bucket:**
+
+```powershell
+scoop bucket add bi https://github.com/gobeyondidentity/bi-cli.git
+```
+
+2. **Install `bi`:**
+
+```powershell
+scoop install bi
+```
+
+3. **Verify the Installation:**
+
+```powershell
+bi --version
+```
+
+#### Manual Installation (Windows)
+
+<details><summary><strong>Step-by-step Instructions</strong></summary>
+
+<br>
+
+1. **Download the Executable:**
 
 - Go to the [Releases](https://github.com/gobeyondidentity/bi-cli/releases) page.
-- Download the latest release for your architecture (`arm64` or `x86_64`).
-- Unzip the downloaded file and move the `bi` binary to a preferred directory, e.g., C:\Program Files\bi.
+- Download the latest Windows release for your architecture (`arm64` or `x86_64`).
 
-2. Run bi:
+2. **Extract the Binary:**
+
+- Unzip the downloaded file to a directory of your choice (e.g., `C:\Program Files\bi`).
+
+3. **Add to PATH (Optional but Recommended):**
+
+- Press `Win + X` and select **System**.
+- Click on **Advanced system settings**.
+- Click **Environment Variables**.
+- Under **System variables**, scroll to `Path` and click **Edit**.
+- Click **New** and add the path to your `bi` executable (e.g., `C:\Program Files\bi`).
+- Click **OK** to close all dialogs.
+- Restart Command Prompt or PowerShell to ensure changes take effect.
+
+4. **Run `bi`:**
 
 - Open Command Prompt or PowerShell.
-- Change directory to where the executable is located.
-- Type `.\bi.exe --version` to verify the installation.
+- If you didn't add `bi` to your PATH, navigate to the directory containing `bi.exe`.
+- Run:
 
-3. Add to PATH (Optional):
+  ```powershell
+  .\bi.exe --version
+  ```
 
-- To add the directory where the `bi` executable is located to your system's PATH:
-  - Press Win + X and select System.
-  - Click on Advanced system settings.
-  - Click Environment Variables.
-  - Under System variables, scroll to Path and click Edit.
-  - Click New and add the path to your bi executable.
-  - Click OK to close all dialogs.
-  - Restart Command Prompt or PowerShell to ensure changes take effect.
+- If you added `bi` to your PATH, simply run:
 
-4. Verify PATH addition (Optional):
-  - Open Command Prompt or PowerShell and type `bi --version` to confirm `bi` runs globally.
+  ```powershell
+  bi --version
+  ```
+
+</details>
 
 ## Usage
 
-See [Command Line Help](docs/CommandLineHelp.md)
+For detailed usage instructions, see [Command Line Help](docs/CommandLineHelp.md).
