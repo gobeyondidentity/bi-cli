@@ -3,7 +3,7 @@ use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Identity Structures and Types
+// Identity Types
 // ====================================
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]

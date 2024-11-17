@@ -1,9 +1,8 @@
-use clap::Args;
 use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Credential Structures and Types
+// Credential Types
 // ====================================
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]
@@ -17,26 +16,37 @@ pub struct CredentialEnvelope {
     pub credential: Credential,
 }
 
-#[derive(Args, Clone, Debug, Serialize, Deserialize)]
+/// Represents a credential resource in the system.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Credential {
-    #[clap(skip)]
+    /// A unique identifier for the credential.
     pub id: String,
-    #[clap(skip)]
+
+    /// A unique identifier for the realm this credential belongs to.
     pub realm_id: String,
-    #[clap(skip)]
+
+    /// A unique identifier for the tenant this credential belongs to.
     pub tenant_id: String,
-    #[clap(long)]
+
+    /// A unique identifier for the identity associated with this credential.
     pub identity_id: String,
-    #[clap(skip)]
+
+    /// The state of the credential (e.g., ACTIVE, INACTIVE).
     pub state: String,
-    #[clap(skip)]
+
+    /// The type of CSR (Certificate Signing Request) associated with the credential.
+    /// Example: "JWT".
     pub csr_type: String,
-    #[clap(skip)]
+
+    /// A JSON representation of the JWK (JSON Web Key) associated with the credential.
     pub jwk_json: String,
-    #[clap(skip)]
+
+    /// A thumbprint of the JWK, used for verifying the key.
     pub jwk_thumbprint: String,
-    #[clap(skip)]
+
+    /// The timestamp when the credential was created represented as an ISO 8601 string.
     pub create_time: String,
-    #[clap(skip)]
+
+    /// The timestamp when the credential was last updated represented as an ISO 8601 string.
     pub update_time: String,
 }

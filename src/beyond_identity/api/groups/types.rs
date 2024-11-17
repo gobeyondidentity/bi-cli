@@ -3,7 +3,7 @@ use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Group Structures and Types
+// Group Types
 // ====================================
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]

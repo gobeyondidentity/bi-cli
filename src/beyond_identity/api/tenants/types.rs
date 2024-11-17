@@ -2,7 +2,7 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Tenant Structures and Types
+// Tenant Types
 // ====================================
 
 #[derive(Args, Clone, Debug, Serialize, Deserialize)]

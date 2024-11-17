@@ -3,7 +3,7 @@ use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Role Structures and Types
+// Role Types
 // ====================================
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]

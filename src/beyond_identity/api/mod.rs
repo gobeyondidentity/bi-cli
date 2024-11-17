@@ -1,4 +1,6 @@
+pub mod authenticator_configs;
 pub mod common;
+pub mod credential_binding_jobs;
 pub mod credentials;
 pub mod groups;
 pub mod identities;

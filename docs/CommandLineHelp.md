@@ -58,6 +58,10 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api credentials list`↴](#bi-api-credentials-list)
 * [`bi api credentials get`↴](#bi-api-credentials-get)
 * [`bi api credentials revoke`↴](#bi-api-credentials-revoke)
+* [`bi api credential-binding-jobs`↴](#bi-api-credential-binding-jobs)
+* [`bi api credential-binding-jobs create`↴](#bi-api-credential-binding-jobs-create)
+* [`bi api credential-binding-jobs list`↴](#bi-api-credential-binding-jobs-list)
+* [`bi api credential-binding-jobs get`↴](#bi-api-credential-binding-jobs-get)
 * [`bi helper`↴](#bi-helper)
 * [`bi helper create-admin-account`↴](#bi-helper-create-admin-account)
 * [`bi helper delete-all-identities`↴](#bi-helper-delete-all-identities)
@@ -356,6 +360,7 @@ Interact with Beyond Identity API endpoints
 * `groups` — Groups
 * `identities` — Identities
 * `credentials` — Credentials
+* `credential-binding-jobs` — Credential Binding Jobs
 
 
 
@@ -837,6 +842,73 @@ Revoke a credential
 
 * `--id <ID>` — ID of the Credential to retrieve
 * `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential
+
+
+
+## `bi api credential-binding-jobs`
+
+Credential Binding Jobs
+
+**Usage:** `bi api credential-binding-jobs <COMMAND>`
+
+###### **Subcommands:**
+
+* `create` — Create a credential binding job
+* `list` — List credential binding jobs
+* `get` — Get a credential binding job
+
+
+
+## `bi api credential-binding-jobs create`
+
+Create a credential binding job
+
+**Usage:** `bi api credential-binding-jobs create [OPTIONS] --identity-id <IDENTITY_ID> --delivery-method <DELIVERY_METHOD> <--authenticator-config <AUTHENTICATOR_CONFIG>|--authenticator-config-id <AUTHENTICATOR_CONFIG_ID>>`
+
+###### **Options:**
+
+* `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential binding job
+* `--delivery-method <DELIVERY_METHOD>` — (required) The method by which a credential binding link is delivered to the target authenticator or identity
+
+  Possible values:
+  - `return`:
+    Indicates that a credential binding link will be returned to the caller upon creation of the credential binding job
+  - `email`:
+    Indicates that a credential binding link will be sent to the email address associated with the identity
+
+* `--post-binding-redirect-uri <POST_BINDING_REDIRECT_URI>` — (optional) The URI to which the caller will be redirected after successfully binding a credential to an identity
+* `--authenticator-config <AUTHENTICATOR_CONFIG>` — The full authenticator configuration (optional if `authenticator_config_id` is provided).
+
+   Example JSON for an embedded authenticator configuration: { "config": { "type": "embedded", "invoke_url": "https://example.com/authenticate", "invocation_type": "automatic", "authentication_methods": [{"type": "webauthn_passkey"}, {"type": "software_passkey"}], "trusted_origins": ["https://trusted-origin1.com", "https://trusted-origin2.com"] } }
+
+   Example JSON for a platform authenticator configuration: { "config": { "type": "platform", "trusted_origins": ["https://trusted-origin.com"] } }
+* `--authenticator-config-id <AUTHENTICATOR_CONFIG_ID>` — The ID of the authenticator configuration (optional if `authenticator_config` is provided)
+
+
+
+## `bi api credential-binding-jobs list`
+
+List credential binding jobs
+
+**Usage:** `bi api credential-binding-jobs list [OPTIONS] --identity-id <IDENTITY_ID>`
+
+###### **Options:**
+
+* `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential binding job. Identity ID may be a wildcard (-) to request all credential binding jobs across all identities within the realm
+* `-n`, `--limit <LIMIT>` — Limits the number of credential binding jobs returned
+
+
+
+## `bi api credential-binding-jobs get`
+
+Get a credential binding job
+
+**Usage:** `bi api credential-binding-jobs get --id <ID> --identity-id <IDENTITY_ID>`
+
+###### **Options:**
+
+* `--id <ID>` — ID of the credential binding job to retrieve
+* `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential binding job
 
 
 

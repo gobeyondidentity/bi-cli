@@ -3,7 +3,7 @@ use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 
 // ====================================
-// Realm Structures and Types
+// Realm Types
 // ====================================
 
 #[derive(Clone, Debug, Serialize, Deserialize, FieldName)]

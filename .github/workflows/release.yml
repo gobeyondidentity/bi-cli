@@ -216,5 +216,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add scoop/bi.json
-          git commit -m "chore(scoop): Update Scoop manifest for version ${{ github.ref_name }}"
+          git commit -m "chore(release): Update Scoop manifest for version ${{ github.ref_name }}"
           git push origin main
