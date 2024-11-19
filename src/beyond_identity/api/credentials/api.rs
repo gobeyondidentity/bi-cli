@@ -63,7 +63,7 @@ impl CredentialsApi for CredentialsService {
 
         let (credentials, total_size) = self
             .api_client
-            .send_request_paginated::<_, Credential>(Method::GET, &url, None::<&()>, limit)
+            .send_request_paginated::<_, Credential>(Method::GET, &url, None::<&()>, limit, None)
             .await?;
 
         Ok(Credentials {

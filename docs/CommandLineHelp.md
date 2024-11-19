@@ -62,6 +62,18 @@ This document contains the help content for the `bi` command-line program.
 * [`bi api credential-binding-jobs create`↴](#bi-api-credential-binding-jobs-create)
 * [`bi api credential-binding-jobs list`↴](#bi-api-credential-binding-jobs-list)
 * [`bi api credential-binding-jobs get`↴](#bi-api-credential-binding-jobs-get)
+* [`bi api authenticator-configs`↴](#bi-api-authenticator-configs)
+* [`bi api authenticator-configs create`↴](#bi-api-authenticator-configs-create)
+* [`bi api authenticator-configs create embedded`↴](#bi-api-authenticator-configs-create-embedded)
+* [`bi api authenticator-configs create hosted-web`↴](#bi-api-authenticator-configs-create-hosted-web)
+* [`bi api authenticator-configs create platform`↴](#bi-api-authenticator-configs-create-platform)
+* [`bi api authenticator-configs list`↴](#bi-api-authenticator-configs-list)
+* [`bi api authenticator-configs get`↴](#bi-api-authenticator-configs-get)
+* [`bi api authenticator-configs patch`↴](#bi-api-authenticator-configs-patch)
+* [`bi api authenticator-configs patch embedded`↴](#bi-api-authenticator-configs-patch-embedded)
+* [`bi api authenticator-configs patch hosted-web`↴](#bi-api-authenticator-configs-patch-hosted-web)
+* [`bi api authenticator-configs patch platform`↴](#bi-api-authenticator-configs-patch-platform)
+* [`bi api authenticator-configs delete`↴](#bi-api-authenticator-configs-delete)
 * [`bi helper`↴](#bi-helper)
 * [`bi helper create-admin-account`↴](#bi-helper-create-admin-account)
 * [`bi helper delete-all-identities`↴](#bi-helper-delete-all-identities)
@@ -361,6 +373,7 @@ Interact with Beyond Identity API endpoints
 * `identities` — Identities
 * `credentials` — Credentials
 * `credential-binding-jobs` — Credential Binding Jobs
+* `authenticator-configs` — Authenticator Configs
 
 
 
@@ -879,6 +892,8 @@ Create a credential binding job
 * `--post-binding-redirect-uri <POST_BINDING_REDIRECT_URI>` — (optional) The URI to which the caller will be redirected after successfully binding a credential to an identity
 * `--authenticator-config <AUTHENTICATOR_CONFIG>` — The full authenticator configuration (optional if `authenticator_config_id` is provided).
 
+   Note: You cannot inline the hosted web authenticator configuration because it is not stateless. It requires an existing `authenticator_config_id` to reference a pre-hosted instance of the configuration.
+
    Example JSON for an embedded authenticator configuration: { "config": { "type": "embedded", "invoke_url": "https://example.com/authenticate", "invocation_type": "automatic", "authentication_methods": [{"type": "webauthn_passkey"}, {"type": "software_passkey"}], "trusted_origins": ["https://trusted-origin1.com", "https://trusted-origin2.com"] } }
 
    Example JSON for a platform authenticator configuration: { "config": { "type": "platform", "trusted_origins": ["https://trusted-origin.com"] } }
@@ -909,6 +924,193 @@ Get a credential binding job
 
 * `--id <ID>` — ID of the credential binding job to retrieve
 * `--identity-id <IDENTITY_ID>` — Identity ID associated with the credential binding job
+
+
+
+## `bi api authenticator-configs`
+
+Authenticator Configs
+
+**Usage:** `bi api authenticator-configs <COMMAND>`
+
+###### **Subcommands:**
+
+* `create` — Create an authenticator config
+* `list` — List authenticator configs
+* `get` — Get an authenticator config
+* `patch` — Update an authenticator config
+* `delete` — Delete an authenticator config
+
+
+
+## `bi api authenticator-configs create`
+
+Create an authenticator config
+
+**Usage:** `bi api authenticator-configs create <COMMAND>`
+
+###### **Subcommands:**
+
+* `embedded` — Embedded SDK authenticator configuration
+* `hosted-web` — Hosted web authenticator configuration
+* `platform` — Platform authenticator configuration
+
+
+
+## `bi api authenticator-configs create embedded`
+
+Embedded SDK authenticator configuration
+
+**Usage:** `bi api authenticator-configs create embedded [OPTIONS] --invoke-url <INVOKE_URL> --invocation-type <INVOCATION_TYPE> --authentication-methods <AUTHENTICATION_METHODS>...`
+
+###### **Options:**
+
+* `--display-name <DISPLAY_NAME>` — A human-readable name for the authenticator configuration
+* `--invoke-url <INVOKE_URL>` — URL to invoke during the authentication flow
+* `--invocation-type <INVOCATION_TYPE>` — The method used to invoke the `invoke_url` in the embedded authenticator config type
+
+  Possible values: `automatic`, `manual`
+
+* `--authentication-methods <AUTHENTICATION_METHODS>` — Set of authentication methods that are available to the authenticator
+
+  Possible values: `webauthn-passkey`, `software-passkey`, `email-one-time-password`
+
+* `--trusted-origins <TRUSTED_ORIGINS>` — Trusted origins are URLs that will be allowed to make requests from a browser to the Beyond Identity API
+
+
+
+## `bi api authenticator-configs create hosted-web`
+
+Hosted web authenticator configuration
+
+**Usage:** `bi api authenticator-configs create hosted-web [OPTIONS] --authentication-methods <AUTHENTICATION_METHODS>...`
+
+###### **Options:**
+
+* `--display-name <DISPLAY_NAME>` — A human-readable name for the authenticator configuration
+* `--authentication-methods <AUTHENTICATION_METHODS>` — Set of authentication methods that are available to the authenticator
+
+  Possible values: `webauthn-passkey`, `software-passkey`, `email-one-time-password`
+
+* `--trusted-origins <TRUSTED_ORIGINS>` — Trusted origins are URLs that will be allowed to make requests from a browser to the Beyond Identity API
+
+
+
+## `bi api authenticator-configs create platform`
+
+Platform authenticator configuration
+
+**Usage:** `bi api authenticator-configs create platform [OPTIONS]`
+
+###### **Options:**
+
+* `--display-name <DISPLAY_NAME>` — A human-readable name for the authenticator configuration
+* `--trusted-origins <TRUSTED_ORIGINS>` — Trusted origins are URLs that will be allowed to make requests from a browser to the Beyond Identity API
+
+
+
+## `bi api authenticator-configs list`
+
+List authenticator configs
+
+**Usage:** `bi api authenticator-configs list [OPTIONS]`
+
+###### **Options:**
+
+* `-n`, `--limit <LIMIT>` — Limits the number of credential binding jobs returned
+
+
+
+## `bi api authenticator-configs get`
+
+Get an authenticator config
+
+**Usage:** `bi api authenticator-configs get --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>` — ID of the Authenticator Config to retrieve
+
+
+
+## `bi api authenticator-configs patch`
+
+Update an authenticator config
+
+**Usage:** `bi api authenticator-configs patch <COMMAND>`
+
+###### **Subcommands:**
+
+* `embedded` — Embedded SDK authenticator configuration
+* `hosted-web` — Hosted web authenticator configuration
+* `platform` — Platform authenticator configuration
+
+
+
+## `bi api authenticator-configs patch embedded`
+
+Embedded SDK authenticator configuration
+
+**Usage:** `bi api authenticator-configs patch embedded [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>` — A unique identifier for the authenticator config
+* `--display-name <DISPLAY_NAME>` — A human-readable name for the authenticator configuration
+* `--invoke-url <INVOKE_URL>` — URL to invoke during the authentication flow
+* `--invocation-type <INVOCATION_TYPE>` — The method used to invoke the `invoke_url` in the embedded authenticator config type
+
+  Possible values: `automatic`, `manual`
+
+* `--authentication-methods <AUTHENTICATION_METHODS>` — Set of authentication methods that are available to the authenticator
+
+  Possible values: `webauthn-passkey`, `software-passkey`, `email-one-time-password`
+
+* `--trusted-origins <TRUSTED_ORIGINS>` — Trusted origins are URLs that will be allowed to make requests from a browser to the Beyond Identity API
+
+
+
+## `bi api authenticator-configs patch hosted-web`
+
+Hosted web authenticator configuration
+
+**Usage:** `bi api authenticator-configs patch hosted-web [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>` — A unique identifier for the authenticator config
+* `--display-name <DISPLAY_NAME>` — A human-readable name for the authenticator configuration
+* `--authentication-methods <AUTHENTICATION_METHODS>` — Set of authentication methods that are available to the authenticator
+
+  Possible values: `webauthn-passkey`, `software-passkey`, `email-one-time-password`
+
+* `--trusted-origins <TRUSTED_ORIGINS>` — Trusted origins are URLs that will be allowed to make requests from a browser to the Beyond Identity API
+
+
+
+## `bi api authenticator-configs patch platform`
+
+Platform authenticator configuration
+
+**Usage:** `bi api authenticator-configs patch platform [OPTIONS] --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>` — A unique identifier for the authenticator config
+* `--display-name <DISPLAY_NAME>` — A human-readable name for the authenticator configuration
+* `--trusted-origins <TRUSTED_ORIGINS>` — Trusted origins are URLs that will be allowed to make requests from a browser to the Beyond Identity API
+
+
+
+## `bi api authenticator-configs delete`
+
+Delete an authenticator config
+
+**Usage:** `bi api authenticator-configs delete --id <ID>`
+
+###### **Options:**
+
+* `--id <ID>` — ID of the Authenticator Config to delete
 
 
 

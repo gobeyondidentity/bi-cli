@@ -117,7 +117,7 @@ impl IdentitiesApi for IdentitiesService {
 
         let (identities, total_size) = self
             .api_client
-            .send_request_paginated::<_, Identity>(Method::GET, &url, None::<&()>, limit)
+            .send_request_paginated::<_, Identity>(Method::GET, &url, None::<&()>, limit, None)
             .await?;
 
         Ok(Identities {
@@ -145,7 +145,7 @@ impl IdentitiesApi for IdentitiesService {
 
         let (groups, total_size) = self
             .api_client
-            .send_request_paginated::<_, Group>(Method::GET, &url, None::<&()>, limit)
+            .send_request_paginated::<_, Group>(Method::GET, &url, None::<&()>, limit, None)
             .await?;
 
         Ok(Groups { groups, total_size })
@@ -175,7 +175,7 @@ impl IdentitiesApi for IdentitiesService {
 
         let (roles, total_size) = self
             .api_client
-            .send_request_paginated::<_, Role>(Method::GET, &url, None::<&()>, limit)
+            .send_request_paginated::<_, Role>(Method::GET, &url, None::<&()>, limit, None)
             .await?;
 
         Ok(Roles { roles, total_size })

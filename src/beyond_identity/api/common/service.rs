@@ -55,3 +55,4 @@ create_service_with_builder!(GroupsService);
 create_service_with_builder!(IdentitiesService);
 create_service_with_builder!(CredentialsService);
 create_service_with_builder!(CredentialBindingJobsService);
+create_service_with_builder!(AuthenticatorConfigsService);

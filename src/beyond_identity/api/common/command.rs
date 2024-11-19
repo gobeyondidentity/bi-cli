@@ -1,3 +1,4 @@
+use crate::beyond_identity::api::authenticator_configs::command::AuthenticatorConfigCommands;
 use crate::beyond_identity::api::credential_binding_jobs::command::CredentialBindingJobCommands;
 use crate::beyond_identity::api::credentials::command::CredentialCommands;
 use crate::beyond_identity::api::groups::command::GroupCommands;
@@ -37,4 +38,8 @@ pub enum BeyondIdentityApiCommands {
     /// Credential Binding Jobs
     #[clap(subcommand)]
     CredentialBindingJobs(CredentialBindingJobCommands),
+
+    /// Authenticator Configs
+    #[clap(subcommand)]
+    AuthenticatorConfigs(AuthenticatorConfigCommands),
 }

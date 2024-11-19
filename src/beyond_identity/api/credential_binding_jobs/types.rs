@@ -1,8 +1,8 @@
-use crate::beyond_identity::api::authenticator_configs::types::AuthenticatorConfig;
-
 use clap::{ArgGroup, Args, ValueEnum};
 use field_types::FieldName;
 use serde::{Deserialize, Serialize};
+
+use crate::beyond_identity::api::authenticator_configs::types::AuthenticatorConfigDetails;
 
 // ====================================
 // Credential Binding Job Types
@@ -62,6 +62,9 @@ pub struct CreateCredentialBindingJob {
     pub post_binding_redirect_uri: Option<String>,
     /// The full authenticator configuration (optional if `authenticator_config_id` is provided).
     ///
+    /// Note: You cannot inline the hosted web authenticator configuration because it is not stateless.
+    /// It requires an existing `authenticator_config_id` to reference a pre-hosted instance of the configuration.
+    ///
     /// Example JSON for an embedded authenticator configuration:
     /// {
     ///   "config": {
@@ -80,9 +83,9 @@ pub struct CreateCredentialBindingJob {
     ///     "trusted_origins": ["https://trusted-origin.com"]
     ///   }
     /// }
-    #[clap(long, group = "authenticator_config_group", value_parser = clap::builder::ValueParser::new(|s: &str| serde_json::from_str::<AuthenticatorConfig>(s).map_err(|e| e.to_string())))]
+    #[clap(long, group = "authenticator_config_group", value_parser = clap::builder::ValueParser::new(|s: &str| serde_json::from_str::<CredentialBindingJobInlineAuthenticatorConfig>(s).map_err(|e| e.to_string())))]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub authenticator_config: Option<AuthenticatorConfig>,
+    pub authenticator_config: Option<CredentialBindingJobInlineAuthenticatorConfig>,
     /// The ID of the authenticator configuration (optional if `authenticator_config` is provided).
     #[clap(long, group = "authenticator_config_group")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -115,7 +118,7 @@ pub struct CredentialBindingJob {
 
     /// The full authenticator configuration (optional if `authenticator_config_id` is provided).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub authenticator_config: Option<AuthenticatorConfig>,
+    pub authenticator_config: Option<CredentialBindingJobInlineAuthenticatorConfig>,
 
     /// The ID of the authenticator configuration (optional if `authenticator_config` is provided).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -129,4 +132,10 @@ pub struct CredentialBindingJob {
 
     /// The time at which this credential binding job was last updated, represented as an ISO 8601 string.
     pub update_time: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CredentialBindingJobInlineAuthenticatorConfig {
+    pub config: AuthenticatorConfigDetails,
 }

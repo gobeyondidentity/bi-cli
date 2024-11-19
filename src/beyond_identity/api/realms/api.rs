@@ -65,7 +65,7 @@ impl RealmsApi for RealmsService {
 
         let (realms, total_size) = self
             .api_client
-            .send_request_paginated::<_, Realm>(Method::GET, &url, None::<&()>, limit)
+            .send_request_paginated::<_, Realm>(Method::GET, &url, None::<&()>, limit, None)
             .await?;
 
         Ok(Realms { realms, total_size })

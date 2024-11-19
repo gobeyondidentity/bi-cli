@@ -94,7 +94,13 @@ impl ApiClient {
             return Err(BiError::RequestError(status, response_text));
         }
 
-        let response_body: U = serde_json::from_str(&response_text)?;
+        // Handle empty response body
+        let response_body: U = if response_text.trim().is_empty() {
+            serde_json::from_str("{}")?
+        } else {
+            serde_json::from_str(&response_text)?
+        };
+
         Ok(response_body)
     }
 
@@ -104,6 +110,7 @@ impl ApiClient {
         url: &str,
         body: Option<&T>,
         limit: Option<usize>,
+        page_size: Option<usize>,
     ) -> Result<(Vec<U>, usize), BiError>
     where
         T: Serialize,
@@ -124,7 +131,7 @@ impl ApiClient {
             let mut full_url = url.to_string();
             let mut query_params = vec![];
 
-            let page_size = remaining_limit.min(500);
+            let page_size = remaining_limit.min(page_size.unwrap_or(500));
             query_params.push(format!("page_size={}", page_size));
 
             // Add next_page_token if available
