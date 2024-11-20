@@ -1,4 +1,4 @@
-use clap::{Args, Subcommand, ValueEnum, Parser};
+use clap::{Args, Subcommand, ValueEnum};
 use field_types::FieldName;
 use serde::{Deserialize, Serialize};
 

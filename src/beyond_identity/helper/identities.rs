@@ -1,7 +1,6 @@
 use super::enrollment::{get_credentials_for_identity, Credential};
-use super::groups::delete_group_memberships;
 use super::resource_servers::fetch_beyond_identity_resource_servers;
-use super::roles::{delete_role_memberships, fetch_role_memberships};
+use super::roles::fetch_role_memberships;
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::service::IdentitiesService;
@@ -24,10 +23,6 @@ pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError
         realm.api_base_url, tenant.id, realm.id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(api_client)
-        .await
-        .expect("Failed to fetch resource servers");
-
     loop {
         let response = api_client.client.get(&url).send().await?;
 
@@ -45,14 +40,6 @@ pub async fn delete_all_identities(api_client: &ApiClient) -> Result<(), BiError
             serde_json::from_value(response_json["identities"].clone())?;
 
         for identity in &page_identities {
-            delete_group_memberships(&identity.id)
-                .await
-                .expect("Failed to delete role memberships");
-            for rs in &resource_servers {
-                delete_role_memberships(api_client, &identity.id, &rs.id)
-                    .await
-                    .expect("Failed to delete role memberships");
-            }
             IdentitiesService::new()
                 .build()
                 .await
@@ -93,10 +80,6 @@ pub async fn delete_unenrolled_identities(api_client: &ApiClient) -> Result<(), 
         realm.api_base_url, tenant.id, realm.id
     );
 
-    let resource_servers = fetch_beyond_identity_resource_servers(api_client)
-        .await
-        .expect("Failed to fetch resource servers");
-
     loop {
         let response = api_client.client.get(&url).send().await?;
 
@@ -122,14 +105,6 @@ pub async fn delete_unenrolled_identities(api_client: &ApiClient) -> Result<(), 
                 .filter(|cred| cred.realm_id == realm.id && cred.tenant_id == tenant.id)
                 .collect::<Vec<Credential>>();
             if enrolled.is_empty() {
-                delete_group_memberships(&identity.id)
-                    .await
-                    .expect("Failed to delete role memberships");
-                for rs in &resource_servers {
-                    delete_role_memberships(api_client, &identity.id, &rs.id)
-                        .await
-                        .expect("Failed to delete role memberships");
-                }
                 IdentitiesService::new()
                     .build()
                     .await
@@ -201,14 +176,6 @@ pub async fn delete_norole_identities(api_client: &ApiClient) -> Result<(), BiEr
             }
 
             if !has_role {
-                delete_group_memberships(&identity.id)
-                    .await
-                    .expect("Failed to delete role memberships");
-                for rs in &resource_servers {
-                    delete_role_memberships(api_client, &identity.id, &rs.id)
-                        .await
-                        .expect("Failed to delete role memberships");
-                }
                 IdentitiesService::new()
                     .build()
                     .await

@@ -1,37 +1,8 @@
 use crate::beyond_identity::api::common::api_client::ApiClient;
-use crate::beyond_identity::api::common::service::GroupsService;
-use crate::beyond_identity::api::common::service::IdentitiesService;
-use crate::beyond_identity::api::groups::api::GroupsApi;
-use crate::beyond_identity::api::groups::types::DeleteMembersRequest;
-use crate::beyond_identity::api::identities::api::IdentitiesApi;
 use crate::beyond_identity::api::identities::types::Identity;
 use crate::beyond_identity::helper::enrollment::get_credentials_for_identity;
 use crate::beyond_identity::helper::enrollment::Credential;
 use crate::common::error::BiError;
-
-pub async fn delete_group_memberships(identity_id: &str) -> Result<(), BiError> {
-    let groups = IdentitiesService::new()
-        .build()
-        .await
-        .list_groups(identity_id, None)
-        .await?
-        .groups;
-
-    for group in groups {
-        GroupsService::new()
-            .build()
-            .await
-            .delete_members(
-                &group.id,
-                &DeleteMembersRequest {
-                    identity_ids: vec![identity_id.to_string()],
-                },
-            )
-            .await?;
-    }
-
-    Ok(())
-}
 
 pub async fn get_unenrolled_identities_from_group(
     api_client: &ApiClient,

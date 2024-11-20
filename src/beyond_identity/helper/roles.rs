@@ -3,50 +3,6 @@ use crate::{
     common::error::BiError,
 };
 
-pub async fn delete_role_memberships(
-    api_client: &ApiClient,
-    identity_id: &str,
-    resource_server_id: &str,
-) -> Result<(), BiError> {
-    let (tenant, realm) = match api_client.db.get_default_tenant_and_realm().await? {
-        Some((t, r)) => (t, r),
-        None => {
-            return Err(BiError::StringError(
-                "No default tenant/realm set".to_string(),
-            ))
-        }
-    };
-
-    let roles = fetch_role_memberships(api_client, identity_id, resource_server_id).await?;
-
-    for role in roles {
-        let url = format!(
-            "{}/v1/tenants/{}/realms/{}/resource-servers/{}/roles/{}:deleteMembers",
-            realm.api_base_url, tenant.id, realm.id, role.resource_server_id, role.id,
-        );
-
-        let response = api_client
-            .client
-            .post(&url)
-            .json(&serde_json::json!({
-                "group_ids": [],
-                "identity_ids": [identity_id]
-            }))
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            log::debug!("{} response status: {}", url, status);
-            let error_text = response.text().await?;
-            return Err(BiError::RequestError(status, error_text));
-        }
-
-        println!("Unassigned identity {} from role {}", identity_id, role.id);
-    }
-    Ok(())
-}
-
 pub async fn fetch_role_memberships(
     api_client: &ApiClient,
     identity_id: &str,

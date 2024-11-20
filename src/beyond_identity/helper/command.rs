@@ -3,12 +3,10 @@ use super::enrollment::{
     get_all_identities, get_send_email_payload, get_unenrolled_identities, select_group,
     select_identities, send_enrollment_email,
 };
-use super::groups::{delete_group_memberships, get_unenrolled_identities_from_group};
+use super::groups::get_unenrolled_identities_from_group;
 use super::identities::{
     delete_all_identities, delete_norole_identities, delete_unenrolled_identities,
 };
-use super::resource_servers::fetch_beyond_identity_resource_servers;
-use super::roles::delete_role_memberships;
 
 use crate::beyond_identity::api::common::api_client::ApiClient;
 use crate::beyond_identity::api::common::service::{GroupsService, IdentitiesService};
@@ -223,21 +221,6 @@ impl Executable for DeleteAllIdentities {
         }
 
         let selected_identities = select_identities(&identities);
-
-        let resource_servers = fetch_beyond_identity_resource_servers(&api_client)
-            .await
-            .expect("Failed to fetch resource servers");
-
-        for identity in &selected_identities {
-            delete_group_memberships(&identity.id)
-                .await
-                .expect("Failed to delete role memberships");
-            for rs in &resource_servers {
-                delete_role_memberships(&api_client, &identity.id, &rs.id)
-                    .await
-                    .expect("Failed to delete role memberships");
-            }
-        }
 
         for identity in &selected_identities {
             IdentitiesService::new()
