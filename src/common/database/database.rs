@@ -258,6 +258,18 @@ impl Database {
         Ok(())
     }
 
+    // Delete a token by tenant_id and realm_id
+    pub async fn delete_token(&self, tenant_id: &str, realm_id: &str) -> Result<(), BiError> {
+        query("DELETE FROM tokens WHERE tenant_id = ? AND realm_id = ?")
+            .bind(tenant_id)
+            .bind(realm_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| BiError::StringError(e.to_string()))?;
+
+        Ok(())
+    }
+
     // Get okta config from db
     pub async fn get_okta_config(&self) -> Result<Option<OktaConfig>, BiError> {
         self.get_config(OKTA_CONFIG_KEY).await

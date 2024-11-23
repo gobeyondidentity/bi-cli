@@ -6,9 +6,12 @@ use crate::common::database::Database;
 use crate::common::error::BiError;
 
 use http::Extensions;
+use http::StatusCode;
 use reqwest::{Request, Response};
 use reqwest_middleware::ClientWithMiddleware as Client;
-use reqwest_middleware::{ClientWithMiddleware, Middleware, Next, Result as MiddlewareResult};
+use reqwest_middleware::{
+    ClientWithMiddleware, Error, Middleware, Next, Result as MiddlewareResult,
+};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -43,16 +46,61 @@ impl Middleware for AuthorizationMiddleware {
         extensions: &mut Extensions,
         next: Next<'_>,
     ) -> MiddlewareResult<Response> {
-        let token = token(&self.db, &self.client, &self.tenant, &self.realm)
+        let fetched_token = token(&self.db, &self.client, &self.tenant, &self.realm)
             .await
             .map_err(|e| reqwest_middleware::Error::Middleware(e.into()))?;
 
         req.headers_mut().insert(
             reqwest::header::AUTHORIZATION,
-            format!("Bearer {}", token).parse().unwrap(),
+            format!("Bearer {}", fetched_token).parse().unwrap(),
         );
 
-        next.run(req, extensions).await
+        let mut response = next
+            .clone()
+            .run(req.try_clone().unwrap(), extensions)
+            .await?;
+
+        if response.status() == StatusCode::FORBIDDEN {
+            log::debug!("Received 403 Forbidden, attempting to refresh token and retry request.");
+
+            // Invalidate the current token
+            if let (Some(tenant), Some(realm)) = (&self.tenant, &self.realm) {
+                self.db
+                    .delete_token(&tenant.id, &realm.id)
+                    .await
+                    .map_err(|e| {
+                        reqwest_middleware::Error::Middleware(
+                            BiError::StringError(e.to_string()).into(),
+                        )
+                    })?;
+            }
+
+            // Fetch a new token
+            let new_token = token(&self.db, &self.client, &self.tenant, &self.realm)
+                .await
+                .map_err(|e| reqwest_middleware::Error::Middleware(e.into()))?;
+
+            // Retry the request with the new token
+            let mut new_req = req.try_clone().ok_or_else(|| {
+                Error::Middleware(anyhow::anyhow!(
+                    "Request object is not clonable. Are you passing a streaming body?".to_string()
+                ))
+            })?;
+            new_req.headers_mut().insert(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", new_token).parse().unwrap(),
+            );
+
+            response = next.run(new_req, extensions).await?;
+
+            if response.status() == StatusCode::FORBIDDEN {
+                log::error!(
+                    "Received 403 Forbidden after refreshing the token. This may indicate invalid credentials, insufficient permissions, or a server-side issue. Check the token, request headers, and server configuration."
+                );
+            }
+        }
+
+        Ok(response)
     }
 }
 
@@ -84,17 +132,11 @@ async fn token(
             .unwrap()
             .as_secs();
 
-        if token.expires_at >= 0 && (token.expires_at as u64) > current_time {
-            log::debug!("Using stored bearer token for all requests");
-            return Ok(token.access_token);
-        }
-    }
-
-    if let Some(token) = db.get_token(&tenant.id, &realm.id).await? {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        log::debug!(
+            "Current time: {}, stored token expires at: {}",
+            current_time,
+            token.expires_at
+        );
 
         if token.expires_at >= 0 && (token.expires_at as u64) > current_time {
             log::debug!("Using stored bearer token for all requests");
@@ -142,6 +184,12 @@ async fn token(
         .unwrap()
         .as_secs();
     let expires_at = current_time + token_response.expires_in;
+
+    log::debug!(
+        "Token expires in: {} seconds, setting expires_at to: {}",
+        token_response.expires_in,
+        expires_at
+    );
 
     let token = Token {
         access_token: token_response.access_token,
