@@ -249,12 +249,17 @@ async fn display(
         for (tenant, realm, result) in fetched_data {
             let (api_tenant, api_realm) = result?;
             let is_default = default_tenant.id == tenant.id && default_realm.id == realm.id;
-            let environment = match realm.api_base_url.split('.').last().unwrap_or_default() {
-                "run" => "[r]".to_string(),
-                "xyz" => "[s]".to_string(),
-                "dev" => "[d]".to_string(),
-                "com" => "".to_string(),
-                _ => "[?]".to_string(),
+            let environment = if realm.api_base_url.contains("localhost") {
+                "[l]".to_string()
+            } else {
+                match realm.api_base_url.split('.').last().unwrap_or_default() {
+                    "run" => "[r]".to_string(),
+                    "xyz" => "[s]".to_string(),
+                    "dev" => "[d]".to_string(),
+                    "net" => "[g]".to_string(),
+                    "com" => "".to_string(),
+                    _ => "[?]".to_string(),
+                }
             };
             display.push(RealmDisplay {
                 index: if is_default {
@@ -286,11 +291,16 @@ async fn display(
 
         for (_, realms) in tenants_with_realms.iter() {
             for realm in realms {
-                let row_color = match realm.api_base_url.split('.').last().unwrap_or_default() {
-                    "run" => color_rolling.clone(),
-                    "xyz" => color_staging.clone(),
-                    "dev" => color_development.clone(),
-                    _ => color_default.clone(),
+                let row_color = if realm.api_base_url.contains("localhost") {
+                    color_development.clone()
+                } else {
+                    match realm.api_base_url.split('.').last().unwrap_or_default() {
+                        "run" => color_rolling.clone(),
+                        "xyz" | "net" => color_staging.clone(),
+                        "dev" => color_development.clone(),
+                        "com" => color_default.clone(),
+                        _ => color_default.clone(),
+                    }
                 };
                 table.with(Colorization::exact([row_color], Rows::single(row_index)));
                 row_index += 1;
