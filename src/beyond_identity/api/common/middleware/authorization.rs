@@ -55,10 +55,14 @@ impl Middleware for AuthorizationMiddleware {
             format!("Bearer {}", fetched_token).parse().unwrap(),
         );
 
-        let mut response = next
-            .clone()
-            .run(req.try_clone().unwrap(), extensions)
-            .await?;
+        // Clone the request for potential retry
+        let mut req_for_retry = req.try_clone().ok_or_else(|| {
+            Error::Middleware(anyhow::anyhow!(
+                "Request object is not clonable. Are you passing a streaming body?".to_string()
+            ))
+        })?;
+
+        let mut response = next.clone().run(req, extensions).await?;
 
         if response.status() == StatusCode::FORBIDDEN {
             log::debug!("Received 403 Forbidden, attempting to refresh token and retry request.");
@@ -80,18 +84,12 @@ impl Middleware for AuthorizationMiddleware {
                 .await
                 .map_err(|e| reqwest_middleware::Error::Middleware(e.into()))?;
 
-            // Retry the request with the new token
-            let mut new_req = req.try_clone().ok_or_else(|| {
-                Error::Middleware(anyhow::anyhow!(
-                    "Request object is not clonable. Are you passing a streaming body?".to_string()
-                ))
-            })?;
-            new_req.headers_mut().insert(
+            req_for_retry.headers_mut().insert(
                 reqwest::header::AUTHORIZATION,
                 format!("Bearer {}", new_token).parse().unwrap(),
             );
 
-            response = next.run(new_req, extensions).await?;
+            response = next.run(req_for_retry, extensions).await?;
 
             if response.status() == StatusCode::FORBIDDEN {
                 log::error!(
