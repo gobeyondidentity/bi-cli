@@ -30,11 +30,11 @@ pub struct Realm {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ValueEnum)]
 pub enum Classification {
-    #[serde(rename = "SECURE_CUSTOMER", alias="Secure Customer")] 
+    #[serde(rename = "SECURE_CUSTOMER", alias = "Secure Customer")]
     #[clap(name = "SECURE_CUSTOMER")]
     SecureCustomer,
-    #[serde(rename = "SECURE_WORKFORCE", alias="Secure Workforce")]
 
+    #[serde(rename = "SECURE_WORKFORCE", alias = "Secure Workforce")]
     #[clap(name = "SECURE_WORKFORCE")]
     SecureWorkforce,
 }
