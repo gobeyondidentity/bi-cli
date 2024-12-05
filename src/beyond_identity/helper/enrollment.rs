@@ -331,6 +331,7 @@ pub async fn get_send_email_payload(api_client: &ApiClient) -> Result<Value, BiE
     let mut payload = json!({
         "job": {
             "delivery_method": "EMAIL",
+            "explicit_delete": false,
             "delivery_details": {
                 "template": template
             },
@@ -367,6 +368,7 @@ pub async fn get_send_email_payload(api_client: &ApiClient) -> Result<Value, BiE
         payload = json!({
             "job": {
                 "delivery_method": "EMAIL",
+                "explicit_delete": false,
                 "delivery_details": {
                     "template": template
                 },
