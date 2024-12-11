@@ -1,6 +1,7 @@
 use crate::beyond_identity::api;
 use crate::beyond_identity::api::common::service::{RealmsService, TenantsService};
 use crate::beyond_identity::api::realms::api::RealmsApi;
+use crate::beyond_identity::api::realms::types::Classification;
 use crate::beyond_identity::api::tenants::api::TenantsApi;
 use crate::common::database;
 use crate::common::database::Database;
@@ -210,6 +211,8 @@ struct RealmDisplay {
     realm_name: String,
     #[tabled(rename = "Realm ID")]
     realm_id: String,
+    #[tabled(rename = "Classification")]
+    classification: String,
 }
 
 async fn display(
@@ -271,6 +274,11 @@ async fn display(
                 tenant_id: tenant.id.clone(),
                 realm_name: api_realm.display_name.clone(),
                 realm_id: realm.id.clone(),
+                classification: match api_realm.classification {
+                    Some(Classification::SecureCustomer) => "Secure Customer".to_string(),
+                    Some(Classification::SecureWorkforce) => "Secure Workforce".to_string(),
+                    None => "Unknown".to_string(),
+                },
             });
 
             index += 1;

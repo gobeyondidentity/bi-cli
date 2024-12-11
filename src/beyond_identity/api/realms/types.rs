@@ -30,19 +30,17 @@ pub struct Realm {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ValueEnum)]
 pub enum Classification {
-    #[serde(rename = "SECURE_CUSTOMER", alias="Secure Customer")] 
+    #[serde(rename = "SECURE_CUSTOMER", alias = "Secure Customer")]
     #[clap(name = "SECURE_CUSTOMER")]
     SecureCustomer,
 
-    #[serde(rename = "SECURE_WORKFORCE", alias="Secure Workforce")]
+    #[serde(rename = "SECURE_WORKFORCE", alias = "Secure Workforce")]
     #[clap(name = "SECURE_WORKFORCE")]
     SecureWorkforce,
 }
 
 #[derive(Args, Clone, Debug, Serialize)]
 pub struct CreateRealmRequest {
-    #[clap(long)]
-    pub classification: Classification,
     #[clap(flatten)]
     pub realm: CreateRealm,
 }
@@ -51,6 +49,8 @@ pub struct CreateRealmRequest {
 pub struct CreateRealm {
     #[clap(long)]
     pub display_name: String,
+    #[clap(long)]
+    pub classification: Classification,
 }
 
 #[derive(Args, Clone, Debug, Serialize)]
