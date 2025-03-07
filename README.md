@@ -11,6 +11,7 @@ Official Beyond Identity command-line interface.
 - [macOS and Linux](#macos-and-linux)
   - [Install Script](#install-script)
   - [Manual Installation](#manual-installation-macos-and-linux)
+  - [nix](#nix)
 - [Windows](#windows)
   - [Using Scoop](#using-scoop)
   - [Manual Installation](#manual-installation-windows)
@@ -86,6 +87,28 @@ If you prefer to install `bi` manually:
   to confirm that `bi` is installed and accessible from your terminal.
 
 </details>
+
+#### Nix
+
+If you are a Nix user with flakes enabled, the CLI is exposed as an output of the flake here.
+For Linux or Darwin systems with aarch64 or x86-64 architectures, you can try out the CLI with
+`nix run`:
+
+```bash
+nix run github:gobeyondidentity/bi-cli -- --help
+```
+
+Or drop into a bash shell containing it:
+
+```bash
+nix develop 'github:gobeyondidentity/bi-cli#bi'
+```
+
+Finally, you can install it for your profile to always have it on your path with:
+
+```bash
+nix profile install github:gobeyondidentity/bi-cli
+```
 
 ### Windows
 
