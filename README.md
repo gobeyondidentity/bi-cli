@@ -160,6 +160,7 @@ For detailed usage instructions, see [Command Line Help](docs/CommandLineHelp.md
 
 
 ## Local Database Management
+The following are the locations of the local database
 
 `MacOs`
 
