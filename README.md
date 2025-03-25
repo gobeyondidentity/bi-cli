@@ -157,3 +157,24 @@ bi --version
 ## Usage
 
 For detailed usage instructions, see [Command Line Help](docs/CommandLineHelp.md).
+
+
+## Local Database Management
+
+`MacOs`
+
+```sh
+/Users/<localuser>/Library/Application Support/com.BeyondIdentity.bi
+```
+
+`Linux`
+
+```sh
+/home/<localuser>/.config/bi
+```
+
+`Windows`
+
+```sh
+C:\Users\<localuser>\AppData\Roaming\BeyondIdentity\bi
+```
