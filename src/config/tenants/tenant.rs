@@ -149,6 +149,11 @@ pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
 
     let tenants_with_realms = flatten(&tenants_with_realms)?;
 
+    if tenants_with_realms.is_empty() {
+        println!("No tenants found to delete.");
+        return Ok(());
+    }
+
     // Get user input for the selection
     print!("Enter the number of the tenant/realm to remove: ");
     io::stdout().flush().unwrap();
@@ -160,6 +165,27 @@ pub async fn delete_tenant_ui(db: &Database) -> Result<(), BiError> {
         Ok(num) if num > 0 && num <= tenants_with_realms.len() => {
             // Find selected tenant and realm
             let (tenant, realm) = &tenants_with_realms[num - 1];
+
+            // Check if this is the default tenant
+            let is_default = match db.get_default_tenant_and_realm().await? {
+                Some((default_tenant, default_realm)) => {
+                    default_tenant.id == tenant.id && default_realm.id == realm.id
+                }
+                None => false,
+            };
+
+            if is_default {
+                println!("Warning: You are about to delete the default tenant/realm.");
+                print!("Do you want to continue? (y/n): ");
+                io::stdout().flush().unwrap();
+                let mut confirm = String::new();
+                io::stdin().read_line(&mut confirm).unwrap();
+                if !confirm.trim().eq_ignore_ascii_case("y") {
+                    println!("Deletion cancelled.");
+                    return Ok(());
+                }
+            }
+
             match db.delete_tenant_realm_pair(&tenant.id, &realm.id).await {
                 Ok(_) => _ = display(db).await?,
                 Err(e) => println!("Error deleting tenant/realm: {}", e),
@@ -178,6 +204,11 @@ pub async fn set_default_tenant_ui(db: &Database) -> Result<(), BiError> {
     };
 
     let tenants_with_realms = flatten(&tenants_with_realms)?;
+
+    if tenants_with_realms.is_empty() {
+        println!("No valid tenants found to set as default.");
+        return Ok(());
+    }
 
     print!("Enter the number of the tenant to set as default: ");
     io::stdout().flush().unwrap();
@@ -225,14 +256,7 @@ async fn display(
         return Ok(None);
     } else {
         // Fetch the current default tenant and realm
-        let (default_tenant, default_realm) = match db.get_default_tenant_and_realm().await? {
-            Some((t, r)) => (t, r),
-            None => {
-                return Err(BiError::StringError(
-                    "No default tenant/realm set".to_string(),
-                ))
-            }
-        };
+        let default_tenant_realm = db.get_default_tenant_and_realm().await?;
 
         let fetched_data = join_all(tenants_with_realms.iter().flat_map(|(tenant, realms)| {
             realms.iter().map(move |realm| {
@@ -246,40 +270,71 @@ async fn display(
         }))
         .await;
 
+        // Track error states for later use
+        let error_states: Vec<bool> = fetched_data
+            .iter()
+            .map(|(_, _, result)| result.is_err())
+            .collect();
+
         let mut display = vec![];
         let mut index = 1;
+        let mut has_errors = false;
 
-        for (tenant, realm, result) in fetched_data {
-            let (api_tenant, api_realm) = result?;
-            let is_default = default_tenant.id == tenant.id && default_realm.id == realm.id;
-            let environment = if realm.api_base_url.contains("localhost") {
-                "[l]".to_string()
-            } else {
-                match realm.api_base_url.split('.').last().unwrap_or_default() {
-                    "run" => "[r]".to_string(),
-                    "xyz" => "[s]".to_string(),
-                    "dev" => "[d]".to_string(),
-                    "net" => "[g]".to_string(),
-                    "com" => "".to_string(),
-                    _ => "[?]".to_string(),
+        for (i, (tenant, realm, result)) in fetched_data.into_iter().enumerate() {
+            match result {
+                Ok((api_tenant, api_realm)) => {
+                    let is_default = match &default_tenant_realm {
+                        Some((default_tenant, default_realm)) => {
+                            default_tenant.id == tenant.id && default_realm.id == realm.id
+                        }
+                        None => false,
+                    };
+                    let environment = if realm.api_base_url.contains("localhost") {
+                        "[l]".to_string()
+                    } else {
+                        match realm.api_base_url.split('.').last().unwrap_or_default() {
+                            "run" => "[r]".to_string(),
+                            "xyz" => "[s]".to_string(),
+                            "dev" => "[d]".to_string(),
+                            "net" => "[g]".to_string(),
+                            "com" => "".to_string(),
+                            _ => "[?]".to_string(),
+                        }
+                    };
+                    display.push(RealmDisplay {
+                        index: if is_default {
+                            format!("{}* {}", index, environment)
+                        } else {
+                            format!("{}  {}", index, environment)
+                        },
+                        tenant_name: api_tenant.display_name.clone(),
+                        tenant_id: tenant.id.clone(),
+                        realm_name: api_realm.display_name.clone(),
+                        realm_id: realm.id.clone(),
+                        classification: match api_realm.classification {
+                            Some(Classification::SecureCustomer) => "Secure Customer".to_string(),
+                            Some(Classification::SecureWorkforce) => "Secure Workforce".to_string(),
+                            None => "Unknown".to_string(),
+                        },
+                    });
                 }
-            };
-            display.push(RealmDisplay {
-                index: if is_default {
-                    format!("{}* {}", index, environment)
-                } else {
-                    format!("{}  {}", index, environment)
-                },
-                tenant_name: api_tenant.display_name.clone(),
-                tenant_id: tenant.id.clone(),
-                realm_name: api_realm.display_name.clone(),
-                realm_id: realm.id.clone(),
-                classification: match api_realm.classification {
-                    Some(Classification::SecureCustomer) => "Secure Customer".to_string(),
-                    Some(Classification::SecureWorkforce) => "Secure Workforce".to_string(),
-                    None => "Unknown".to_string(),
-                },
-            });
+                Err(e) => {
+                    // Handle API error for this tenant/realm
+                    has_errors = true;
+                    display.push(RealmDisplay {
+                        index: format!("{}  [!]", index),
+                        tenant_name: "[ERROR]".to_string(),
+                        tenant_id: tenant.id.clone(),
+                        realm_name: "[ERROR]".to_string(),
+                        realm_id: realm.id.clone(),
+                        classification: "Unknown".to_string(),
+                    });
+                    eprintln!(
+                        "Error retrieving tenant/realm {}/{}: {}",
+                        tenant.id, realm.id, e
+                    );
+                }
+            }
 
             index += 1;
         }
@@ -294,12 +349,16 @@ async fn display(
         let color_staging = Color::BG_GREEN | Color::FG_BLACK;
         let color_development = Color::BG_RED | Color::FG_BLACK;
         let color_default = Color::default();
+        let color_error = Color::BG_RED | Color::FG_WHITE;
 
         let mut row_index = 1; // Start from 1 to skip header row
+        let mut error_index = 0;
 
         for (_, realms) in tenants_with_realms.iter() {
             for realm in realms {
-                let row_color = if realm.api_base_url.contains("localhost") {
+                let row_color = if error_states[error_index] {
+                    color_error.clone()
+                } else if realm.api_base_url.contains("localhost") {
                     color_development.clone()
                 } else {
                     match realm.api_base_url.split('.').last().unwrap_or_default() {
@@ -312,6 +371,7 @@ async fn display(
                 };
                 table.with(Colorization::exact([row_color], Rows::single(row_index)));
                 row_index += 1;
+                error_index += 1;
             }
         }
 
